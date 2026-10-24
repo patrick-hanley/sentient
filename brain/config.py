@@ -32,7 +32,7 @@ SAMPLE_RATE = 16000
 # aruco = tag id on the toy's chest (tools/make_aruco_sheet.py).
 # pitch > 1 raises the voice (resample trick), length < 1 speaks faster.
 TOYS = {
-    "pip": dict(name="Pip", aruco=1, voice="en_US-amy-medium", speaker=None, length=0.9, pitch=1.15,
+    "pip": dict(name="Pip", aruco=1, voice="en_GB-alba-medium", speaker=None, length=0.9, pitch=1.25,
                 persona="curious and bouncy; asks the child short questions; easily amazed"),
     "sage": dict(name="Sage", aruco=2, voice="en_GB-alba-medium", speaker=None, length=1.08, pitch=1.0,
                  persona="calm and careful; explains things simply; the reader who can look at books and pictures"),
