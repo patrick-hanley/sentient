@@ -30,7 +30,7 @@ SAMPLE_RATE = 16000
 # Speech sent to the Atoms: "ulaw" = 8-bit G.711 (half the bytes of "pcm"). PLAY_RATE 8000 halves it again
 # (telephone quality; fine on the tiny speaker if the network is very slow).
 PLAY_CODEC = "ulaw"
-PLAY_RATE = 8000             # 8000 for the phone hotspot (~250 ms RTT); 16000 on a local brain AP
+PLAY_RATE = 16000            # 16000 on a local AP (Mac hotspot / Pi / Jetson); 8000 on a phone hotspot (~250 ms RTT)
 
 # ---- toys ----
 # aruco = tag id on the toy's chest (tools/make_aruco_sheet.py).

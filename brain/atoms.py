@@ -97,11 +97,18 @@ class AtomHub:
                 data, (ip, _) = self.sock.recvfrom(2048)
             except OSError:
                 continue
+            try:
+                self._handle(data, ip)
+            except Exception:  # noqa: BLE001 — one bad packet must never kill the ears
+                log.exception("bad packet from %s: %r", ip, data[:40])
+
+    def _handle(self, data: bytes, ip: str):
+        if True:
             now = time.time()
             if data[:1] == b"M":
                 a = self.by_ip.get(ip)
                 if a is None or len(data) < 5:
-                    continue
+                    return
                 pcm = np.frombuffer(data[3:], "<i2")
                 a.last_seen, a.pkts = now, a.pkts + 1
                 a.rms = 0.8 * a.rms + 0.2 * float(np.sqrt(np.mean(pcm.astype(np.float32) ** 2)))

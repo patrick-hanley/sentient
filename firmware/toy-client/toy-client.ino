@@ -35,7 +35,7 @@
 #include "img_converters.h"
 
 // ---------- Wi-Fi: secrets.h (git-ignored; copy secrets.example.h) ----------
-struct WifiCred { const char* ssid; const char* pass; };
+struct WifiCred { const char* ssid; const char* pass; int channel = 0; };  // channel pins one of several same-named APs
 #include "secrets.h"
 static constexpr uint16_t BRAIN_PORT = 5005;
 static constexpr uint16_t ATOM_PORT  = 5006;
@@ -231,13 +231,38 @@ static void start_http() {
 }
 
 // ---------- Wi-Fi ----------
+static int scan_n = 0;
+
+static void scan_wifi() {
+  WiFi.scanDelete();
+  int n = scan_n = WiFi.scanNetworks();
+  Serial.printf("WiFi scan: %d networks (2.4 GHz only)\n", n);
+  for (int i = 0; i < n && i < 15; ++i)
+    Serial.printf("  %-28s ch%-2d %4d dBm auth=%d\n", WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), (int)WiFi.encryptionType(i));
+}
+
+// BSSID of `ssid` on `channel` from the last scan (nullptr = not seen)
+static const uint8_t* find_bssid(const char* ssid, int channel) {
+  for (int i = 0; i < scan_n; ++i)
+    if (WiFi.SSID(i) == ssid && WiFi.channel(i) == channel) return WiFi.BSSID(i);
+  return nullptr;
+}
+
 static void connect_wifi() {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);   // modem sleep adds 100+ ms jitter to UDP audio
+  scan_wifi();
   while (true) {
     for (const auto& w : WIFI_LIST) {
-      Serial.printf("WiFi: trying %s", w.ssid);
-      WiFi.begin(w.ssid, w.pass);
+      if (w.channel) {
+        const uint8_t* bssid = find_bssid(w.ssid, w.channel);
+        if (!bssid) { Serial.printf("WiFi: %s on ch%d not seen\n", w.ssid, w.channel); continue; }
+        Serial.printf("WiFi: trying %s (ch%d)", w.ssid, w.channel);
+        WiFi.begin(w.ssid, w.pass, w.channel, bssid);
+      } else {
+        Serial.printf("WiFi: trying %s", w.ssid);
+        WiFi.begin(w.ssid, w.pass);
+      }
       for (int i = 0; i < 20 && WiFi.status() != WL_CONNECTED; ++i) { delay(500); Serial.print("."); }
       if (WiFi.status() == WL_CONNECTED) {
         Serial.printf("\nWiFi OK: %s  IP %s\n", w.ssid, WiFi.localIP().toString().c_str());
@@ -247,12 +272,7 @@ static void connect_wifi() {
       WiFi.disconnect(true);
       delay(200);
     }
-    // Nothing joined: show what 2.4 GHz networks this Atom can actually see.
-    int n = WiFi.scanNetworks();
-    Serial.printf("WiFi scan: %d networks (2.4 GHz only)\n", n);
-    for (int i = 0; i < n && i < 15; ++i)
-      Serial.printf("  %-28s ch%-2d %4d dBm auth=%d\n", WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), (int)WiFi.encryptionType(i));
-    WiFi.scanDelete();
+    scan_wifi();   // nothing joined: show what this Atom can actually see
   }
 }
 
