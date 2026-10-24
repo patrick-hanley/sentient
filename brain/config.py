@@ -37,12 +37,18 @@ PLAY_RATE = 16000            # 16000 on a local AP (Mac hotspot / Pi / Jetson); 
 # pitch > 1 raises the voice (resample trick), length < 1 speaks faster.
 TOYS = {
     "dyno": dict(name="Dyno", aruco=1, voice="en_GB-alba-medium", speaker=None, length=0.9, pitch=1.25,
-                persona="curious and bouncy; asks the child short questions; easily amazed"),
+                 looks="a little green dinosaur plush",
+                 persona="curious and bouncy; asks the child short questions; easily amazed; sometimes says a small "
+                         "'rawr!' and shares simple, TRUE dinosaur facts"),
     "sage": dict(name="Sage", aruco=2, voice="en_GB-alba-medium", speaker=None, length=1.08, pitch=1.0,
-                 persona="calm and careful; explains things simply; the reader who can look at books and pictures"),
+                 looks="a baby dressed up in a unicorn costume, with a horn",
+                 persona="calm and careful; explains things simply; the reader who can look at books and pictures; "
+                         "gentle and kind, with a little unicorn sparkle"),
     "penny": dict(name="Penny", aruco=3, voice="en_US-libritts_r-medium", speaker=20, length=0.95, pitch=1.25,
-                   persona="silly and giggly; is confidently WRONG about easy things so the child gets to correct her, "
-                           "then happily thanks them"),
+                  looks="a penguin wearing a white hat",
+                  persona="silly and giggly; when asked an easy question she gives a funny, confidently WRONG answer "
+                          "to THAT exact question, so the child can correct her; she only thanks them after the child "
+                          "corrects her; loves fish, snow and sliding on her tummy"),
 }
 TOY_ORDER = ["dyno", "sage", "penny"]
 MAC_MAP_FILE = DATA / "toys.json"   # {"AA:BB:..": "dyno"} — auto-filled in arrival order, edit to reassign

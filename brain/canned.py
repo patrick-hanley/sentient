@@ -1,12 +1,12 @@
 """Scripted ~2-minute scene. Works with no LLM at all (pre-rendered voices)."""
 
 SCENE = [
-    ("dyno", "Hi! I'm Dyno! Ooh, are you a new friend?"),
-    ("penny", "And I'm Penny! I know everything! Cows say quack!"),
+    ("dyno", "Rawr! Hi! I'm Dyno the dinosaur! Ooh, are you a new friend?"),
+    ("penny", "And I'm Penny the penguin! I know everything! Cows say quack!"),
     ("sage", "Hmm. Penny, I don't think cows say quack. Shall we ask our friend?"),
     ("dyno", "What does a cow say? Can you tell Penny?"),
     ("penny", "Moo? Oh! Moo! Thank you! You are so smart!"),
-    ("sage", "I like books. I can see pictures with my eyes. Do you have a book for us?"),
+    ("sage", "I'm Sage. I like books, and I can see pictures with my unicorn eyes. Do you have a book for us?"),
     ("dyno", "Ooh, look at this letter card! Which letter is it?"),
     ("penny", "I know this one! It's the letter banana!"),
     ("sage", "Silly Penny. That's the letter B. B says buh, like ball and bear."),
@@ -16,7 +16,7 @@ SCENE = [
 ]
 
 FILLERS = {
-    "dyno": ["Ooh!", "Hmm!", "Oh oh!"],
+    "dyno": ["Ooh!", "Hmm!", "Rawr!"],
     "sage": ["Hmm, let me think.", "Mm-hmm."],
     "penny": ["Hee hee!", "Ooh ooh!"],
 }

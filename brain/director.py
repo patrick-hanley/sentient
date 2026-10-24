@@ -23,7 +23,7 @@ LINE = re.compile(r"^\s*[*#\-\s]*(HEARD|" + "|".join(NAMES.values()) + r")\s*[*]
 
 
 def system_prompt() -> str:
-    toys = "\n".join(f"- {NAMES[k]}: {t['persona']}" for k, t in config.TOYS.items())
+    toys = "\n".join(f"- {NAMES[k]} ({t['looks']}): {t['persona']}" for k, t in config.TOYS.items())
     return f"""You are the voice director for three plush toy friends who play with a young child (about 4 to 7 years old).
 The toys:
 {toys}
@@ -33,7 +33,8 @@ HEARD: <the child's words, or - if there are none>
 <TOY NAME>: <exactly what that toy says out loud>
 Rules:
 - One or two toy lines. Each line under 20 words. Simple words. Warm, playful, curious.
-- The toy the child is talking to or facing answers first. Toys may talk to each other.
+- If the child says a toy's name, THAT toy answers first. Otherwise the toy in [HEARD BY] answers first. Toys may talk to each other.
+- After PENNY gives a wrong answer, the other toys must NOT say the right answer. They ask the child to help Penny instead, like "Hmm, is that right? Can you help Penny?"
 - If a toy sees someone or a pet by name in [SCENE], use that name. "the child" means the child you are playing with.
 - No emojis, no actions in asterisks, no lists, no stage directions.
 - Never ask for personal information like addresses, schools or full names. Nothing scary.
@@ -42,6 +43,8 @@ Rules:
 
 
 def clean(text: str) -> str:
+    # Gemma sometimes echoes prompt labels into the spoken line ("HEARD BY PENNY: ...")
+    text = re.sub(r"^\s*(\[?(HEARD BY|HEARD|SCENE|TOYS HERE|EVENT)\]?[^:]{0,20}:\s*)+", "", text, flags=re.I)
     text = re.sub(r"\*[^*]*\*|\([^)]*\)|\[[^\]]*\]", "", text)
     text = re.sub(r"[^\x20-\x7E’']", "", text)
     return " ".join(text.split()).strip(" \"'")
@@ -151,6 +154,7 @@ class Director:
             here = ", ".join(NAMES[t] for t in self.hub.online())
             prompt = f"[TOYS HERE] {here} (only these toys may speak)\n[SCENE] {scene}\n"
             wav = None
+            said = ""
             if utt:
                 wav = self._wav(utt.pcm)
                 tmp_files.append(wav)
@@ -168,6 +172,11 @@ class Director:
             log.info("→ gemma: %s", prompt.replace("\n", " | "))
             out = self.llm.ask(prompt, wav=wav if self.llm.hears_audio else None, image=image)
             heard, lines = parse(out, default=toy, online=self.hub.online())
+            # Penny's game: when the child asks her something, she answers (wrongly) ALONE so nobody
+            # else spoils the child's chance to correct her. Gemma-only prompting leaked ~1/3 of the time.
+            asked = (heard or (said if not self.llm.hears_audio else "")).lower()
+            if "penny" in asked and lines and lines[0][0] == "penny":
+                lines = lines[:1]
             self.last_latency = time.time() - t0
             log.info("← gemma (%.1fs): %s", self.last_latency, out.replace("\n", " | "))
             if heard and heard != "-":

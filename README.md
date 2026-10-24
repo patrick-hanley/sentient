@@ -1,6 +1,7 @@
 # Sentient Toys
 
-Three plush toys — **Dyno** (curious), **Sage** (the reader), **Penny** (silly, confidently wrong) — that
+Three plush toys — **Dyno** (a curious green dinosaur), **Sage** (a baby in a unicorn costume, the reader),
+**Penny** (a silly penguin in a white hat, confidently wrong) — that
 listen hands-free, see who they're looking at, and talk with a child. Built at the
 [Google Gemma Hardware Hackathon](https://www.agihouse.org/events/the-google-gemma-hardware-hackathon),
 AGI House, Oct 24 2026. Everything runs on-device; no cloud anywhere in the loop.
