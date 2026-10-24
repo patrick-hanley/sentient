@@ -36,6 +36,7 @@ button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}<
 <h2>Sentient toys &mdash; Gemma 4 on-device brain <small id=be></small></h2>
 <div class=row id=toys></div>
 <p><b>Heard:</b> <span id=heard></span><br><b>Said:</b> <span id=said></span> <small id=lat></small></p>
+<details><summary>Latency stages (milliseconds)</summary><pre id=stages></pre></details>
 <button onclick="post('canned')">Canned scene</button><button onclick="post('mute')">Mute mics</button>
 <button onclick="post('idle')">Idle chatter</button>
 <span>Say: <select id=st><option>dyno<option>sage<option>penny</select><input id=sx size=30>
@@ -55,7 +56,9 @@ document.getElementById('l_'+t).style.width=Math.min(100,x.level/30)+'%';documen
 document.getElementById('b_'+t).className='toy'+(s.talking==t?' talk':'');
 if(x.online)document.getElementById('i_'+t).src='/frame/'+t+'.jpg?'+Date.now()}
 heard.textContent=s.heard;said.textContent=s.said.map(l=>l[0].toUpperCase()+': '+l[1]).join('  /  ');
-lat.textContent=s.latency?('('+s.latency.toFixed(1)+'s)'):'';flags.textContent=`muted=${s.muted} idle=${s.idle} canned/paused=${s.paused}`}
+lat.textContent=s.latency?('reply upload after '+s.latency.toFixed(2)+'s; speaker onset unmeasured'):'';
+stages.textContent=JSON.stringify(s.latency_breakdown,null,2);
+flags.textContent=`profile=${s.latency_profile} device=${s.device} muted=${s.muted} idle=${s.idle} canned/paused=${s.paused}`}
 setInterval(tick,700);tick();
 </script></body></html>"""
 
@@ -84,7 +87,9 @@ def make_handler(hub, eyes, director, rec, voices):
                 online = hub.online()
                 st = {"backend": director.llm.name, "muted": hub.force_mute, "idle": director.idle_on,
                       "paused": director.paused, "talking": hub.talking, "heard": director.last_heard,
-                      "said": director.last_lines, "latency": director.last_latency, "toys": {}}
+                      "said": director.last_lines, "latency": director.last_latency,
+                      "latency_breakdown": director.latency_state(), "latency_profile": config.LATENCY_PROFILE,
+                      "device": getattr(director.llm, "device", "server-configured"), "toys": {}}
                 for t in config.TOY_ORDER:
                     a = hub.atoms.get(t)
                     st["toys"][t] = {"online": t in online, "ip": a.ip if a else "", "cam": bool(a and a.cam),
@@ -157,11 +162,14 @@ def selftest(args):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--backend", default="auto", choices=["auto", "litert", "llamacpp"])
+    ap.add_argument("--backend", default="auto", choices=["auto", "litert", "llamacpp", "geniex"])
     ap.add_argument("--cpu", action="store_true", help="LiteRT on CPU only (Pi 5)")
+    ap.add_argument("--latency-profile", choices=["responsive", "patient"], default="responsive",
+                    help="responsive: 500ms endpoint + streaming; patient: 700ms endpoint and fillers")
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("-v", action="store_true")
     args = ap.parse_args()
+    config.apply_latency_profile(args.latency_profile)
     logging.basicConfig(level=logging.DEBUG if args.v else logging.INFO,
                         format="%(asctime)s %(name)-10s %(message)s", datefmt="%H:%M:%S")
     if args.selftest:

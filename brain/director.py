@@ -13,6 +13,8 @@ import wave
 
 from . import canned, config
 from .vad import arbitrate, normalize
+from .latency import TurnTrace
+from .pipeline import SpeechPipeline
 
 log = logging.getLogger("director")
 NAMES = {k: t["name"].upper() for k, t in config.TOYS.items()}
@@ -72,6 +74,74 @@ def parse(out: str, default: str, online=None) -> tuple[str, list[tuple[str, str
     return heard, lines[: config.MAX_LINES]
 
 
+class ReplyLines:
+    """Emit only complete labelled lines after HEARD, never raw token fragments.
+
+    Reasoning is disabled at the backend; explicit leaked thought blocks are also
+    skipped here. A missing HEARD header falls back to labelled lines at EOF.
+    """
+    def __init__(self, online, on_line, on_heard):
+        self.online, self.on_line, self.on_heard = set(online), on_line, on_heard
+        self.buffer, self.candidates = "", []
+        self.header, self.closed, self.in_thought, self.count = False, False, False, 0
+        self.by_name = {value: key for key, value in NAMES.items()}
+
+    def feed(self, delta):
+        self.buffer += delta
+        if len(self.buffer) > 16384:
+            raise ValueError("Model output line is too long")
+        while "\n" in self.buffer:
+            line, self.buffer = self.buffer.split("\n", 1)
+            self._line(line)
+
+    def _line(self, raw):
+        if self.closed:
+            return
+        # Tags can straddle token chunks, since this runs on completed lines.
+        while True:
+            if self.in_thought:
+                end = re.search(r"</(?:think|analysis)>", raw, re.I)
+                if not end:
+                    return
+                raw, self.in_thought = raw[end.end():], False
+            start = re.search(r"<(?:think|analysis)>", raw, re.I)
+            if not start:
+                break
+            raw, self.in_thought = raw[start.end():], True
+        match = LINE.match(raw)
+        if not match:
+            return
+        who, text = match.group(1).upper(), clean(match.group(2))
+        if who == "HEARD":
+            if self.count:  # do not mix a second drafted response into speech
+                self.closed = True
+                return
+            self.header = True
+            self.candidates.clear()
+            self.on_heard(text)
+        elif who in self.by_name and text:
+            item = (self.by_name[who], text)
+            if self.header:
+                self._emit(*item)
+            else:
+                self.candidates.append(item)
+
+    def _emit(self, toy, text):
+        if toy in self.online and self.count < config.MAX_LINES:
+            self.on_line(toy, text)
+            self.count += 1
+            if self.count >= config.MAX_LINES:
+                self.closed = True
+
+    def finish(self):
+        if self.buffer:
+            self._line(self.buffer)
+            self.buffer = ""
+        if not self.header and not self.in_thought:
+            for toy, text in self.candidates:
+                self._emit(toy, text)
+
+
 class Director:
     def __init__(self, hub, voices, perceiver, backend, segmenters):
         self.hub, self.voices, self.eyes, self.llm, self.segs = hub, voices, perceiver, backend, segmenters
@@ -84,6 +154,13 @@ class Director:
         self.last_heard = ""          # dashboard only; never written to disk
         self.last_lines: list = []
         self.last_latency = 0.0
+        self._turn_lock = threading.Lock()
+        self.active_trace = None
+        self.last_trace = {}
+
+    def latency_state(self):
+        trace = self.active_trace
+        return trace.snapshot() if trace else self.last_trace
 
     def start(self):
         threading.Thread(target=self._loop, daemon=True, name="director").start()
@@ -108,7 +185,7 @@ class Director:
                 continue
             if self.paused:
                 continue
-            u = arbitrate(u, self.utter_q)
+            u = arbitrate(u, self.utter_q, expected_toys=self.hub.online())
             log.info("utterance: %s %.1fs rms=%.0f", u.toy, len(u.pcm) / config.SAMPLE_RATE, u.rms)
             self._turn(utt=u)
 
@@ -135,23 +212,39 @@ class Director:
         return f"Nobody has talked for a while. {NAMES[a]} and {NAMES[b]} chat about something fun to invite the child to play."
 
     def _turn(self, utt=None, event=None):
+        if not self._turn_lock.acquire(blocking=False):
+            return
+        if self.paused or not self.hub.online():
+            self._turn_lock.release()
+            return
         self.busy = True
-        t0 = time.time()
+        self.hub.response_active.set()
+        origin = utt.last_voiced_received if utt else None
+        trace = TurnTrace(origin, ("speech" if origin is not None else "speech_uninstrumented") if utt else "event")
+        self.active_trace = trace
+        if utt and utt.emitted is not None:
+            trace.mark("utterance_ready_ms", utt.emitted)
+        trace.mark("turn_started_ms")
+        self.last_latency, self.last_lines = 0., []
         tmp_files = []
         filler = None
+        pipeline = None
+        status = "ok"
         try:
-            toy = utt.toy if utt else self.hub.online()[0]
-            if utt:
+            online = self.hub.online()
+            toy = utt.toy if utt and utt.toy in online else online[0]
+            if utt and config.PLAY_FILLERS:
                 f = random.choice(canned.FILLERS.get(toy, ["Hmm!"]))
                 filler = threading.Thread(target=self.hub.play, args=(toy, self.voices.render(toy, f)), daemon=True)
                 filler.start()
             scene = self.eyes.scene_text()
             image = None
             v = self.eyes.views.get(toy)
-            if v and v.jpeg and (config.VISION_MODE == "always" or (config.VISION_MODE == "sage" and toy == "sage")):
+            if (v and v.jpeg and 0 <= time.time() - v.ts <= config.VISION_MAX_AGE_S
+                    and (config.VISION_MODE == "always" or (config.VISION_MODE == "sage" and toy == "sage"))):
                 image = self._tmp(v.jpeg, ".jpg")
                 tmp_files.append(image)
-            here = ", ".join(NAMES[t] for t in self.hub.online())
+            here = ", ".join(NAMES[t] for t in online)
             prompt = f"[TOYS HERE] {here} (only these toys may speak)\n[SCENE] {scene}\n"
             wav = None
             said = ""
@@ -162,50 +255,95 @@ class Director:
                 if self.llm.hears_audio:
                     prompt += "The child just spoke (audio attached). Reply."
                 else:
-                    said = self.llm.transcribe(wav)
+                    with trace.span("stt_ms"):
+                        said = self.llm.transcribe(wav)
+                    trace.mark("stt_done_ms")
                     if re.sub(r"[^a-z ]", "", said.lower()).strip() in HALLUCINATIONS:
                         log.info("ignored non-speech (whisper: %r)", said)
+                        status = "ignored_non_speech"
                         return
+                    self.last_heard = said
                     prompt += f'The child said: "{said}"\nReply.'
             else:
                 prompt += f"[EVENT] {event}"
             log.info("→ gemma: %s", prompt.replace("\n", " | "))
-            out = self.llm.ask(prompt, wav=wav if self.llm.hears_audio else None, image=image)
-            heard, lines = parse(out, default=toy, online=self.hub.online())
-            # Penny's game: when the child asks her something, she answers (wrongly) ALONE so nobody
-            # else spoils the child's chance to correct her. Gemma-only prompting leaked ~1/3 of the time.
-            asked = (heard or (said if not self.llm.hears_audio else "")).lower()
-            if "penny" in asked and lines and lines[0][0] == "penny":
-                lines = lines[:1]
-            self.last_latency = time.time() - t0
-            log.info("← gemma (%.1fs): %s", self.last_latency, out.replace("\n", " | "))
-            if heard and heard != "-":
-                self.last_heard = heard
-            for f in tmp_files:   # no audio/images kept once Gemma has them
-                os.unlink(f)
-            tmp_files = []
-            if filler:
-                filler.join()
-            self.last_lines = lines
-            for who, text in lines:
-                if who in self.hub.online():
-                    self.hub.play(who, self.voices.render(who, text))
+
+            def dispatched(who, text):
+                self.last_lines.append((who, text))
+                self.last_latency = trace.snapshot()["milestones_ms"]["first_audio_post_ms"] / 1000
+
+            pipeline = SpeechPipeline(self.hub, self.voices, trace, dispatched,
+                                      before_play=filler.join if filler else None)
+            heard_text, queued_toys = "", []
+
+            def line_ready(who, text):
+                # Preserve Penny's game: let the child correct her before another toy speaks.
+                asked = (heard_text or (said if not self.llm.hears_audio else "")).lower()
+                if queued_toys and queued_toys[0] == "penny" and "penny" in asked:
+                    return
+                queued_toys.append(who)
+                trace.mark("first_line_ready_ms")
+                pipeline.submit(who, text)
+
+            def heard(text):
+                nonlocal heard_text
+                heard_text = text
+                if text and text != "-":
+                    self.last_heard = text
+
+            parser = ReplyLines(online, line_ready, heard)
+            kwargs = dict(wav=wav if self.llm.hears_audio else None, image=image)
+            stream = getattr(self.llm, "stream", None)
+            with trace.span("llm_ms"):
+                chunks = stream(prompt, **kwargs) if stream else iter([self.llm.ask(prompt, **kwargs)])
+                try:
+                    for delta in chunks:
+                        if delta:
+                            trace.mark("first_model_text_ms")
+                            parser.feed(delta)
+                    parser.finish()
+                finally:
+                    close = getattr(chunks, "close", None)
+                    if close:
+                        close()
+            trace.mark("model_done_ms")
+            if not parser.count:
+                raise ValueError("Model produced no labelled line for an online toy")
+            pipeline.finish()
         except Exception:  # noqa: BLE001
+            status = "failed"
             log.exception("turn failed")
         finally:
+            if pipeline:
+                try:
+                    pipeline.finish()
+                except Exception:
+                    status = "failed"
+                    log.exception("speech output failed")
+            if filler:
+                filler.join()
             for f in tmp_files:
                 try:
                     os.unlink(f)
                 except OSError:
                     pass
             self._flush()
+            self.hub.response_active.clear()
             self.busy = False
             self.last_activity = time.time()
+            trace.finish(status)
+            self.last_trace = trace.snapshot()
+            self.active_trace = None
+            self._turn_lock.release()
+            log.info("latency: %s", self.last_trace)
 
     def _flush(self):
         """Drop speech captured while we were busy (it is usually toy echo or stale)."""
-        while not self.utter_q.empty():
-            self.utter_q.get_nowait()
+        while True:
+            try:
+                self.utter_q.get_nowait()
+            except queue.Empty:
+                break
         for s in self.segs.values():
             s.reset()
 
@@ -231,9 +369,10 @@ class Director:
         return path
 
     def run_canned(self):
-        if self.paused:
+        if not self._turn_lock.acquire(blocking=False):
             return
         self.paused = True
+        self.hub.response_active.set()
         log.info("canned scene start")
         try:
             for toy, text in canned.SCENE:
@@ -244,3 +383,5 @@ class Director:
             self._flush()
             self.paused = False
             self.last_activity = time.time()
+            self.hub.response_active.clear()
+            self._turn_lock.release()

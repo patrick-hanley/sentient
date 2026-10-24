@@ -20,6 +20,7 @@ AtomS3R-CAM + Voice Base (x3, same firmware)        Brain (Jetson Orin Nano / Ra
 |---|---|
 | `firmware/toy-client/` | Arduino sketch for all three Atoms (M5AtomS3R, OPI PSRAM, USB CDC on boot). Copy `secrets.example.h` → `secrets.h`. |
 | `brain/` | `python -m brain.main` — VAD, perception, director, LLM backends, Piper, dashboard on `:8080`. |
+| `LATENCY.md` | Streaming replies, latency profiles, timings, and VENTUNO Q / GenieX deployment. |
 | `tools/fetch_offline.sh` | Downloads models, voices and aarch64 wheelhouses into `offline/` (not committed). |
 | `tools/setup_brain.sh` | On the Pi/Jetson: offline install, model copy, `sentient-brain` hotspot. |
 | `tools/atom_probe.py` | Mac-side Atom test: discovery, camera, mic level, playback. |

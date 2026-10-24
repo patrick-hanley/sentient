@@ -66,6 +66,8 @@ class AtomHub:
         self.force_mute = False
         self.talking: str | None = None
         self._play_lock = threading.Lock()
+        self.response_active = threading.Event()
+        self._http = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(("0.0.0.0", config.BRAIN_PORT))
@@ -137,20 +139,25 @@ class AtomHub:
 
     # ---------- HTTP ----------
     def capture(self, toy: str, timeout: float = 3.0) -> bytes | None:
+        if config.PAUSE_CAPTURE_DURING_TURN and self.response_active.is_set():
+            return None
         a = self.atoms.get(toy)
         if not a or not a.cam:
             return None
         try:
-            return urllib.request.urlopen(f"http://{a.ip}/capture", timeout=timeout).read()
+            with self._http.open(f"http://{a.ip}/capture", timeout=timeout) as response:
+                return response.read()
         except (urllib.error.URLError, OSError, TimeoutError):
             return None
 
-    def play(self, toy: str, pcm: bytes) -> float:
+    def play(self, toy: str, pcm: bytes, *, on_dispatch=None, raise_on_error=False) -> float:
         """Blocking: sends speech to `toy`, returns after it has finished playing."""
         a = self.atoms.get(toy)
         dur = len(pcm) / 2 / config.SAMPLE_RATE
         if not a or not pcm:
             log.warning("play: %s offline — line dropped", toy)
+            if raise_on_error:
+                raise RuntimeError(f"{toy} is offline or its audio is empty")
             return 0.0
         with self._play_lock:
             self.talking = toy
@@ -161,12 +168,17 @@ class AtomHub:
                 body, query = encode_for_atom(pcm)
                 req = urllib.request.Request(f"http://{a.ip}/play?{query}", data=body, method="POST",
                                              headers={"Content-Type": "application/octet-stream"})
-                t0 = time.time()
-                urllib.request.urlopen(req, timeout=15 + dur).read()
+                t0 = time.monotonic()
+                if on_dispatch:
+                    on_dispatch()
+                with self._http.open(req, timeout=15 + dur) as response:
+                    response.read()
                 log.info("play %s: %.1fs audio (%d KB %s), done after %.1fs (%.1fs network/switch overhead)",
-                         toy, dur, len(body) // 1024, query, time.time() - t0, time.time() - t0 - dur)
+                         toy, dur, len(body) // 1024, query, time.monotonic() - t0, time.monotonic() - t0 - dur)
             except (urllib.error.URLError, OSError, TimeoutError) as e:
                 log.warning("play to %s failed: %s", toy, e)
+                if raise_on_error:
+                    raise
             finally:
                 self.mute_until = time.time() + config.MIC_TAIL_S
                 self.talking = None

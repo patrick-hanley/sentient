@@ -1,8 +1,9 @@
 """Gemma 4 E2B backends.
 
 LiteRTBackend   — LiteRT-LM (Jetson / Pi / Pixel-class). Hears the child's audio directly.
-LlamaCppBackend — Intel-Mac fallback: whisper.cpp transcribes, llama-server runs Gemma GGUF.
-Both are fully local. Temp WAV/JPEG files are deleted by the caller right after ask().
+LlamaCppBackend — whisper.cpp transcribes, llama-server runs Gemma GGUF.
+GenieXBackend   — VENTUNO Q: whisper transcribes, a local GenieX server runs Gemma GGUF.
+Temp WAV/JPEG files are deleted by the caller after streaming and playback finish.
 """
 from __future__ import annotations
 
@@ -27,11 +28,34 @@ def _enter(obj):
 def _text(r) -> str:
     cs = getattr(r, "contents", None)
     if cs:
-        return "".join(getattr(c, "text", "") or "" for c in cs)
+        return "".join(getattr(c, "text", "") or "" for c in cs
+                       if getattr(c, "type", "text") == "text")
     content = r.get("content", []) if isinstance(r, dict) else []
     if isinstance(content, str):
         return content
-    return "".join(c.get("text", "") for c in content if isinstance(c, dict))
+    return "".join(c.get("text", "") for c in content
+                   if isinstance(c, dict) and c.get("type", "text") == "text")
+
+
+def _sse(response):
+    """Read complete SSE events, including multi-line data and error events."""
+    data = []
+    for raw in response:
+        line = raw.decode("utf-8").rstrip("\r\n").lstrip("\ufeff")
+        if line.startswith("data:"):
+            data.append(line[5:].lstrip(" "))
+        elif not line and data:
+            payload, data = "\n".join(data), []
+            if payload == "[DONE]":
+                return
+            event = json.loads(payload)
+            if "error" in event:
+                raise RuntimeError(f"Model stream error: {event['error']}")
+            yield event
+    # Do not silently accept a truncated response or add it to conversation history.
+    if data and "\n".join(data) == "[DONE]":
+        return
+    raise RuntimeError("Model stream ended before [DONE]")
 
 
 class LiteRTBackend:
@@ -41,6 +65,7 @@ class LiteRTBackend:
     def __init__(self, system: str, gpu: bool = True):
         import litert_lm as lm
         self.lm, self.system, self.conv = lm, system, None
+        self.device = "gpu" if gpu else "cpu"
         lm.set_min_log_severity(lm.LogSeverity.ERROR)
         main_be = lm.Backend.GPU() if gpu else lm.Backend.CPU()
         kw = dict(backend=main_be, audio_backend=lm.Backend.CPU(), vision_backend=main_be,
@@ -52,6 +77,7 @@ class LiteRTBackend:
             if not gpu:
                 raise
             log.warning("GPU engine failed (%s) — retrying on CPU", e)
+            self.device = "cpu"
             kw.update(backend=lm.Backend.CPU(), vision_backend=lm.Backend.CPU())
             self.engine = _enter(lm.Engine(str(config.MODEL_LITERT), **kw))
         log.info("LiteRT-LM engine ready in %.1fs", time.time() - t)
@@ -70,7 +96,7 @@ class LiteRTBackend:
             max_output_tokens=120))
         self.turns = 0
 
-    def ask(self, text: str, wav: str | None = None, image: str | None = None) -> str:
+    def stream(self, text: str, wav: str | None = None, image: str | None = None):
         if self.turns >= config.RESET_AFTER_TURNS:
             self.new_conversation()
         parts = []
@@ -82,22 +108,43 @@ class LiteRTBackend:
                 parts.append(img_cls(absolute_path=image))
         parts.append(text)
         msg = self.lm.Contents.of(*parts) if len(parts) > 1 else text
-        try:
-            r = self.conv.send_message(msg)
-        except Exception as e:  # noqa: BLE001 — context full or similar: start fresh once
-            log.warning("send failed (%s) — new conversation", e)
-            self.new_conversation()
-            r = self.conv.send_message(msg)
-        self.turns += 1
-        return _text(r)
+        emitted = False
+        for attempt in range(2):
+            try:
+                send_stream = getattr(self.conv, "send_message_async", None)
+                chunks = send_stream(msg) if send_stream else (self.conv.send_message(msg),)
+                for chunk in chunks:
+                    delta = _text(chunk)
+                    if delta:
+                        emitted = True
+                        yield delta
+                self.turns += 1
+                return
+            except Exception as exc:
+                self.new_conversation()
+                # Retrying once speech may have been queued could duplicate an answer.
+                if emitted or attempt:
+                    raise
+                log.warning("send failed before output (%s) — retrying with a new conversation", exc)
+
+    def ask(self, text: str, wav: str | None = None, image: str | None = None) -> str:
+        return "".join(self.stream(text, wav=wav, image=image))
 
 
 class LlamaCppBackend:
     hears_audio = False
-    name = "llama.cpp (Mac fallback)"
+    name = "llama.cpp"
+
+    @property
+    def base_url(self):
+        return config.LLAMA_URL
+
+    def request_options(self):
+        return {"chat_template_kwargs": {"enable_thinking": False}}
 
     def __init__(self, system: str):
         self.system, self.history = system, []
+        self.http = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         self.server = None
         if not self._healthy():
             exe = shutil.which("llama-server") or next(
@@ -115,6 +162,9 @@ class LlamaCppBackend:
                 time.sleep(1)
             else:
                 raise RuntimeError("llama-server did not come up")
+        self._init_transcriber()
+
+    def _init_transcriber(self):
         self.whisper = shutil.which("whisper-cli") or shutil.which("whisper-cpp")
         self.fw = None
         if not self.whisper:
@@ -123,7 +173,8 @@ class LlamaCppBackend:
 
     def _healthy(self) -> bool:
         try:
-            return urllib.request.urlopen(config.LLAMA_URL + "/health", timeout=1).status == 200
+            with self.http.open(self.base_url + "/health", timeout=1) as response:
+                return response.status == 200
         except OSError:
             return False
 
@@ -137,24 +188,71 @@ class LlamaCppBackend:
                              capture_output=True, text=True, timeout=60).stdout
         return " ".join(out.split()).strip()
 
-    def ask(self, text: str, wav: str | None = None, image: str | None = None) -> str:
+    def stream(self, text: str, wav: str | None = None, image: str | None = None):
         content = text
         if image:
-            b64 = base64.b64encode(open(image, "rb").read()).decode()
+            with open(image, "rb") as source:
+                b64 = base64.b64encode(source.read()).decode()
             content = [{"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
                        {"type": "text", "text": text}]
         msgs = [{"role": "system", "content": self.system}] + self.history[-2 * config.RESET_AFTER_TURNS:] \
             + [{"role": "user", "content": content}]
         body = json.dumps({"messages": msgs, "max_tokens": 120, "temperature": 0.8,
-                           "chat_template_kwargs": {"enable_thinking": False}}).encode()
-        req = urllib.request.Request(config.LLAMA_URL + "/v1/chat/completions", data=body,
+                           "stream": True, **self.request_options()}).encode()
+        req = urllib.request.Request(self.base_url + "/v1/chat/completions", data=body,
                                      headers={"Content-Type": "application/json"})
-        reply = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][0]["message"]["content"]
-        self.history += [{"role": "user", "content": text}, {"role": "assistant", "content": reply}]
-        return reply
+        parts = []
+        with self.http.open(req, timeout=120) as response:
+            for event in _sse(response):
+                for choice in event.get("choices", []):
+                    if choice.get("index", 0) != 0:
+                        continue
+                    reason = choice.get("finish_reason")
+                    if reason and reason != "stop":
+                        raise RuntimeError(f"Model reply did not complete: {reason}")
+                    # The separate reasoning/tool channels are never sent to speech.
+                    delta = choice.get("delta", {}).get("content")
+                    if isinstance(delta, str) and delta:
+                        parts.append(delta)
+                        yield delta
+        self.history += [{"role": "user", "content": text},
+                         {"role": "assistant", "content": "".join(parts)}]
+        self.history = self.history[-2 * config.RESET_AFTER_TURNS:]
+
+    def ask(self, text: str, wav: str | None = None, image: str | None = None) -> str:
+        return "".join(self.stream(text, wav=wav, image=image))
+
+
+class GenieXBackend(LlamaCppBackend):
+    """Connect to an already running server; never silently start a CPU fallback."""
+    name = "GenieX"
+    device = "server-configured (verify NPU in GenieX)"
+
+    @property
+    def base_url(self):
+        return config.GENIEX_URL
+
+    def request_options(self):
+        return {"model": config.GENIEX_MODEL, "enable_think": False,
+                "reasoning_format": "deepseek"}
+
+    def __init__(self, system: str):
+        self.system, self.history, self.server = system, [], None
+        self.http = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        try:
+            with self.http.open(self.base_url + "/v1/models", timeout=5) as response:
+                models = json.load(response)
+        except (OSError, ValueError) as exc:
+            raise RuntimeError(f"GenieX is unavailable at {self.base_url}. Start 'geniex serve --compute npu' on the board.") from exc
+        available = {item.get("id") for item in models.get("data", [])}
+        if config.GENIEX_MODEL not in available:
+            raise RuntimeError(f"GenieX model {config.GENIEX_MODEL!r} is not cached. Run 'geniex pull' or set SENTIENT_GENIEX_MODEL to an id from /v1/models.")
+        self._init_transcriber()
 
 
 def make_backend(kind: str, system: str, gpu: bool):
+    if kind == "geniex":
+        return GenieXBackend(system)
     if kind in ("auto", "litert"):
         try:
             return LiteRTBackend(system, gpu=gpu)
