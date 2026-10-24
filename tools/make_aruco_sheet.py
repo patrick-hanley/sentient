@@ -1,4 +1,4 @@
-"""Print sheet: ArUco DICT_4X4_50 tags for the toys (id 1 Pip, 2 Sage, 3 Noodle).
+"""Print sheet: ArUco DICT_4X4_50 tags for the toys (id 1 Dyno, 2 Sage, 3 Penny).
 
 US Letter at 300 DPI, 4 cm tags with a white border, two of each (spares).
 Print at 100% / "Actual size" — not "Fit to page".
@@ -10,7 +10,7 @@ import numpy as np
 
 DPI = 300
 CM = DPI / 2.54
-TOYS = [(1, "PIP"), (2, "SAGE"), (3, "NOODLE")]
+TOYS = [(1, "DYNO"), (2, "SAGE"), (3, "PENNY")]
 TAG = int(4 * CM)          # 4 cm black square
 PAD = int(0.8 * CM)        # white quiet zone around each tag
 

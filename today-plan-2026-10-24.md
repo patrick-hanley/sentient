@@ -25,7 +25,7 @@ Track $15,000, Best Use of LiteRT $15,000, plus hardware awards incl. Best Use o
 | `tools/atom_probe.py` | Mac-side Atom test: HELLO, camera JPEG, mic meter, test chirp. |
 | `tools/setup_brain.sh` | Run on the Pi/Jetson: offline pip install, model copy, `sentient-brain` hotspot. |
 | `tools/copy_to_usb.sh` | Copies everything plus the .litertlm model to your USB drive. |
-| `aruco_sheet.pdf` | Toy tags: id 1 Pip, 2 Sage, 3 Noodle (two of each). **Print at 100%.** |
+| `aruco_sheet.pdf` | Toy tags: id 1 Dyno, 2 Sage, 3 Penny (two of each). **Print at 100%.** |
 | `offline/` | Wheel sets for the Pi (py3.13) and Jetson (py3.10), Piper voices, vision models, the Mac-fallback Gemma GGUF + llama.cpp + faster-whisper. |
 
 ## Verified at home (9:10 AM)
@@ -33,8 +33,8 @@ Track $15,000, Best Use of LiteRT $15,000, plus hardware awards incl. Best Use o
 - ✅ Firmware compiles for M5AtomS3R (OPI PSRAM, USB CDC on boot).
 - ✅ Brain selftest on the Mac:
   - 3 Piper voices render in about 0.2 s per line.
-  - The ArUco sheet detects PIP, SAGE and NOODLE.
-  - The Mac-fallback Gemma answers in the right `HEARD:/PIP:` format.
+  - The ArUco sheet detects DYNO, SAGE and PENNY.
+  - The Mac-fallback Gemma answers in the right `HEARD:/DYNO:` format.
 - ⚠️ **Gemma 4 "thinks" by default** (+8 s per turn). It's disabled in both backends
   (`ThinkingConfig(enable_thinking=False)` / `enable_thinking: false`).
 - ❌ **Correction:** LiteRT-LM has no Intel-Mac build, so the Mac emergency brain is llama.cpp +

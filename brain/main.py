@@ -38,13 +38,13 @@ button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}<
 <p><b>Heard:</b> <span id=heard></span><br><b>Said:</b> <span id=said></span> <small id=lat></small></p>
 <button onclick="post('canned')">Canned scene</button><button onclick="post('mute')">Mute mics</button>
 <button onclick="post('idle')">Idle chatter</button>
-<span>Say: <select id=st><option>pip<option>sage<option>noodle</select><input id=sx size=30>
+<span>Say: <select id=st><option>dyno<option>sage<option>penny</select><input id=sx size=30>
 <button onclick="fetch(`/say?toy=${st.value}&text=${encodeURIComponent(sx.value)}`,{method:'POST'})">Speak</button></span><br>
-<span>Enroll: <input id=nm placeholder=Name size=10><select id=et><option>pip<option selected>sage<option>noodle</select>
+<span>Enroll: <input id=nm placeholder=Name size=10><select id=et><option>dyno<option selected>sage<option>penny</select>
 <label><input type=checkbox id=pet>pet</label><button onclick="enroll()">Enroll from camera</button></span>
 <p id=flags></p>
 <script>
-const T=["pip","sage","noodle"];
+const T=["dyno","sage","penny"];
 document.getElementById('toys').innerHTML=T.map(t=>`<div class=toy id=b_${t}><h3>${t.toUpperCase()} <small id=s_${t}></small></h3>
 <img id=i_${t}><div class=bar><div id=l_${t} style="width:0"></div></div><p id=v_${t}></p></div>`).join('');
 function post(p){fetch('/'+p,{method:'POST'})}
@@ -147,7 +147,7 @@ def selftest(args):
     try:
         llm = make_backend(args.backend, system_prompt(), gpu=not args.cpu)
         t = time.time()
-        out = llm.ask("[SCENE] PIP is looking at the child. SAGE sees PIP.\n[EVENT] The child waved hello. PIP and SAGE say hi.")
+        out = llm.ask("[SCENE] DYNO is looking at the child. SAGE sees DYNO.\n[EVENT] The child waved hello. DYNO and SAGE say hi.")
         print(f"  {llm.name} answered in {time.time() - t:.1f}s:\n    " + out.replace("\n", "\n    "))
     except Exception as e:  # noqa: BLE001
         ok = False

@@ -1,6 +1,6 @@
 # Sentient Toys
 
-Three plush toys — **Pip** (curious), **Sage** (the reader), **Noodle** (silly, confidently wrong) — that
+Three plush toys — **Dyno** (curious), **Sage** (the reader), **Penny** (silly, confidently wrong) — that
 listen hands-free, see who they're looking at, and talk with a child. Built at the
 [Google Gemma Hardware Hackathon](https://www.agihouse.org/events/the-google-gemma-hardware-hackathon),
 AGI House, Oct 24 2026. Everything runs on-device; no cloud anywhere in the loop.
@@ -22,7 +22,7 @@ AtomS3R-CAM + Voice Base (x3, same firmware)        Brain (Jetson Orin Nano / Ra
 | `tools/fetch_offline.sh` | Downloads models, voices and aarch64 wheelhouses into `offline/` (not committed). |
 | `tools/setup_brain.sh` | On the Pi/Jetson: offline install, model copy, `sentient-brain` hotspot. |
 | `tools/atom_probe.py` | Mac-side Atom test: discovery, camera, mic level, playback. |
-| `tools/make_aruco_sheet.py` | Printable toy tags (id 1 Pip, 2 Sage, 3 Noodle). |
+| `tools/make_aruco_sheet.py` | Printable toy tags (id 1 Dyno, 2 Sage, 3 Penny). |
 | `today-plan-2026-10-24.md` | Hackathon-day plan and decision tree. |
 
 ## Run

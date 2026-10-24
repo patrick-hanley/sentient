@@ -13,12 +13,12 @@ import numpy as np
 from piper import PiperVoice, SynthesisConfig
 
 OFF = Path(__file__).resolve().parent.parent / "offline" / "piper"
-LINE = sys.argv[1] if len(sys.argv) > 1 else "Hi! I'm Pip! Ooh, what's that? Do you want to play with me?"
+LINE = sys.argv[1] if len(sys.argv) > 1 else "Hi! I'm Dyno! Ooh, what's that? Do you want to play with me?"
 # (voice, speaker, pitch, length)
 CANDIDATES = [
-    ("en_US-amy-medium", None, 1.15, 0.90),          # current Pip
+    ("en_US-amy-medium", None, 1.15, 0.90),          # current Dyno
     ("en_US-amy-medium", None, 1.35, 0.85),
-    ("en_US-libritts_r-medium", 20, 1.25, 0.95),     # current Noodle
+    ("en_US-libritts_r-medium", 20, 1.25, 0.95),     # current Penny
     ("en_US-libritts_r-medium", 100, 1.20, 0.90),
     ("en_US-libritts_r-medium", 300, 1.20, 0.90),
     ("en_US-libritts_r-medium", 500, 1.15, 0.90),

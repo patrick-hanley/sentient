@@ -1,5 +1,5 @@
 /*
- * Sentient toys — thin Atom client (same firmware on Pip, Sage, Noodle)
+ * Sentient toys — thin Atom client (same firmware on Dyno, Sage, Penny)
  * ---------------------------------------------------------------------
  * The brain is off-board; this sketch only moves bytes:
  *   ears  : mic 16 kHz mono int16 -> UDP packets to the brain (port 5005)
