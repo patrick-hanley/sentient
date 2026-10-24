@@ -38,6 +38,8 @@ button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}<
 <p><b>Heard:</b> <span id=heard></span><br><b>Said:</b> <span id=said></span> <small id=lat></small></p>
 <button onclick="post('canned')">Canned scene</button><button onclick="post('mute')">Mute mics</button>
 <button onclick="post('idle')">Idle chatter</button>
+<span>Say: <select id=st><option>pip<option>sage<option>noodle</select><input id=sx size=30>
+<button onclick="fetch(`/say?toy=${st.value}&text=${encodeURIComponent(sx.value)}`,{method:'POST'})">Speak</button></span><br>
 <span>Enroll: <input id=nm placeholder=Name size=10><select id=et><option>pip<option selected>sage<option>noodle</select>
 <label><input type=checkbox id=pet>pet</label><button onclick="enroll()">Enroll from camera</button></span>
 <p id=flags></p>
@@ -58,7 +60,7 @@ setInterval(tick,700);tick();
 </script></body></html>"""
 
 
-def make_handler(hub, eyes, director, rec):
+def make_handler(hub, eyes, director, rec, voices):
     class H(BaseHTTPRequestHandler):
         def log_message(self, *a):
             pass
@@ -99,6 +101,8 @@ def make_handler(hub, eyes, director, rec):
                 hub.force_mute = not hub.force_mute
             elif u.path == "/idle":
                 director.idle_on = not director.idle_on
+            elif u.path == "/say" and q.get("toy") in config.TOYS and q.get("text"):
+                threading.Thread(target=hub.play, args=(q["toy"], voices.render(q["toy"], q["text"])), daemon=True).start()
             elif u.path == "/enroll":
                 return self._send(200, enroll_live(rec, hub, q.get("toy", "sage"), q.get("name", "").strip(),
                                                    q.get("pet") == "1"))
@@ -181,7 +185,7 @@ def main():
     hub.start()
     eyes.start()
     director.start()
-    srv = ThreadingHTTPServer(("0.0.0.0", config.DASH_PORT), make_handler(hub, eyes, director, rec))
+    srv = ThreadingHTTPServer(("0.0.0.0", config.DASH_PORT), make_handler(hub, eyes, director, rec, voices))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     log.info("brain up — dashboard http://0.0.0.0:%d  (c=canned m=mute i=idle s <toy> <text> q=quit)", config.DASH_PORT)
 

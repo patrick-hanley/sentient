@@ -193,7 +193,8 @@ class Perceiver:
         period = 1.0 / config.CAPTURE_FPS
         while True:
             t0 = time.time()
-            jpg = self.hub.capture(toy) if not self.hub.talking == toy else None
+            # all cameras pause while any toy talks: speech uploads get the Wi-Fi airtime
+            jpg = self.hub.capture(toy) if self.hub.talking is None else None
             if jpg:
                 img = cv2.imdecode(np.frombuffer(jpg, np.uint8), cv2.IMREAD_COLOR)
                 if img is not None:

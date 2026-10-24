@@ -4,7 +4,8 @@
  * The brain is off-board; this sketch only moves bytes:
  *   ears  : mic 16 kHz mono int16 -> UDP packets to the brain (port 5005)
  *   eyes  : GET  /capture  -> one QVGA JPEG (brain polls 1–2 fps)
- *   mouth : POST /play     -> raw 16 kHz mono int16 LE PCM; replies when playback is done
+ *   mouth : POST /play[?fmt=ulaw&rate=16000] -> mono audio, int16 LE PCM (default) or
+ *           8-bit G.711 mu-law (half the bytes); replies when playback is done
  *   other : GET  /status   -> one-line JSON
  *           button click / hold -> "BTN click" / "BTN hold" over UDP
  * The brain tells toys apart by MAC address, so all three Atoms run this
@@ -38,7 +39,7 @@ struct WifiCred { const char* ssid; const char* pass; };
 #include "secrets.h"
 static constexpr uint16_t BRAIN_PORT = 5005;
 static constexpr uint16_t ATOM_PORT  = 5006;
-static constexpr const char* FW_VERSION = "toy-client-1";
+static constexpr const char* FW_VERSION = "toy-client-2";
 
 // ---------- GC0308 camera pins — AtomS3R-CAM ----------
 #define CAM_SIOD   12
@@ -71,6 +72,8 @@ static int16_t*        play_buf     = nullptr;
 static volatile size_t play_len     = 0;      // samples
 static volatile bool   play_pending = false;
 static volatile bool   playing      = false;
+static volatile bool   rx_busy      = false;  // /play upload in progress: stop mic UDP so it doesn't eat airtime
+static volatile uint32_t play_rate  = SAMPLE_RATE;
 
 static WiFiUDP udp;
 static IPAddress brain_ip;
@@ -142,33 +145,63 @@ static esp_err_t capture_handler(httpd_req_t* req) {
   return res;
 }
 
+static inline int16_t ulaw_decode(uint8_t u) {
+  u = ~u;
+  int t = ((u & 0x0F) << 3) + 0x84;
+  t <<= (u & 0x70) >> 4;
+  return (u & 0x80) ? (0x84 - t) : (t - 0x84);
+}
+
+static int query_int(httpd_req_t* req, const char* key, int dflt) {
+  char q[64], v[16];
+  if (httpd_req_get_url_query_str(req, q, sizeof(q)) == ESP_OK && httpd_query_key_value(q, key, v, sizeof(v)) == ESP_OK)
+    return atoi(v);
+  return dflt;
+}
+
+static bool query_is(httpd_req_t* req, const char* key, const char* want) {
+  char q[64], v[16];
+  return httpd_req_get_url_query_str(req, q, sizeof(q)) == ESP_OK &&
+         httpd_query_key_value(q, key, v, sizeof(v)) == ESP_OK && strcmp(v, want) == 0;
+}
+
 // Blocking by design: waits for any line already playing, plays this one, and
 // replies only when the speaker is done — the brain unmutes mics on our reply.
 static esp_err_t play_handler(httpd_req_t* req) {
   uint32_t t0 = millis();
   while ((play_pending || playing) && millis() - t0 < 30000) delay(10);
-  size_t want = req->content_len;
-  if (want > PLAY_MAX * 2) want = PLAY_MAX * 2;
-  size_t got = 0;
-  uint8_t* dst = (uint8_t*)play_buf;
-  while (got < want) {
-    int r = httpd_req_recv(req, (char*)dst + got, want - got);
+  rx_busy = true;
+  const bool ulaw = query_is(req, "fmt", "ulaw");
+  const uint32_t rate = query_int(req, "rate", SAMPLE_RATE);
+  const size_t bps = ulaw ? 1 : 2;                       // bytes per sample on the wire
+  size_t samples = req->content_len / bps;
+  if (samples > PLAY_MAX) samples = PLAY_MAX;
+  size_t got = 0;                                        // samples stored
+  uint8_t chunk[1024];
+  size_t total = 0;                                      // bytes read
+  while (total < req->content_len) {
+    size_t want = req->content_len - total;
+    if (want > sizeof(chunk)) want = sizeof(chunk);
+    if (!ulaw && want % 2) want -= 1;
+    if (want == 0) want = 1;
+    int r = httpd_req_recv(req, (char*)chunk, want);
     if (r == HTTPD_SOCK_ERR_TIMEOUT) continue;
-    if (r <= 0) { httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "recv"); return ESP_FAIL; }
-    got += r;
+    if (r <= 0) { rx_busy = false; httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "recv"); return ESP_FAIL; }
+    total += r;
+    if (ulaw) {
+      for (int i = 0; i < r && got < samples; ++i) play_buf[got++] = ulaw_decode(chunk[i]);
+    } else {
+      for (int i = 0; i + 1 < r && got < samples; i += 2) play_buf[got++] = (int16_t)(chunk[i] | (chunk[i + 1] << 8));
+    }
   }
-  char sink[256];   // drain anything beyond PLAY_MAX
-  while (got < req->content_len) {
-    int r = httpd_req_recv(req, sink, sizeof(sink));
-    if (r <= 0) break;
-    got += r;
-  }
-  play_len = want / 2;
+  play_len = got;
+  play_rate = rate;
   play_pending = true;                       // loop() picks it up (mic/speaker switch stays on one task)
-  uint32_t limit = millis() + play_len * 1000 / SAMPLE_RATE + 5000;
+  uint32_t limit = millis() + play_len * 1000 / rate + 5000;
   while ((play_pending || playing) && millis() < limit) delay(5);
+  rx_busy = false;
   char msg[32];
-  snprintf(msg, sizeof(msg), "OK %u ms", (unsigned)(play_len * 1000 / SAMPLE_RATE));
+  snprintf(msg, sizeof(msg), "OK %u ms", (unsigned)(play_len * 1000 / rate));
   httpd_resp_set_type(req, "text/plain");
   return httpd_resp_send(req, msg, strlen(msg));
 }
@@ -266,7 +299,7 @@ static void do_playback() {
   playing = true;
   play_pending = false;
   spk_on();
-  M5.Speaker.playRaw(play_buf, play_len, SAMPLE_RATE, false, 1, 0);
+  M5.Speaker.playRaw(play_buf, play_len, play_rate, false, 1, 0);
   while (M5.Speaker.isPlaying()) { M5.delay(1); service_udp(); }
   mic_on();
   playing = false;
@@ -279,7 +312,7 @@ static void stream_mic() {
   if (!M5.Mic.record(slot, FRAME, SAMPLE_RATE)) return;
   // record() only returns once a queue slot frees, so the frame two
   // behind this one is complete.
-  if (++frames_rec > 2 && brain_known) {
+  if (++frames_rec > 2 && brain_known && !rx_busy) {
     size_t done = (ring_idx + RING - 2) % RING;
     uint8_t pkt[3 + FRAME * 2];
     pkt[0] = 'M';

@@ -16,6 +16,28 @@ from . import config
 log = logging.getLogger("atoms")
 
 
+def ulaw_encode(pcm: np.ndarray) -> bytes:
+    """int16 -> G.711 mu-law bytes (numpy; audioop is gone in Python 3.13)."""
+    s = pcm.astype(np.int32)
+    sign = (s < 0).astype(np.int32)
+    mag = np.minimum(np.abs(s), 32635) + 0x84
+    exp = np.clip(np.floor(np.log2(mag)).astype(np.int32) - 7, 0, 7)
+    mant = (mag >> (exp + 3)) & 0x0F
+    return (~((sign << 7) | (exp << 4) | mant) & 0xFF).astype(np.uint8).tobytes()
+
+
+def encode_for_atom(pcm16k: bytes) -> tuple[bytes, str]:
+    """16 kHz int16 speech -> (wire bytes, query string) per PLAY_CODEC / PLAY_RATE."""
+    x = np.frombuffer(pcm16k, "<i2")
+    rate = config.PLAY_RATE
+    if rate != config.SAMPLE_RATE:
+        n = int(len(x) * rate / config.SAMPLE_RATE)
+        x = np.interp(np.linspace(0, len(x) - 1, n), np.arange(len(x)), x.astype(np.float32)).astype(np.int16)
+    if config.PLAY_CODEC == "ulaw":
+        return ulaw_encode(x), f"fmt=ulaw&rate={rate}"
+    return x.astype("<i2").tobytes(), f"fmt=pcm&rate={rate}"
+
+
 @dataclass
 class Atom:
     mac: str
@@ -129,12 +151,13 @@ class AtomHub:
             try:
                 # The Atom replies only after the speaker has finished (firmware queues behind
                 # any line already playing), so the reply time is the true end of speech.
-                req = urllib.request.Request(f"http://{a.ip}/play", data=pcm, method="POST",
+                body, query = encode_for_atom(pcm)
+                req = urllib.request.Request(f"http://{a.ip}/play?{query}", data=body, method="POST",
                                              headers={"Content-Type": "application/octet-stream"})
                 t0 = time.time()
                 urllib.request.urlopen(req, timeout=15 + dur).read()
-                log.info("play %s: %.1fs audio, done after %.1fs (%.1fs network/switch overhead)",
-                         toy, dur, time.time() - t0, time.time() - t0 - dur)
+                log.info("play %s: %.1fs audio (%d KB %s), done after %.1fs (%.1fs network/switch overhead)",
+                         toy, dur, len(body) // 1024, query, time.time() - t0, time.time() - t0 - dur)
             except (urllib.error.URLError, OSError, TimeoutError) as e:
                 log.warning("play to %s failed: %s", toy, e)
             finally:
