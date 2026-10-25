@@ -1,18 +1,18 @@
-"""Scripted ~2-minute scene. Works with no LLM at all (pre-rendered voices)."""
+"""Scripted toy conversation. Works with no LLM at all (pre-rendered voices)."""
 
 SCENE = [
-    ("dyno", "Rawr! Hi! I'm Dyno the dinosaur! Ooh, are you a new friend?"),
-    ("penny", "And I'm Penny the penguin! I know everything! Cows say quack!"),
-    ("sage", "Hmm. Penny, I don't think cows say quack. Shall we ask our friend?"),
-    ("dyno", "What does a cow say? Can you tell Penny?"),
-    ("penny", "Moo? Oh! Moo! Thank you! You are so smart!"),
-    ("sage", "I'm Sage. I like books, and I can see pictures with my unicorn eyes. Do you have a book for us?"),
-    ("dyno", "Ooh, look at this letter card! Which letter is it?"),
-    ("penny", "I know this one! It's the letter banana!"),
-    ("sage", "Silly Penny. That's the letter B. B says buh, like ball and bear."),
-    ("dyno", "Can you think of something else that starts with buh?"),
-    ("penny", "Bubbles! Buh buh bubbles! Did I get it right this time?"),
-    ("sage", "You did, Penny. Thank you for playing with us, friend!"),
+    ("dyno", "Rawr! Hi! I'm Dyno the dinosaur! Welcome to our little learning party!"),
+    ("penny", "I'm Penny the penguin! Imagine numbers wearing party hats. Even multiplication can have a giggle!"),
+    ("sage", "I'm Sage. Let's try three groups of four. Four, eight, twelve!"),
+    ("dyno", "So three times four is twelve. Rawr! A whole parade of numbers!"),
+    ("penny", "Twelve! In my imagination, each number gets a tiny dancing hat."),
+    ("sage", "Now a story puzzle for Dyno: which house stayed standing in the Three Little Pigs?"),
+    ("dyno", "The brick house! The wolf couldn't blow it down."),
+    ("penny", "I'd imagine a tiny library inside, with books small enough for piglet paws!"),
+    ("sage", "What a lovely make-believe library. Let's spell the word book: B-O-O-K."),
+    ("dyno", "B-O-O-K! Four letters, and two of them are O."),
+    ("penny", "Those two O letters look like round little glasses. What a well-dressed word!"),
+    ("sage", "Your turn, friend! Would you like a spelling game, a math puzzle, or a story?"),
 ]
 
 FILLERS = {

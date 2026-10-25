@@ -212,29 +212,54 @@ class PipelineTests(unittest.TestCase):
             director._turn_lock.release()
         self.assertFalse(director.hub.played)
 
-    def test_penny_keeps_her_solo_answer_for_the_child_to_correct(self):
+    def test_penny_can_answer_accurately_and_another_toy_can_follow(self):
         class PennyBackend(Backend):
             def stream(self, *args, **kwargs):
-                yield "HEARD: Penny, how many feet do penguins have?\nPENNY: Eleven!\n"
-                yield "SAGE: Penguins have two feet."
+                yield "HEARD: Penny, how many feet do penguins have?\nPENNY: Two feet for a tiny penguin parade!\n"
+                yield "SAGE: Penguins use their feet to walk on land."
         director = make_director(PennyBackend(), FakeHub(("penny", "sage")))
         director._turn(event="question")
         self.assertEqual(director.last_trace["status"], "ok")
-        self.assertEqual(director.hub.played, ["penny"])
+        self.assertEqual(director.hub.played, ["penny", "sage"])
+        self.assertEqual(director.voices.rendered[0], ("penny", "Two feet for a tiny penguin parade!"))
 
-    def test_penny_solo_rule_also_uses_asr_when_heard_header_is_missing(self):
+    def test_penny_followup_also_works_when_heard_header_is_missing(self):
         class PennyBackend(Backend):
             hears_audio = False
             def transcribe(self, wav):
                 return "Penny, how many feet do penguins have?"
             def stream(self, *args, **kwargs):
-                yield "PENNY: Eleven!\nSAGE: Penguins have two feet."
+                yield "PENNY: Two feet for a tiny penguin parade!\nSAGE: Penguins use their feet to walk on land."
         director = make_director(PennyBackend(), FakeHub(("penny", "sage")))
         now = time.monotonic()
         utterance = Utterance("penny", time.time()-1, time.time(), np.ones(16000,np.int16), 5000, now-.5, now)
         director._turn(utt=utterance)
         self.assertEqual(director.last_trace["status"], "ok")
-        self.assertEqual(director.hub.played, ["penny"])
+        self.assertEqual(director.hub.played, ["penny", "sage"])
+
+    def test_penny_spelling_and_child_corrections_reach_tts_unchanged(self):
+        for question, reply in [
+            ("Penny, spell dog.", "Dog is spelled D-O-G. A tiny word with a wagging tail!"),
+            ("Penny, you spelled it wrong. It is D-O-G.", "You are right: D-O-G. Thank you for checking!"),
+            ("Penny, spell it.", "It is spelled I-T."),
+        ]:
+            with self.subTest(question=question):
+                class PennyBackend(Backend):
+                    hears_audio = False
+
+                    def transcribe(self, wav):
+                        return question
+
+                    def stream(self, *args, **kwargs):
+                        yield f"HEARD: {question}\nPENNY: {reply}\n"
+                director = make_director(PennyBackend(), FakeHub(("penny",)))
+                now = time.monotonic()
+                utterance = Utterance("penny", time.time()-1, time.time(), np.ones(16000,np.int16),
+                                      5000, now-.5, now)
+                director._turn(utt=utterance)
+                self.assertEqual(director.last_trace["status"], "ok")
+                self.assertEqual(director.voices.rendered, [("penny", reply)])
+                self.assertEqual(director.hub.played, ["penny"])
 
     def test_audio_failure_does_not_report_a_playback_ack(self):
         hub = FakeHub()

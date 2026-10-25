@@ -22,7 +22,7 @@ flowchart LR
 - One synthesis worker keeps Piper calls serial; a separate playback worker preserves speaker order. There are at most two reply lines. Playback errors mark the turn failed and release the response lock.
 - Camera requests use cached views during a turn. An existing capture/recognition operation may finish; new capture requests resume after playback. Images older than three seconds are not attached to the model. The small scene description still comes from the perception cache.
 - Piper still produces mono 16 kHz signed 16-bit PCM. The existing `PLAY_CODEC` / `PLAY_RATE` settings control the wire format: default 16 kHz mu-law, with PCM and 8 kHz options retained. Each line is encoded and uploaded in full. This is line streaming, not sample-by-sample streaming or interruption support.
-- The current toy characters and Penny's solo-answer rule are preserved: when a child addresses Penny and she answers first, another toy cannot spoil the answer before the child gets to correct her.
+- The school-focused characters are preserved. Penny is whimsical and silly while giving careful, accurate answers. Her spelling is never deliberately altered, and other toys can take the next turn normally. The scripted scene follows the same characterization and invites the child to respond at the end.
 
 ## Profiles
 
