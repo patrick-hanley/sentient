@@ -22,6 +22,8 @@ GENIEX_MODEL = os.environ.get("SENTIENT_GENIEX_MODEL", "google/gemma-4-E2B-it-qa
 # otherwise they fall back to their Piper voice. On the Pi 5 CPU it runs ~0.8x real time (Piper ~10x).
 KOKORO_DIR = Path(os.environ.get("SENTIENT_KOKORO_DIR", OFFLINE / "kokoro"))
 USE_KOKORO = os.environ.get("SENTIENT_KOKORO", "1") != "0"
+# int8 + ORT_ENABLE_ALL measured fastest on the Pi 5 (x1.1 real time vs x0.84 for fp32; q4/uint8 no better)
+KOKORO_MODEL = os.environ.get("SENTIENT_KOKORO_MODEL", "kokoro-v1.0.int8.onnx")
 YUNET = OFFLINE / "vision/face_detection_yunet_2023mar.onnx"
 SFACE = OFFLINE / "vision/face_recognition_sface_2021dec.onnx"
 OBJ_DET = OFFLINE / "vision/efficientdet_lite0.tflite"

@@ -36,13 +36,21 @@ class Voices:
         self.busy = lambda: False          # main wires this to "the director is mid-turn"
         self._disk = config.DATA / "tts-cache"
         self._disk.mkdir(parents=True, exist_ok=True)
-        self._kokoro = None
+        self._kokoro, self._kokoro_model = None, None
         if config.USE_KOKORO and any(t.get("kokoro") for t in config.TOYS.values()):
             try:
+                import onnxruntime as rt
                 from kokoro_onnx import Kokoro
-                self._kokoro = Kokoro(str(config.KOKORO_DIR / "kokoro-v1.0.onnx"),
-                                      str(config.KOKORO_DIR / "voices-v1.0.bin"))
-                log.info("Kokoro loaded: %s", {k: t["kokoro"] for k, t in config.TOYS.items() if t.get("kokoro")})
+                model = config.KOKORO_DIR / config.KOKORO_MODEL
+                if not model.exists():
+                    model = config.KOKORO_DIR / "kokoro-v1.0.onnx"
+                opts = rt.SessionOptions()
+                opts.graph_optimization_level = rt.GraphOptimizationLevel.ORT_ENABLE_ALL  # ~25% faster int8 on the Pi
+                session = rt.InferenceSession(str(model), sess_options=opts, providers=["CPUExecutionProvider"])
+                self._kokoro = Kokoro.from_session(session, str(config.KOKORO_DIR / "voices-v1.0.bin"))
+                self._kokoro_model = model.name
+                log.info("Kokoro loaded (%s): %s", model.name,
+                         {k: t["kokoro"] for k, t in config.TOYS.items() if t.get("kokoro")})
             except Exception as e:  # noqa: BLE001 — missing package/files: Piper for everyone
                 log.warning("Kokoro unavailable (%s) — using Piper voices", e)
 
@@ -53,7 +61,7 @@ class Voices:
         t = config.TOYS[toy]
         kokoro = self._kokoro is not None and bool(t.get("kokoro"))
         # disk cache for fixed lines (fillers, canned scene): keyed by engine + voice settings + text
-        spec = {"k": kokoro, "t": text, **{f: t.get(f) for f in ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch")}}
+        spec = {"k": kokoro and self._kokoro_model, "t": text, **{f: t.get(f) for f in ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch")}}
         path = self._disk / (hashlib.sha1(json.dumps(spec, sort_keys=True).encode()).hexdigest() + ".pcm")
         if persist and path.exists():
             pcm = path.read_bytes()
