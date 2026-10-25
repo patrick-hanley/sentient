@@ -35,7 +35,10 @@ if [ -n "${SKIP_HOTSPOT:-}" ]; then echo "skipped (SKIP_HOTSPOT set)"
 elif command -v nmcli >/dev/null; then
   command -v raspi-config >/dev/null && sudo raspi-config nonint do_wifi_country US   # Pi OS keeps Wi-Fi off until a country is set
   sudo rfkill unblock wifi 2>/dev/null
-  sudo nmcli dev wifi hotspot con-name sentient-hotspot ssid sentient-brain password "${HOTSPOT_PASS:-sentient123}" band bg \
+  for try in 1 2 3 4 5; do   # the radio takes a few seconds to come up after the country/rfkill change
+    sudo nmcli dev wifi hotspot ifname wlan0 con-name sentient-hotspot ssid sentient-brain password "${HOTSPOT_PASS:-sentient123}" band bg && break
+    sleep 3
+  done \
     && sudo nmcli con modify sentient-hotspot connection.autoconnect yes connection.autoconnect-priority 100 \
     && nmcli -g IP4.ADDRESS dev show "$(nmcli -t -f DEVICE,TYPE dev | awk -F: '$2=="wifi"{print $1; exit}')"
 else echo "nmcli missing — use the phone hotspot instead"; fi
@@ -47,6 +50,7 @@ if [ -n "${INSTALL_SERVICE:-}" ]; then
 Description=Sentient toys brain
 After=network-online.target
 Wants=network-online.target
+RequiresMountsFor=$ROOT
 
 [Service]
 User=$USER
