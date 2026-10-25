@@ -177,7 +177,11 @@ def main():
 
     voices = Voices()
     log.info("pre-rendering canned scene + fillers…")
-    voices.prerender(canned.SCENE + [(t, f) for t, fs in canned.FILLERS.items() for f in fs])
+    voices.prerender([(t, f) for t, fs in canned.FILLERS.items() for f in fs])
+    # Kokoro is slower than real time on a Pi: render the canned scene in the background, only
+    # when no live speech or turn needs the voice engine (and only once: it's cached on disk).
+    threading.Thread(target=voices.prerender, args=(canned.SCENE,), kwargs={"polite": True},
+                     daemon=True, name="prerender").start()
     llm = make_backend(args.backend, system_prompt(), gpu=not args.cpu)
 
     segs = {}
@@ -191,6 +195,7 @@ def main():
         segs[t] = Segmenter(t, director.utter_q)
     eyes.on_seen = director.on_seen
     eyes.hold = lambda: director.busy or director.paused
+    voices.busy = lambda: director.busy
     hub.start()
     eyes.start()
     director.start()

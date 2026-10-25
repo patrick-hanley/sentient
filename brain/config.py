@@ -18,6 +18,10 @@ LLAMA_URL = os.environ.get("SENTIENT_LLAMA_URL", "http://127.0.0.1:8081").rstrip
 GENIEX_URL = os.environ.get("SENTIENT_GENIEX_URL", "http://127.0.0.1:18181").rstrip("/")
 GENIEX_MODEL = os.environ.get("SENTIENT_GENIEX_MODEL", "google/gemma-4-E2B-it-qat-q4_0-gguf:Q4_0")
 
+# Kokoro-82M (kokoro-onnx). Toys with a "kokoro" voice use it when these files and the package exist;
+# otherwise they fall back to their Piper voice. On the Pi 5 CPU it runs ~0.8x real time (Piper ~10x).
+KOKORO_DIR = Path(os.environ.get("SENTIENT_KOKORO_DIR", OFFLINE / "kokoro"))
+USE_KOKORO = os.environ.get("SENTIENT_KOKORO", "1") != "0"
 YUNET = OFFLINE / "vision/face_detection_yunet_2023mar.onnx"
 SFACE = OFFLINE / "vision/face_recognition_sface_2021dec.onnx"
 OBJ_DET = OFFLINE / "vision/efficientdet_lite0.tflite"
@@ -39,14 +43,17 @@ PLAY_RATE = 16000            # 16000 on a local AP (Mac hotspot / Pi / Jetson); 
 # pitch > 1 raises the voice (resample trick), length < 1 speaks faster.
 TOYS = {
     "dyno": dict(name="Dyno", aruco=1, voice="en_GB-alba-medium", speaker=None, length=0.9, pitch=1.25,
+                 kokoro="af_heart", kspeed=1.1, kpitch=1.15,   # Kokoro (American), pitched up
                  looks="a little green dinosaur plush",
                  persona="curious and bouncy; asks the child short questions about school and games; easily "
                          "amazed; sometimes says a small 'rawr!'"),
     "sage": dict(name="Sage", aruco=2, voice="en_GB-alba-medium", speaker=None, length=1.08, pitch=1.0,
+                 kokoro="bf_emma", kspeed=0.95, kpitch=1.0,    # Kokoro (British)
                  looks="a baby dressed up in a unicorn costume, with a horn",
                  persona="calm and careful; explains things simply; the reader who can look at books, worksheets "
                          "and pictures; helps with homework by giving hints, not just answers"),
     "penny": dict(name="Penny", aruco=3, voice="en_US-libritts_r-medium", speaker=20, length=0.95, pitch=1.25,
+                  kokoro="af_heart", kspeed=1.05, kpitch=1.0,  # Kokoro (American)
                   looks="a penguin wearing a white hat",
                   persona="whimsical, silly and giggly; enjoys wordplay, playful comparisons and clearly marked "
                           "make-believe; gives careful, accurate answers to school questions, including facts, math "

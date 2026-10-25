@@ -1,8 +1,11 @@
-"""Piper voices per toy, rendered to 16 kHz mono int16 bytes for the Atoms."""
+"""Per-toy voices (Kokoro or Piper), rendered to 16 kHz mono int16 bytes for the Atoms."""
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import threading
+import time
 
 import numpy as np
 
@@ -28,13 +31,60 @@ class Voices:
             self._voices[name] = PiperVoice.load(str(path))
             log.info("voice loaded: %s", name)
         self._cache: dict[tuple[str, str], bytes] = {}
+        self._live = 0                     # live renders in progress: background prerender yields to them
+        self._last_live = 0.0
+        self.busy = lambda: False          # main wires this to "the director is mid-turn"
+        self._disk = config.DATA / "tts-cache"
+        self._disk.mkdir(parents=True, exist_ok=True)
+        self._kokoro = None
+        if config.USE_KOKORO and any(t.get("kokoro") for t in config.TOYS.values()):
+            try:
+                from kokoro_onnx import Kokoro
+                self._kokoro = Kokoro(str(config.KOKORO_DIR / "kokoro-v1.0.onnx"),
+                                      str(config.KOKORO_DIR / "voices-v1.0.bin"))
+                log.info("Kokoro loaded: %s", {k: t["kokoro"] for k, t in config.TOYS.items() if t.get("kokoro")})
+            except Exception as e:  # noqa: BLE001 — missing package/files: Piper for everyone
+                log.warning("Kokoro unavailable (%s) — using Piper voices", e)
 
-    def render(self, toy: str, text: str) -> bytes:
+    def render(self, toy: str, text: str, *, persist: bool = False) -> bytes:
         key = (toy, text)
         if key in self._cache:
             return self._cache[key]
-        from piper import SynthesisConfig
         t = config.TOYS[toy]
+        kokoro = self._kokoro is not None and bool(t.get("kokoro"))
+        # disk cache for fixed lines (fillers, canned scene): keyed by engine + voice settings + text
+        spec = {"k": kokoro, "t": text, **{f: t.get(f) for f in ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch")}}
+        path = self._disk / (hashlib.sha1(json.dumps(spec, sort_keys=True).encode()).hexdigest() + ".pcm")
+        if persist and path.exists():
+            pcm = path.read_bytes()
+        else:
+            if not persist:
+                self._live += 1
+            try:
+                pcm = self._render_kokoro(t, text) if kokoro else self._render_piper(t, text)
+            finally:
+                if not persist:
+                    self._live -= 1
+                    self._last_live = time.time()
+            if persist:
+                path.write_bytes(pcm)
+        if len(self._cache) < 500:
+            self._cache[key] = pcm
+        return pcm
+
+    def _render_kokoro(self, t: dict, text: str) -> bytes:
+        voice, pitch = t["kokoro"], t.get("kpitch", 1.0)
+        start = time.time()
+        with self._lock:
+            # same pitch trick as Piper: speak slower by `pitch`, then play `pitch`x faster
+            audio, sr = self._kokoro.create(text, voice=voice, speed=t.get("kspeed", 1.0) / pitch,
+                                            lang="en-gb" if voice.startswith("b") else "en-us")
+        audio = _resample(np.asarray(audio, np.float32) * 32767, sr * pitch, config.SAMPLE_RATE)
+        log.info("kokoro %s: %.1fs speech in %.1fs", voice, len(audio) / config.SAMPLE_RATE, time.time() - start)
+        return np.clip(audio, -32768, 32767).astype("<i2").tobytes()
+
+    def _render_piper(self, t: dict, text: str) -> bytes:
+        from piper import SynthesisConfig
         voice = self._voices[t["voice"]]
         syn = SynthesisConfig(speaker_id=t["speaker"], length_scale=t["length"] * t["pitch"])
         with self._lock:  # onnxruntime sessions are not re-entrant-safe across threads here
@@ -45,11 +95,11 @@ class Voices:
         audio = np.concatenate([c.audio_int16_array for c in chunks]).astype(np.float32)
         # pitch trick: synthesized slower by `pitch`, then played back `pitch`x faster.
         audio = _resample(audio, sr * t["pitch"], config.SAMPLE_RATE)
-        pcm = np.clip(audio, -32768, 32767).astype("<i2").tobytes()
-        if len(self._cache) < 500:
-            self._cache[key] = pcm
-        return pcm
+        return np.clip(audio, -32768, 32767).astype("<i2").tobytes()
 
-    def prerender(self, lines: list[tuple[str, str]]) -> None:
+    def prerender(self, lines: list[tuple[str, str]], *, polite: bool = False) -> None:
+        """Render fixed lines once (cached on disk). `polite` waits for live speech and turns."""
         for toy, text in lines:
-            self.render(toy, text)
+            while polite and (self._live or self.busy() or time.time() - self._last_live < 3):
+                time.sleep(0.5)
+            self.render(toy, text, persist=True)
