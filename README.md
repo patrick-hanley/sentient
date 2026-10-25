@@ -26,6 +26,7 @@ AtomS3R-CAM + Voice Base (x3, same firmware)        Brain (Jetson Orin Nano / Ra
 | `tools/atom_probe.py` | Mac-side Atom test: discovery, camera, mic level, playback. |
 | `tools/make_aruco_sheet.py` | Printable toy tags (id 1 Dyno, 2 Sage, 3 Penny). |
 | `today-plan-2026-10-24.md` | Hackathon-day plan and decision tree. |
+| `dyno-sage-penny-deck.pptx` | The 10-slide pitch deck (with speaker notes). Rebuild: `cd deck && npm install && NODE_PATH=$PWD/node_modules PPTX_SKILL=<pptx skill dir> node build_deck.js`. |
 
 ## Run
 ```bash
