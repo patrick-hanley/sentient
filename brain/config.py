@@ -14,7 +14,9 @@ MODEL_LITERT = Path(os.environ.get("SENTIENT_MODEL", Path.home() / ".litert-lm/m
 MODEL_GGUF = OFFLINE / "gguf/gemma-4-E2B-it-Q4_0.gguf"
 MMPROJ_GGUF = OFFLINE / "gguf/mmproj-gemma-4-E2B-it-Q8_0.gguf"
 WHISPER_MODEL = OFFLINE / "whisper/ggml-base.en.bin"
-LLAMA_URL = "http://127.0.0.1:8081"
+LLAMA_URL = os.environ.get("SENTIENT_LLAMA_URL", "http://127.0.0.1:8081").rstrip("/")
+GENIEX_URL = os.environ.get("SENTIENT_GENIEX_URL", "http://127.0.0.1:18181").rstrip("/")
+GENIEX_MODEL = os.environ.get("SENTIENT_GENIEX_MODEL", "google/gemma-4-E2B-it-qat-q4_0-gguf:Q4_0")
 
 YUNET = OFFLINE / "vision/face_detection_yunet_2023mar.onnx"
 SFACE = OFFLINE / "vision/face_recognition_sface_2021dec.onnx"
@@ -46,10 +48,9 @@ TOYS = {
                          "and pictures; helps with homework by giving hints, not just answers"),
     "penny": dict(name="Penny", aruco=3, voice="en_US-libritts_r-medium", speaker=20, length=0.95, pitch=1.25,
                   looks="a penguin wearing a white hat",
-                  persona="silly and giggly; when asked a school question she gives a funny, confidently WRONG "
-                          "answer to THAT exact question (a wrong math fact, a silly misspelling with a wrong letter, or a "
-                          "wrong science fact), so the child "
-                          "can correct her; she only thanks them after the child corrects her"),
+                  persona="whimsical, silly and giggly; enjoys wordplay, playful comparisons and clearly marked "
+                          "make-believe; gives careful, accurate answers to school questions, including facts, math "
+                          "and spelling; admits when unsure and explores with the child; never makes deliberate errors"),
 }
 # What the toys talk about (2nd-5th grade). Idle banter picks one of BANTER_SEEDS.
 AUDIENCE = "a child in 2nd to 5th grade (about 7 to 11 years old)"
@@ -87,11 +88,27 @@ VAD_AGGRESSIVENESS = 2       # 0..3; raise to 3 in a loud room
 ENERGY_FLOOR = 600.0         # min RMS for speech. Measured: room 60–440, voice at arm's length 700–6000
 NOISE_MULT = 3.0             # speech must be this many times the adaptive noise floor
 START_FRAMES = 6             # voiced frames out of last 10 to open an utterance
-END_SILENCE_MS = 700
+END_SILENCE_MS = 500
 MIN_SPEECH_MS = 500
 MAX_UTTER_MS = 8000
 MIC_TAIL_S = 0.4             # mics stay muted this long after any toy stops talking
-ARBITRATE_S = 0.35           # wait this long for the same speech on other mics
+ARBITRATE_S = 0.12           # upper bound; stop sooner when all online mics have reported
+
+# Responsive overlaps model, synthesis and playback. Patient preserves the old
+# pause tolerance for children who pause between words. Neither changes VAD onset.
+LATENCY_PROFILE = "responsive"
+PLAY_FILLERS = False
+PAUSE_CAPTURE_DURING_TURN = True
+VISION_MAX_AGE_S = 3.0
+
+
+def apply_latency_profile(name: str) -> None:
+    global LATENCY_PROFILE, END_SILENCE_MS, ARBITRATE_S, PLAY_FILLERS
+    if name not in ("responsive", "patient"):
+        raise ValueError("Latency profile must be responsive or patient")
+    LATENCY_PROFILE = name
+    END_SILENCE_MS, ARBITRATE_S, PLAY_FILLERS = (
+        (500, .12, False) if name == "responsive" else (700, .35, True))
 
 # ---- perception ----
 CAPTURE_FPS = 1.5

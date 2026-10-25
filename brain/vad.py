@@ -21,6 +21,8 @@ class Utterance:
     end: float
     pcm: np.ndarray       # int16 mono 16 kHz
     rms: float            # mean RMS over voiced frames: loudest mic = closest toy
+    last_voiced_received: float | None = None  # monotonic host receipt time, not sensor time
+    emitted: float | None = None
 
 
 class Segmenter:
@@ -57,9 +59,11 @@ class Segmenter:
                 self.start = time.time() - len(self.pre) * FRAME_MS / 1000
                 self.buf = list(self.pre)
                 self.voiced, self.voiced_rms, self.silence = sum(self.hist), rms * sum(self.hist), 0
+                self.last_voiced_received = time.monotonic()
             return
         self.buf.append(pcm)
         if speech:
+            self.last_voiced_received = time.monotonic()
             self.voiced += 1
             self.voiced_rms += rms
             self.silence = 0
@@ -70,20 +74,26 @@ class Segmenter:
             if self.voiced * FRAME_MS >= config.MIN_SPEECH_MS:
                 pcm_all = np.concatenate(self.buf[: len(self.buf) - max(0, self.silence - 10)])
                 self.out.put(Utterance(self.toy, self.start, time.time(), pcm_all,
-                                       self.voiced_rms / max(1, self.voiced)))
+                                       self.voiced_rms / max(1, self.voiced),
+                                       self.last_voiced_received, time.monotonic()))
             self.reset()
 
 
-def arbitrate(first: Utterance, q: "queue.Queue[Utterance]") -> Utterance:
+def arbitrate(first: Utterance, q: "queue.Queue[Utterance]", expected_toys=None) -> Utterance:
     """The same voice reaches every toy's mic: keep the loudest copy."""
     best = first
-    deadline = time.time() + config.ARBITRATE_S
-    while (left := deadline - time.time()) > 0:
+    expected = set(expected_toys) if expected_toys is not None else None
+    seen = {first.toy}
+    deadline = time.monotonic() + config.ARBITRATE_S
+    while (left := deadline - time.monotonic()) > 0:
+        if expected is not None and expected <= seen:
+            break
         try:
             u = q.get(timeout=left)
         except queue.Empty:
             break
-        if u.start < best.end + 1.0 and u.end > best.start - 1.0:   # overlapping speech
+        if u.start < first.end + 1.0 and u.end > first.start - 1.0:   # overlapping speech
+            seen.add(u.toy)
             if u.rms > best.rms:
                 best = u
         else:
