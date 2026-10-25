@@ -68,8 +68,10 @@ class LiteRTBackend:
         self.device = "gpu" if gpu else "cpu"
         lm.set_min_log_severity(lm.LogSeverity.ERROR)
         main_be = lm.Backend.GPU() if gpu else lm.Backend.CPU()
+        cache = config.DATA / "litert-cache"
+        cache.mkdir(parents=True, exist_ok=True)  # LiteRT-LM refuses a missing cache dir
         kw = dict(backend=main_be, audio_backend=lm.Backend.CPU(), vision_backend=main_be,
-                  max_num_images=1, cache_dir=str(config.DATA / "litert-cache"))
+                  max_num_images=1, cache_dir=str(cache))
         t = time.time()
         try:
             self.engine = _enter(lm.Engine(str(config.MODEL_LITERT), **kw))
