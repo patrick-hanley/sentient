@@ -180,6 +180,7 @@ class Perceiver:
         self.hub, self.rec = hub, rec
         self.on_seen = on_seen or (lambda toy, thing: None)
         self.views = {t: View(t) for t in config.TOY_ORDER}
+        self.hold = lambda: False   # main wires this to 'the director is mid-turn'
         self._last_greet: dict[str, float] = {}
 
     def start(self):
@@ -193,8 +194,11 @@ class Perceiver:
         period = 1.0 / config.CAPTURE_FPS
         while True:
             t0 = time.time()
-            # all cameras pause while any toy talks: speech uploads get the Wi-Fi airtime
-            jpg = self.hub.capture(toy) if self.hub.talking is None else None
+            # All cameras pause for the whole turn (Gemma thinking + toys talking): on a Pi the
+            # face/pet models would otherwise compete with LiteRT for the CPU. The turn uses the
+            # last views, which are at most one capture period old.
+            busy = self.hub.talking is not None or self.hold()
+            jpg = None if busy else self.hub.capture(toy)
             if jpg:
                 img = cv2.imdecode(np.frombuffer(jpg, np.uint8), cv2.IMREAD_COLOR)
                 if img is not None:

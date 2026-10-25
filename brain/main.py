@@ -190,6 +190,7 @@ def main():
     for t in config.TOY_ORDER:
         segs[t] = Segmenter(t, director.utter_q)
     eyes.on_seen = director.on_seen
+    eyes.hold = lambda: director.busy or director.paused
     hub.start()
     eyes.start()
     director.start()

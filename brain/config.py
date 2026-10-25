@@ -85,8 +85,9 @@ def save_mac_map(m: dict[str, str]) -> None:
 
 # ---- voice activity ----
 VAD_AGGRESSIVENESS = 2       # 0..3; raise to 3 in a loud room
-ENERGY_FLOOR = 600.0         # min RMS for speech. Measured: room 60–440, voice at arm's length 700–6000
-NOISE_MULT = 3.0             # speech must be this many times the adaptive noise floor
+ENERGY_FLOOR = 100.0         # min RMS for speech; the adaptive NOISE_MULT term does the real work.
+                             # Measured: quiet room ~12 / voice 140-1060; noisy venue 60-440 / voice 700-6000
+NOISE_MULT = 4.0             # speech must be 4x the measured room noise (quiet ~100, venue ~600)
 START_FRAMES = 6             # voiced frames out of last 10 to open an utterance
 END_SILENCE_MS = 500
 MIN_SPEECH_MS = 500
@@ -111,7 +112,7 @@ def apply_latency_profile(name: str) -> None:
         (500, .12, False) if name == "responsive" else (700, .35, True))
 
 # ---- perception ----
-CAPTURE_FPS = 1.5
+CAPTURE_FPS = 0.5            # one snapshot per toy every 2 s; paused entirely during a turn
 FACE_MATCH = 0.40            # SFace cosine; OpenCV suggests 0.363
 PET_MATCH = 0.60
 GREET_COOLDOWN_S = 120
