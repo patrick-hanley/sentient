@@ -98,7 +98,7 @@ ARBITRATE_S = 0.12           # upper bound; stop sooner when all online mics hav
 # Responsive overlaps model, synthesis and playback. Patient preserves the old
 # pause tolerance for children who pause between words. Neither changes VAD onset.
 LATENCY_PROFILE = "responsive"
-PLAY_FILLERS = False
+PLAY_FILLERS = True
 PAUSE_CAPTURE_DURING_TURN = True
 VISION_MAX_AGE_S = 3.0
 
@@ -109,7 +109,7 @@ def apply_latency_profile(name: str) -> None:
         raise ValueError("Latency profile must be responsive or patient")
     LATENCY_PROFILE = name
     END_SILENCE_MS, ARBITRATE_S, PLAY_FILLERS = (
-        (500, .12, False) if name == "responsive" else (700, .35, True))
+        (500, .12, True) if name == "responsive" else (700, .35, True))   # fillers mask Gemma's ~3-5 s on the Pi
 
 # ---- perception ----
 CAPTURE_FPS = 0.5            # one snapshot per toy every 2 s; paused entirely during a turn

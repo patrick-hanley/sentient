@@ -17,7 +17,7 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import numpy as np
-from brain import config
+from brain import canned, config
 from brain.atoms import Atom, AtomHub, encode_for_atom
 from brain.director import Director, ReplyLines
 from brain.latency import TurnTrace
@@ -81,6 +81,18 @@ class ReplyTests(unittest.TestCase):
         self.assertEqual(self.lines, [("dyno", "Hello there!")])
         self.assertEqual(self.heard, ["hi"])
 
+    def test_answer_first_line_is_spoken_before_heard_arrives(self):
+        self.parser.feed("DYNO: Seven times eight is fifty-six!\n")
+        self.assertEqual(self.lines, [("dyno", "Seven times eight is fifty-six!")])
+        self.assertEqual(self.heard, [])
+        self.parser.feed("HEARD: what is seven times eight\n")
+        self.assertEqual(self.heard, ["what is seven times eight"])
+
+    def test_heard_last_closes_the_reply(self):
+        self.parser.feed("DYNO: Hi!\nHEARD: hello\nSAGE: A second draft.\n")
+        self.parser.finish()
+        self.assertEqual(self.lines, [("dyno", "Hi!")])
+
     def test_empty_heard_header_still_streams(self):
         # Idle-banter turns have no child speech; Gemma writes a bare "HEARD:".
         self.parser.feed("HEARD:\nDYNO: Let's play!\n")
@@ -115,6 +127,26 @@ class ReplyTests(unittest.TestCase):
 class PipelineTests(unittest.TestCase):
     def setUp(self):
         config.apply_latency_profile("responsive")
+        config.PLAY_FILLERS = False   # these tests check reply content; fillers have their own test
+
+    def test_filler_plays_before_the_reply_when_enabled(self):
+        config.PLAY_FILLERS = True
+
+        class OneLine(Backend):
+            hears_audio = False
+
+            def transcribe(self, wav):
+                return "Dyno, hi!"
+
+            def stream(self, *args, **kwargs):
+                yield "DYNO: Hi, friend!\nHEARD: Dyno, hi!\n"
+        director = make_director(OneLine(), FakeHub(("dyno",)))
+        now = time.monotonic()
+        director._turn(utt=Utterance("dyno", time.time()-1, time.time(), np.ones(16000, np.int16), 5000, now-.5, now))
+        rendered = [text for _, text in director.voices.rendered]
+        self.assertIn(rendered[0], canned.FILLERS["dyno"])
+        self.assertEqual(rendered[-1], "Hi, friend!")
+        self.assertEqual(director.hub.played, ["dyno", "dyno"])
 
     def tearDown(self):
         config.apply_latency_profile("responsive")

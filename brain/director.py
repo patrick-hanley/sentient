@@ -31,9 +31,9 @@ def system_prompt() -> str:
 The toys:
 {toys}
 Each turn gives you [TOYS HERE] (the only toys that may speak this turn), [SCENE] (what each toy's camera sees right now) and either the child's speech (audio or text) or an [EVENT].
-Reply ONLY in this exact format and nothing else:
-HEARD: <the child's words, or - if there are none>
+Reply ONLY in this exact format and nothing else. The toy lines come FIRST, the HEARD line LAST:
 <TOY NAME>: <exactly what that toy says out loud>
+HEARD: <the child's words, or - if there are none>
 Rules:
 - One or two toy lines. Each line under 20 words. Words a 2nd to 5th grader knows. Warm, playful, curious.
 - Talk about these things:
@@ -61,9 +61,6 @@ def clean(text: str) -> str:
 
 def parse(out: str, default: str, online=None) -> tuple[str, list[tuple[str, str]]]:
     heard, lines = "", []
-    i = out.upper().rfind("HEARD:")      # skip any leaked reasoning/drafts before the final answer
-    if i > 0:
-        out = out[i:]
     by_name = {v: k for k, v in NAMES.items()}
     for raw in out.splitlines():
         m = LINE.match(raw)
@@ -72,6 +69,8 @@ def parse(out: str, default: str, online=None) -> tuple[str, list[tuple[str, str
         who, said = m.group(1).upper(), clean(m.group(2))
         if who == "HEARD":
             heard = said
+            if lines:          # answer-first format: HEARD closes the reply (ignore any second draft)
+                break
         elif said:
             lines.append((by_name[who], said))
     if online is not None:
@@ -82,14 +81,14 @@ def parse(out: str, default: str, online=None) -> tuple[str, list[tuple[str, str
 
 
 class ReplyLines:
-    """Emit only complete labelled lines after HEARD, never raw token fragments.
+    """Emit complete labelled toy lines as soon as each one ends, never token fragments.
 
-    Reasoning is disabled at the backend; explicit leaked thought blocks are also
-    skipped here. A missing HEARD header falls back to labelled lines at EOF.
+    The reply is answer-first (toy lines, then HEARD). A HEARD after any toy line
+    closes the reply. Explicit leaked thought blocks are skipped.
     """
     def __init__(self, online, on_line, on_heard):
         self.online, self.on_line, self.on_heard = set(online), on_line, on_heard
-        self.buffer, self.candidates = "", []
+        self.buffer = ""
         self.header, self.closed, self.in_thought, self.count = False, False, False, 0
         self.by_name = {value: key for key, value in NAMES.items()}
 
@@ -120,18 +119,18 @@ class ReplyLines:
             return
         who, text = match.group(1).upper(), clean(match.group(2))
         if who == "HEARD":
-            if self.count:  # do not mix a second drafted response into speech
-                self.closed = True
-                return
-            self.header = True
-            self.candidates.clear()
+            # Answer-first format puts HEARD last: record it and close, so a second
+            # drafted reply can never be mixed into speech. HEARD-first still works.
             self.on_heard(text)
-        elif who in self.by_name and text:
-            item = (self.by_name[who], text)
-            if self.header:
-                self._emit(*item)
+            if self.count:
+                self.closed = True
             else:
-                self.candidates.append(item)
+                self.header = True
+            return
+        elif who in self.by_name and text:
+            # Speak each complete toy line at once; waiting for a HEARD header cost
+            # the time Gemma spends transcribing the child (~1-1.5 s on the Pi).
+            self._emit(self.by_name[who], text)
 
     def _emit(self, toy, text):
         if toy in self.online and self.count < config.MAX_LINES:
@@ -144,9 +143,6 @@ class ReplyLines:
         if self.buffer:
             self._line(self.buffer)
             self.buffer = ""
-        if not self.header and not self.in_thought:
-            for toy, text in self.candidates:
-                self._emit(toy, text)
 
 
 class Director:
