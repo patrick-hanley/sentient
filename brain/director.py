@@ -79,6 +79,25 @@ def parse(out: str, default: str, online=None) -> tuple[str, list[tuple[str, str
     return heard, lines[: config.MAX_LINES]
 
 
+SPELLED = re.compile(r"\b[A-Za-z](?:[-\s.][A-Za-z]){2,}\b")
+WRONG_VOWEL = {"A": "E", "E": "I", "I": "E", "O": "U", "U": "O", "Y": "I"}
+
+
+def penny_misspell(line: str) -> str:
+    """Penny's spelling game: the model spells correctly, so we swap one vowel for a plausible wrong one."""
+    def bend(m):
+        letters = re.findall(r"[A-Za-z]", m.group(0))
+        vowels = [i for i, c in enumerate(letters) if c.upper() in WRONG_VOWEL and 0 < i < len(letters) - 1] or \
+                 [i for i, c in enumerate(letters) if c.upper() in WRONG_VOWEL]
+        if not vowels:
+            return m.group(0)
+        i = vowels[len(vowels) // 2]
+        letters[i] = WRONG_VOWEL[letters[i].upper()]
+        return "-".join(c.upper() for c in letters)
+    line = SPELLED.sub(bend, line, count=1)
+    return re.sub(r"\s*(that'?s|this is) (a |the )?(wrong|silly) (spelling|answer)!?", "", line, flags=re.I).strip()
+
+
 class Director:
     def __init__(self, hub, voices, perceiver, backend, segmenters):
         self.hub, self.voices, self.eyes, self.llm, self.segs = hub, voices, perceiver, backend, segmenters
@@ -186,6 +205,8 @@ class Director:
             asked = (heard or (said if not self.llm.hears_audio else "")).lower()
             if "penny" in asked and lines and lines[0][0] == "penny":
                 lines = lines[:1]
+            if "spell" in asked:
+                lines = [(w, penny_misspell(t) if w == "penny" else t) for w, t in lines]
             self.last_latency = time.time() - t0
             log.info("← gemma (%.1fs): %s", self.last_latency, out.replace("\n", " | "))
             if heard and heard != "-":
