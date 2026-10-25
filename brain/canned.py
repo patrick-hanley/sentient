@@ -2,17 +2,17 @@
 
 SCENE = [
     ("dyno", "Rawr! Hi! I'm Dyno the dinosaur! Ooh, are you a new friend?"),
-    ("penny", "And I'm Penny the penguin! I know everything! Cows say quack!"),
-    ("sage", "Hmm. Penny, I don't think cows say quack. Shall we ask our friend?"),
-    ("dyno", "What does a cow say? Can you tell Penny?"),
-    ("penny", "Moo? Oh! Moo! Thank you! You are so smart!"),
-    ("sage", "I'm Sage. I like books, and I can see pictures with my unicorn eyes. Do you have a book for us?"),
-    ("dyno", "Ooh, look at this letter card! Which letter is it?"),
-    ("penny", "I know this one! It's the letter banana!"),
-    ("sage", "Silly Penny. That's the letter B. B says buh, like ball and bear."),
-    ("dyno", "Can you think of something else that starts with buh?"),
-    ("penny", "Bubbles! Buh buh bubbles! Did I get it right this time?"),
-    ("sage", "You did, Penny. Thank you for playing with us, friend!"),
+    ("penny", "And I'm Penny the penguin! I know everything! Three times four is... seven!"),
+    ("sage", "Hmm. Penny, I don't think that's right. Can our friend help?"),
+    ("dyno", "What is three times four? Can you tell Penny?"),
+    ("penny", "Twelve? Oh! Twelve! Thank you! You're so smart!"),
+    ("sage", "I'm Sage. I love stories. Do you know the story of the Three Little Pigs?"),
+    ("dyno", "Ooh! Which house did the big bad wolf blow down first?"),
+    ("penny", "I know! The brick house! Huff and puff!"),
+    ("sage", "Silly Penny. It was the straw house. The brick house stayed strong."),
+    ("dyno", "If you were a little pig, what would you build your house out of?"),
+    ("penny", "Jelly beans! A jelly bean house! Is that strong?"),
+    ("sage", "Not very strong, Penny. Bricks are best. Thank you for playing with us, friend!"),
 ]
 
 FILLERS = {

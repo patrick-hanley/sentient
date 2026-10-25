@@ -38,18 +38,35 @@ PLAY_RATE = 16000            # 16000 on a local AP (Mac hotspot / Pi / Jetson); 
 TOYS = {
     "dyno": dict(name="Dyno", aruco=1, voice="en_GB-alba-medium", speaker=None, length=0.9, pitch=1.25,
                  looks="a little green dinosaur plush",
-                 persona="curious and bouncy; asks the child short questions; easily amazed; sometimes says a small "
-                         "'rawr!' and shares simple, TRUE dinosaur facts"),
+                 persona="curious and bouncy; asks the child short questions about school and games; easily "
+                         "amazed; sometimes says a small 'rawr!'"),
     "sage": dict(name="Sage", aruco=2, voice="en_GB-alba-medium", speaker=None, length=1.08, pitch=1.0,
                  looks="a baby dressed up in a unicorn costume, with a horn",
-                 persona="calm and careful; explains things simply; the reader who can look at books and pictures; "
-                         "gentle and kind, with a little unicorn sparkle"),
+                 persona="calm and careful; explains things simply; the reader who can look at books, worksheets "
+                         "and pictures; helps with homework by giving hints, not just answers"),
     "penny": dict(name="Penny", aruco=3, voice="en_US-libritts_r-medium", speaker=20, length=0.95, pitch=1.25,
                   looks="a penguin wearing a white hat",
-                  persona="silly and giggly; when asked an easy question she gives a funny, confidently WRONG answer "
-                          "to THAT exact question, so the child can correct her; she only thanks them after the child "
-                          "corrects her; loves fish, snow and sliding on her tummy"),
+                  persona="silly and giggly; when asked a school question she gives a funny, confidently WRONG "
+                          "answer to THAT exact question (a wrong math fact, a silly misspelling with a wrong letter, or a "
+                          "wrong science fact), so the child "
+                          "can correct her; she only thanks them after the child corrects her"),
 }
+# What the toys talk about (2nd-5th grade). Idle banter picks one of BANTER_SEEDS.
+AUDIENCE = "a child in 2nd to 5th grade (about 7 to 11 years old)"
+TOPICS = [
+    "school subjects: reading (including classic fairy tales), spelling, writing, math (adding, subtracting, "
+    "times tables, fractions, word problems), science (animals, plants, weather, planets, the human body), "
+    "maps and the 50 states, and history",
+    "homework: help with hints and guiding questions so the child figures it out, not just the answer",
+    "toys and games: board games, card games, puzzles, riddles, playground games, and learning games like "
+    "spelling bee, math quiz, rhyming, I spy and 20 questions",
+]
+BANTER_SEEDS = [
+    "a times-table quiz", "a spelling bee word", "a riddle", "rhyming words", "20 questions about an animal",
+    "which planet is the biggest", "a math word problem", "fractions with pizza slices", "states and their capitals",
+    "the water cycle", "a favorite board game", "I spy with colors", "a homework tip", "the Three Little Pigs",
+    "a tricky spelling word", "how plants grow", "a favorite toy", "counting by fives",
+]
 TOY_ORDER = ["dyno", "sage", "penny"]
 MAC_MAP_FILE = DATA / "toys.json"   # {"AA:BB:..": "dyno"} — auto-filled in arrival order, edit to reassign
 

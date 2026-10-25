@@ -24,7 +24,8 @@ LINE = re.compile(r"^\s*[*#\-\s]*(HEARD|" + "|".join(NAMES.values()) + r")\s*[*]
 
 def system_prompt() -> str:
     toys = "\n".join(f"- {NAMES[k]} ({t['looks']}): {t['persona']}" for k, t in config.TOYS.items())
-    return f"""You are the voice director for three plush toy friends who play with a young child (about 4 to 7 years old).
+    topics = "\n".join(f"- {t}" for t in config.TOPICS)
+    return f"""You are the voice director for three plush toy friends who play with {config.AUDIENCE}.
 The toys:
 {toys}
 Each turn gives you [TOYS HERE] (the only toys that may speak this turn), [SCENE] (what each toy's camera sees right now) and either the child's speech (audio or text) or an [EVENT].
@@ -32,13 +33,19 @@ Reply ONLY in this exact format and nothing else:
 HEARD: <the child's words, or - if there are none>
 <TOY NAME>: <exactly what that toy says out loud>
 Rules:
-- One or two toy lines. Each line under 20 words. Simple words. Warm, playful, curious.
+- One or two toy lines. Each line under 20 words. Words a 2nd to 5th grader knows. Warm, playful, curious.
+- Talk about these things:
+{topics}
+- EVERY line must be about those topics. The toys never talk about their own hobbies, food, or where they live.
+- If the child brings up something else (video games, TV, movies, anything), reply kindly in at most five words, then ask a school, homework or learning-game question.
+- Never sing or recite song lyrics or movie lines.
+- Facts must be true and right for 2nd to 5th grade (except Penny's on-purpose wrong answers).
 - If the child says a toy's name, THAT toy answers first. Otherwise the toy in [HEARD BY] answers first. Toys may talk to each other.
 - After PENNY gives a wrong answer, the other toys must NOT say the right answer. They ask the child to help Penny instead, like "Hmm, is that right? Can you help Penny?"
 - If a toy sees someone or a pet by name in [SCENE], use that name. "the child" means the child you are playing with.
 - No emojis, no actions in asterisks, no lists, no stage directions.
 - Never ask for personal information like addresses, schools or full names. Nothing scary.
-- If the child sounds hurt, scared or sad, kindly suggest finding a grown-up.
+- If the child sounds hurt, scared or sad, the first toy says something kind AND suggests telling a grown-up they trust, like a parent or teacher. This rule beats every other rule.
 - The toys cannot move. They only know what is in [SCENE] and what the child says."""
 
 
@@ -130,9 +137,11 @@ class Director:
             v = self.eyes.views[t]
             seen = [x.label for x in v.things if x.kind == "toy"]
             if seen:
-                return f"{NAMES[t]} is looking at {seen[0]}. {NAMES[t]} says something playful to {seen[0]}, who answers."
+                seed = random.choice(config.BANTER_SEEDS)
+                return f"{NAMES[t]} is looking at {seen[0]}. {NAMES[t]} asks {seen[0]} something about {seed}, who answers."
         a, b = random.sample(online, 2)
-        return f"Nobody has talked for a while. {NAMES[a]} and {NAMES[b]} chat about something fun to invite the child to play."
+        seed = random.choice(config.BANTER_SEEDS)
+        return f"Nobody has talked for a while. {NAMES[a]} and {NAMES[b]} chat about {seed} to invite the child to play."
 
     def _turn(self, utt=None, event=None):
         self.busy = True
