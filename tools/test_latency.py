@@ -81,6 +81,11 @@ class ReplyTests(unittest.TestCase):
         self.assertEqual(self.lines, [("dyno", "Hello there!")])
         self.assertEqual(self.heard, ["hi"])
 
+    def test_empty_heard_header_still_streams(self):
+        # Idle-banter turns have no child speech; Gemma writes a bare "HEARD:".
+        self.parser.feed("HEARD:\nDYNO: Let's play!\n")
+        self.assertEqual(self.lines, [("dyno", "Let's play!")])
+
     def test_thought_blocks_unknown_toys_and_extra_lines_are_ignored(self):
         for delta in ["<thi", "nk>\nHEARD: draft\nDYNO: secret\n</think>\n", "HEARD: hi\n",
                       "PENNY: offline\nDYNO: First.\nSAGE: Second.\nDYNO: Third.\n"]:

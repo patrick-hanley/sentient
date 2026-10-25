@@ -21,7 +21,7 @@ NAMES = {k: t["name"].upper() for k, t in config.TOYS.items()}
 # Whisper's classic hallucinations on noise / silence
 HALLUCINATIONS = {"", "you", "thank you", "thanks", "thanks for watching", "thank you for watching", "bye",
                   "blank_audio", "silence", "music", "applause", "subtitles by the amaraorg community"}
-LINE = re.compile(r"^\s*[*#\-\s]*(HEARD|" + "|".join(NAMES.values()) + r")\s*[*]*\s*:\s*(.+)$", re.I)
+LINE = re.compile(r"^\s*[*#\-\s]*(HEARD|" + "|".join(NAMES.values()) + r")\s*[*]*\s*:\s*(.*)$", re.I)
 
 
 def system_prompt() -> str:
