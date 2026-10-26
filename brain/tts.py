@@ -48,6 +48,8 @@ class Voices:
         self.busy = lambda: False          # main wires this to "the director is mid-turn"
         self._disk = config.DATA / "tts-cache"
         self._disk.mkdir(parents=True, exist_ok=True)
+        from .sfx import Sounds
+        self.sounds = Sounds()
         self._kokoro, self._kokoro_model = None, None
         if config.USE_KOKORO and any(t.get("kokoro") for t in config.TOYS.values()):
             try:
@@ -81,7 +83,7 @@ class Voices:
                 self._live += 1
             try:
                 start = time.time()
-                pcm = self._render_kokoro(t, text) if kokoro else self._render_piper(t, text)
+                pcm = self._render_with_sfx(t, text, kokoro)
                 pcm = _apply_gain(pcm, t.get("gain", 1.0))
                 self.last[toy] = f"{len(pcm) / 2 / config.SAMPLE_RATE:.1f} s of speech in {time.time() - start:.1f} s"
             finally:
@@ -94,6 +96,21 @@ class Voices:
             self._cache[key] = pcm
         return pcm
 
+    def _render_with_sfx(self, t: dict, text: str, kokoro: bool) -> bytes:
+        """Speech with sound effects mixed in: '{knock} Who is it?' -> knock, short gap, speech."""
+        speak = (lambda x: self._render_kokoro(t, x)) if kokoro else (lambda x: self._render_piper(t, x))
+        if not self.sounds.affects(text):
+            return speak(text)
+        parts = []
+        for kind, value in self.sounds.segments(text):
+            if kind == "sfx":
+                gain = 1.0 / max(t.get("gain", 1.0), 1e-3)   # sounds keep their level; volume applies after
+                parts.append(_apply_gain(self.sounds.pcm[value], gain))
+            elif any(ch.isalnum() for ch in value):
+                parts.append(speak(value))
+        from .sfx import GAP
+        return GAP.join(p for p in parts if p)
+
     def _spec_hash(self, toy: str, text: str) -> str:
         t = config.TOYS[toy]
         kokoro = self._kokoro is not None and bool(t.get("kokoro"))
@@ -101,6 +118,8 @@ class Voices:
                 **{f: t.get(f) for f in ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch")}}
         if t.get("gain", 1.0) != 1.0:   # only part of the key when changed, so existing clips stay valid
             spec["g"] = t["gain"]
+        if self.sounds.affects(text):    # lines with sound effects (and "Rawr!") render differently now
+            spec["sfx"] = 1
         return hashlib.sha1(json.dumps(spec, sort_keys=True).encode()).hexdigest()
 
     def clip_id(self, toy: str, text: str) -> str:

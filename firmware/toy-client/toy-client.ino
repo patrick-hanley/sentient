@@ -46,7 +46,7 @@ struct WifiCred { const char* ssid; const char* pass; int channel = 0; };  // ch
 #include "secrets.h"
 static constexpr uint16_t BRAIN_PORT = 5005;
 static constexpr uint16_t ATOM_PORT  = 5006;
-static constexpr const char* FW_VERSION = "toy-client-3";
+static constexpr const char* FW_VERSION = "toy-client-3.1";
 
 // ---------- GC0308 camera pins — AtomS3R-CAM ----------
 #define CAM_SIOD   12

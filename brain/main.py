@@ -46,6 +46,8 @@ button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}<
 <span>Enroll: <input id=nm placeholder=Name size=10><select id=et><option>dyno<option selected>sage<option>penny</select>
 <label><input type=checkbox id=pet>pet</label><button onclick="enroll()">Enroll from camera</button></span>
 <p id=flags></p>
+<h3>Sound effects <small class=dim>(CC0 from freesound.org &mdash; Gemma can use them too: {knock} …)</small></h3>
+<div>Play on <select id=sfxt><option>dyno<option>sage<option>penny</select> <span id=sfx></span></div>
 <h3>Canned lines <small class=dim>(stored on each toy &mdash; play instantly)</small></h3><div id=canned></div>
 <script>
 const T=["dyno","sage","penny"];
@@ -87,7 +89,9 @@ async function loadCanned(){const c=await (await fetch('/canned')).json();
    `<div class=dim>${g}</div>`+ls.map(x=>`<button class=line data-x="${x.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" onclick="playLine('${t}',this.dataset.x)">${x}</button>`).join('')).join('')+'</div>').join('')+'</div>';
  document.getElementById('canned').innerHTML=h;}
 function playLine(t,x){fetch(`/playline?toy=${t}&text=${encodeURIComponent(x)}`,{method:'POST'});}
-loadVoices();loadCanned();
+async function loadSfx(){const s=await (await fetch('/sfx')).json();
+ document.getElementById('sfx').innerHTML=Object.entries(s).map(([n,v])=>`<button title="${v.desc}${v.owner?' ('+v.owner+')':''}" onclick="playLine(sfxt.value,'{${n}}')">${n.replace('_',' ')}</button>`).join(' ');}
+loadVoices();loadCanned();loadSfx();
 setInterval(tick,700);tick();
 </script></body></html>"""
 
@@ -117,6 +121,9 @@ def make_handler(hub, eyes, director, rec, voices):
                              **{name: [x for w, x in sc if w == t] for name, sc in canned.SCENES.items()}}
                          for t in config.TOY_ORDER}
                 return self._send(200, json.dumps({"scenes": list(canned.SCENES), "lines": lines}), "application/json")
+            if u.path == "/sfx":
+                return self._send(200, json.dumps({n: dict(v, owner=v.get("toy")) for n, v in voices.sounds.index.items()}),
+                                  "application/json")
             if u.path == "/voices":
                 return self._send(200, json.dumps({"kokoro": voices.kokoro_voices(), "piper": voices.piper_voices(),
                                                    "toys": {t: voices.settings(t) for t in config.TOY_ORDER}}),
@@ -187,6 +194,10 @@ def make_clip_sync(hub, voices, director):
     flash, so they play instantly and without the network. Only missing clips are uploaded."""
     def sync(toy):
         time.sleep(2)   # let the Atom finish connecting
+        if hub.atoms[toy].flags.get("fw") == "toy-client-3":   # upload/clear can crash that build
+            log.warning("%s: firmware toy-client-3 — reflash to 3.1 to store clips; lines stream meanwhile", toy)
+            hub.list_clips(toy)   # still use the clips already stored
+            return
         have = hub.list_clips(toy)
         if have is None:
             log.info("%s: firmware has no clip storage — fixed lines will stream", toy)
@@ -194,6 +205,7 @@ def make_clip_sync(hub, voices, director):
         greet = canned.GREETINGS.get(toy)
         lines = list(canned.FILLERS.get(toy, [])) + [x for sc in canned.SCENES.values() for t, x in sc if t == toy]
         lines += [greet] if greet else []
+        lines += ["{%s}" % n for n in voices.sounds.names(toy)]   # sound effects, stored like any line
         needed = {voices.clip_id(toy, x) for x in lines} | {"hello"}
         if set(have) - needed:   # old voice/text versions: clear the flash and store a fresh set
             hub.clear_clips(toy)

@@ -189,6 +189,9 @@ class AtomHub:
         a = self.atoms.get(toy)
         if not a or not pcm16k:
             return False
+        if a.flags.get("fw") == "toy-client-3":   # that build's web server overflows its stack on uploads
+            log.warning("%s runs toy-client-3 (upload crash bug): reflash to 3.1+ before storing clips", toy)
+            return False
         body = ulaw_encode(np.frombuffer(pcm16k, "<i2"))
         for attempt in range(3):   # flash erases can stall the Atom for a moment: be patient, retry
             req = urllib.request.Request(f"http://{a.ip}/clip?name={name}", data=body, method="PUT",

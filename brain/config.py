@@ -24,6 +24,7 @@ KOKORO_DIR = Path(os.environ.get("SENTIENT_KOKORO_DIR", OFFLINE / "kokoro"))
 USE_KOKORO = os.environ.get("SENTIENT_KOKORO", "1") != "0"
 # int8 + ORT_ENABLE_ALL measured fastest on the Pi 5 (x1.1 real time vs x0.84 for fp32; q4/uint8 no better)
 KOKORO_MODEL = os.environ.get("SENTIENT_KOKORO_MODEL", "kokoro-v1.0.int8.onnx")
+SFX_DIR = Path(os.environ.get("SENTIENT_SFX_DIR", OFFLINE / "sfx"))   # tools/fetch_sfx.py (CC0, Freesound)
 YUNET = OFFLINE / "vision/face_detection_yunet_2023mar.onnx"
 SFACE = OFFLINE / "vision/face_recognition_sface_2021dec.onnx"
 OBJ_DET = OFFLINE / "vision/efficientdet_lite0.tflite"
@@ -48,7 +49,7 @@ TOYS = {
                  kokoro="af_heart", kspeed=1.1, kpitch=1.15,   # Kokoro (American), pitched up
                  looks="a little green dinosaur plush",
                  persona="curious and bouncy; asks the child short questions about school and games; easily "
-                         "amazed; sometimes says a small 'rawr!'"),
+                         "amazed; sometimes growls with the {dino_growl} sound"),
     "sage": dict(name="Sage", aruco=2, voice="en_GB-alba-medium", speaker=None, length=1.08, pitch=1.0,
                  kokoro="bf_emma", kspeed=0.95, kpitch=1.0,    # Kokoro (British)
                  looks="a baby dressed up in a unicorn costume, with a horn",

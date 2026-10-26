@@ -27,6 +27,8 @@ LINE = re.compile(r"^\s*[*#\-\s]*(HEARD|" + "|".join(NAMES.values()) + r")\s*[*]
 def system_prompt() -> str:
     toys = "\n".join(f"- {NAMES[k]} ({t['looks']}): {t['persona']}" for k, t in config.TOYS.items())
     topics = "\n".join(f"- {t}" for t in config.TOPICS)
+    from .sfx import Sounds
+    sounds = Sounds().prompt_list() or "none"
     return f"""You are the voice director for three plush toy friends who play with {config.AUDIENCE}.
 The toys:
 {toys}
@@ -46,6 +48,7 @@ Rules:
 - If the child says a toy's name, THAT toy answers first. Otherwise the toy in [HEARD BY] answers first. Toys may talk to each other.
 - If a toy sees someone or a pet by name in [SCENE], use that name. "the child" means the child you are playing with.
 - No emojis, no actions in asterisks, no lists, no stage directions.
+- Sound effects: a toy may put ONE sound tag at the start of a line, e.g. "DYNO: {{knock}} Who could be at the door?". Use them for stories, animals and fun moments, not every line. Available {sounds}
 - Never ask for personal information like addresses, schools or full names. Nothing scary.
 - If the child sounds hurt, scared or sad, the first toy says something kind AND suggests telling a grown-up they trust, like a parent or teacher. This rule beats every other rule.
 - The toys cannot move. They only know what is in [SCENE] and what the child says."""
