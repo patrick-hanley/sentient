@@ -31,6 +31,7 @@ class Voices:
             self._voices[name] = PiperVoice.load(str(path))
             log.info("voice loaded: %s", name)
         self._cache: dict[tuple[str, str], bytes] = {}
+        self.last: dict[str, str] = {}     # toy -> "3.6 s of speech in 3.9 s" (dashboard)
         self._live = 0                     # live renders in progress: background prerender yields to them
         self._last_live = 0.0
         self.busy = lambda: False          # main wires this to "the director is mid-turn"
@@ -69,7 +70,9 @@ class Voices:
             if not persist:
                 self._live += 1
             try:
+                start = time.time()
                 pcm = self._render_kokoro(t, text) if kokoro else self._render_piper(t, text)
+                self.last[toy] = f"{len(pcm) / 2 / config.SAMPLE_RATE:.1f} s of speech in {time.time() - start:.1f} s"
             finally:
                 if not persist:
                     self._live -= 1
@@ -79,6 +82,22 @@ class Voices:
         if len(self._cache) < 500:
             self._cache[key] = pcm
         return pcm
+
+    def describe(self, toy: str) -> dict:
+        """Dashboard summary of a toy's voice."""
+        t = config.TOYS[toy]
+        if self._kokoro is not None and t.get("kokoro"):
+            v = t["kokoro"]   # e.g. af_heart: a/b = American/British, f/m = female/male
+            accent = {"a": "American", "b": "British"}.get(v[0], v[0])
+            gender = {"f": "female", "m": "male"}.get(v[1], "")
+            return {"engine": "Kokoro-82M", "label": f"{v.split('_', 1)[1].title()} · {accent} {gender}".strip(),
+                    "id": v, "speed": t.get("kspeed", 1.0), "pitch": t.get("kpitch", 1.0),
+                    "model": self._kokoro_model, "last": self.last.get(toy, "")}
+        name = t["voice"]   # e.g. en_GB-alba-medium
+        accent = {"en_GB": "British", "en_US": "American"}.get(name.split("-")[0], name.split("-")[0])
+        label = f"{name.split('-')[1].replace('_', ' ').title()} · {accent}" + (f" #{t['speaker']}" if t.get("speaker") is not None else "")
+        return {"engine": "Piper", "label": label, "id": name, "speed": round(1 / t["length"], 2),
+                "pitch": t["pitch"], "model": name, "last": self.last.get(toy, "")}
 
     def _render_kokoro(self, t: dict, text: str) -> bytes:
         voice, pitch = t["kokoro"], t.get("kpitch", 1.0)

@@ -31,7 +31,7 @@ log = logging.getLogger("brain")
 PAGE = """<!doctype html><html><head><meta charset=utf-8><title>Sentient toys</title>
 <style>body{background:#111;color:#eee;font-family:system-ui;margin:16px}.row{display:flex;gap:16px}
 .toy{flex:1;background:#1c1c1c;padding:10px;border-radius:10px}.toy img{width:100%;border-radius:6px;background:#000}
-.bar{height:8px;background:#333;border-radius:4px}.bar>div{height:8px;background:#4c4;border-radius:4px}
+.bar{height:8px;background:#333;border-radius:4px}.voice{font-size:13px;line-height:1.5;color:#cfd2ee;border-top:1px solid #333;padding-top:6px}.dim{color:#8b8fb0}.bar>div{height:8px;background:#4c4;border-radius:4px}
 button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}</style></head><body>
 <h2>Sentient toys &mdash; Gemma 4 on-device brain <small id=be></small></h2>
 <div class=row id=toys></div>
@@ -47,12 +47,14 @@ button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}<
 <script>
 const T=["dyno","sage","penny"];
 document.getElementById('toys').innerHTML=T.map(t=>`<div class=toy id=b_${t}><h3>${t.toUpperCase()} <small id=s_${t}></small></h3>
-<img id=i_${t}><div class=bar><div id=l_${t} style="width:0"></div></div><p id=v_${t}></p></div>`).join('');
+<img id=i_${t}><div class=bar><div id=l_${t} style="width:0"></div></div><p id=v_${t}></p>
+<p class=voice id=vc_${t}></p></div>`).join('');
 function post(p){fetch('/'+p,{method:'POST'})}
 function enroll(){fetch(`/enroll?toy=${et.value}&name=${encodeURIComponent(nm.value)}&pet=${pet.checked?1:0}`,{method:'POST'}).then(r=>r.text()).then(alert)}
 async function tick(){const s=await (await fetch('/state')).json();be.textContent='('+s.backend+')';
 for(const t of T){const x=s.toys[t];document.getElementById('s_'+t).textContent=x.online?(x.ip+(x.cam?'':' no-cam')):'offline';
 document.getElementById('l_'+t).style.width=Math.min(100,x.level/30)+'%';document.getElementById('v_'+t).textContent=x.view;
+const vc=x.voice||{};document.getElementById('vc_'+t).innerHTML=vc.engine?`<b>Voice:</b> ${vc.label} <span class=dim>(${vc.engine}, ${vc.id})</span><br>speed ${vc.speed} · pitch ${vc.pitch}`+(vc.last?`<br><span class=dim>last line: ${vc.last}</span>`:''):'';
 document.getElementById('b_'+t).className='toy'+(s.talking==t?' talk':'');
 if(x.online)document.getElementById('i_'+t).src='/frame/'+t+'.jpg?'+Date.now()}
 heard.textContent=s.heard;said.textContent=s.said.map(l=>l[0].toUpperCase()+': '+l[1]).join('  /  ');
@@ -93,7 +95,8 @@ def make_handler(hub, eyes, director, rec, voices):
                 for t in config.TOY_ORDER:
                     a = hub.atoms.get(t)
                     st["toys"][t] = {"online": t in online, "ip": a.ip if a else "", "cam": bool(a and a.cam),
-                                     "level": director.segs[t].level, "view": eyes.views[t].describe()}
+                                     "level": director.segs[t].level, "view": eyes.views[t].describe(),
+                                     "voice": voices.describe(t)}
                 return self._send(200, json.dumps(st), "application/json")
             self._send(404, "")
 
