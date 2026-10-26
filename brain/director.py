@@ -81,16 +81,22 @@ def parse(out: str, default: str, online=None) -> tuple[str, list[tuple[str, str
 
 
 class ReplyLines:
-    """Emit complete labelled toy lines as soon as each one ends, never token fragments.
+    """Speak each complete sentence of a toy line as soon as it ends, never token fragments.
 
     The reply is answer-first (toy lines, then HEARD). A HEARD after any toy line
-    closes the reply. Explicit leaked thought blocks are skipped.
+    closes the reply. Explicit leaked thought blocks are skipped. A line split into
+    sentences still counts once toward MAX_LINES.
     """
+    SENTENCE_END = re.compile(r"[.!?](?=\s)")
+    CLAUSE_END = re.compile(r"[,;:\u2014](?=\s)")
+    CLAUSE_MIN_WORDS = 5   # each TTS call has ~0.4 s fixed cost on the Pi; don't split tiny clauses
+
     def __init__(self, online, on_line, on_heard):
         self.online, self.on_line, self.on_heard = set(online), on_line, on_heard
         self.buffer = ""
         self.header, self.closed, self.in_thought, self.count = False, False, False, 0
         self.by_name = {value: key for key, value in NAMES.items()}
+        self.cur, self.spoken = None, 0   # (toy, allowed) of the line in progress; chars of it already spoken
 
     def feed(self, delta):
         self.buffer += delta
@@ -99,9 +105,40 @@ class ReplyLines:
         while "\n" in self.buffer:
             line, self.buffer = self.buffer.split("\n", 1)
             self._line(line)
+        self._partial()
+
+    def _partial(self):
+        """Speak finished sentences of the line still being written (saves ~1-2 s on long lines)."""
+        if self.closed or self.in_thought or re.search(r"<(?:think|analysis)>", self.buffer, re.I):
+            return
+        match = LINE.match(self.buffer)
+        if not match or match.group(1).upper() not in self.by_name:
+            return
+        rest = match.group(2)[self.spoken:]
+        ends = list(self.SENTENCE_END.finditer(rest))
+        if ends:
+            cut = ends[-1].end()
+        else:   # no sentence end yet: release a long clause so synthesis can start sooner
+            cut = next((m.end() for m in self.CLAUSE_END.finditer(rest)
+                        if len(rest[:m.end()].split()) >= self.CLAUSE_MIN_WORDS), 0)
+        if cut:
+            self._speak(self.by_name[match.group(1).upper()], rest[:cut])
+            self.spoken += cut
+
+    def _speak(self, toy, raw_text):
+        if self.cur is None:   # first piece of a new toy line decides whether the line may play
+            allowed = toy in self.online and self.count < config.MAX_LINES
+            self.count += allowed
+            self.cur = (toy, allowed)
+        text = clean(raw_text)
+        if self.cur[1] and text:
+            self.on_line(toy, text)
 
     def _line(self, raw):
-        if self.closed:
+        if self.closed:   # still record a trailing HEARD for the dashboard; never speak more
+            match = LINE.match(raw)
+            if match and match.group(1).upper() == "HEARD":
+                self.on_heard(clean(match.group(2)))
             return
         # Tags can straddle token chunks, since this runs on completed lines.
         while True:
@@ -115,10 +152,13 @@ class ReplyLines:
                 break
             raw, self.in_thought = raw[start.end():], True
         match = LINE.match(raw)
+        spoken, self.spoken = self.spoken, 0
         if not match:
+            self.cur = None
             return
         who, text = match.group(1).upper(), clean(match.group(2))
         if who == "HEARD":
+            self.cur = None
             # Answer-first format puts HEARD last: record it and close, so a second
             # drafted reply can never be mixed into speech. HEARD-first still works.
             self.on_heard(text)
@@ -127,17 +167,17 @@ class ReplyLines:
             else:
                 self.header = True
             return
-        elif who in self.by_name and text:
-            # Speak each complete toy line at once; waiting for a HEARD header cost
-            # the time Gemma spends transcribing the child (~1-1.5 s on the Pi).
-            self._emit(self.by_name[who], text)
-
-    def _emit(self, toy, text):
-        if toy in self.online and self.count < config.MAX_LINES:
-            self.on_line(toy, text)
-            self.count += 1
+        elif who in self.by_name:
+            # Speak the rest of the line now that it's complete (sentences already
+            # spoken by _partial are skipped); no HEARD gate, which cost ~1-1.5 s.
+            remainder = match.group(2)[spoken:]
+            if text and (remainder.strip() or self.cur is None):
+                self._speak(self.by_name[who], remainder if spoken else match.group(2))
+            self.cur = None
             if self.count >= config.MAX_LINES:
                 self.closed = True
+        else:
+            self.cur = None
 
     def finish(self):
         if self.buffer:

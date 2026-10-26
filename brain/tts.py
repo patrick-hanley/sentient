@@ -90,13 +90,15 @@ class Voices:
             v = t["kokoro"]   # e.g. af_heart: a/b = American/British, f/m = female/male
             accent = {"a": "American", "b": "British"}.get(v[0], v[0])
             gender = {"f": "female", "m": "male"}.get(v[1], "")
-            return {"engine": "Kokoro-82M", "label": f"{v.split('_', 1)[1].title()} · {accent} {gender}".strip(),
+            m = (self._kokoro_model or "").lower()
+            quant = next((q for q in ("int8", "uint8", "q4", "q8f16", "fp16", "int4", "int2") if q in m), "fp32")
+            return {"engine": "Kokoro-82M", "label": f"{v.split('_', 1)[1].title()} · {accent} {gender}".strip(), "quant": quant,
                     "id": v, "speed": t.get("kspeed", 1.0), "pitch": t.get("kpitch", 1.0),
                     "model": self._kokoro_model, "last": self.last.get(toy, "")}
         name = t["voice"]   # e.g. en_GB-alba-medium
         accent = {"en_GB": "British", "en_US": "American"}.get(name.split("-")[0], name.split("-")[0])
         label = f"{name.split('-')[1].replace('_', ' ').title()} · {accent}" + (f" #{t['speaker']}" if t.get("speaker") is not None else "")
-        return {"engine": "Piper", "label": label, "id": name, "speed": round(1 / t["length"], 2),
+        return {"engine": "Piper", "label": label, "id": name, "quant": "fp32", "speed": round(1 / t["length"], 2),
                 "pitch": t["pitch"], "model": name, "last": self.last.get(toy, "")}
 
     def _render_kokoro(self, t: dict, text: str) -> bytes:

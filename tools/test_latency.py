@@ -88,6 +88,24 @@ class ReplyTests(unittest.TestCase):
         self.parser.feed("HEARD: what is seven times eight\n")
         self.assertEqual(self.heard, ["what is seven times eight"])
 
+    def test_first_sentence_is_spoken_while_the_line_is_still_being_written(self):
+        self.parser.feed("DYNO: Seven times eight is fifty-six! That")
+        self.assertEqual(self.lines, [("dyno", "Seven times eight is fifty-six!")])
+        self.parser.feed("'s a lot of eights!\nSAGE: Nice.\nDYNO: A third line.\nHEARD: seven times eight\n")
+        self.assertEqual(self.lines, [("dyno", "Seven times eight is fifty-six!"),
+                                      ("dyno", "That's a lot of eights!"), ("sage", "Nice.")])
+        self.assertEqual(self.heard, ["seven times eight"])
+
+    def test_long_clause_is_spoken_before_the_sentence_ends(self):
+        self.parser.feed("SAGE: When water gets warm in the sun, it rises")
+        self.assertEqual(self.lines, [("sage", "When water gets warm in the sun,")])
+        self.parser.feed(" into the sky.\nHEARD: why does it rain\n")
+        self.assertEqual(self.lines[-1], ("sage", "it rises into the sky."))
+
+    def test_short_clause_waits_for_more_words(self):
+        self.parser.feed("DYNO: Rawr, hi")
+        self.assertEqual(self.lines, [])
+
     def test_heard_last_closes_the_reply(self):
         self.parser.feed("DYNO: Hi!\nHEARD: hello\nSAGE: A second draft.\n")
         self.parser.finish()

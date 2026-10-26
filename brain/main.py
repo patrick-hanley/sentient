@@ -54,7 +54,7 @@ function enroll(){fetch(`/enroll?toy=${et.value}&name=${encodeURIComponent(nm.va
 async function tick(){const s=await (await fetch('/state')).json();be.textContent='('+s.backend+')';
 for(const t of T){const x=s.toys[t];document.getElementById('s_'+t).textContent=x.online?(x.ip+(x.cam?'':' no-cam')):'offline';
 document.getElementById('l_'+t).style.width=Math.min(100,x.level/30)+'%';document.getElementById('v_'+t).textContent=x.view;
-const vc=x.voice||{};document.getElementById('vc_'+t).innerHTML=vc.engine?`<b>Voice:</b> ${vc.label} <span class=dim>(${vc.engine}, ${vc.id})</span><br>speed ${vc.speed} · pitch ${vc.pitch}`+(vc.last?`<br><span class=dim>last line: ${vc.last}</span>`:''):'';
+const vc=x.voice||{};document.getElementById('vc_'+t).innerHTML=vc.engine?`<b>Voice:</b> ${vc.label} <span class=dim>(${vc.engine} ${vc.quant||''}, ${vc.id})</span><br>speed ${vc.speed} · pitch ${vc.pitch}`+(vc.last?`<br><span class=dim>last line: ${vc.last}</span>`:''):'';
 document.getElementById('b_'+t).className='toy'+(s.talking==t?' talk':'');
 if(x.online)document.getElementById('i_'+t).src='/frame/'+t+'.jpg?'+Date.now()}
 heard.textContent=s.heard;said.textContent=s.said.map(l=>l[0].toUpperCase()+': '+l[1]).join('  /  ');
