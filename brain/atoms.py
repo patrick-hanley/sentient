@@ -50,6 +50,7 @@ class Atom:
     pkts: int = 0
     flags: dict = field(default_factory=dict)   # from HELLO: fw, codec repair counters (sfix/sfail/mfix/mfail), clips
     clips: dict = field(default_factory=dict)   # clip name -> seconds, stored in the Atom's flash (firmware 3+)
+    fs: tuple = (0, 0)                          # (total, used) bytes of clip storage
 
 
 class AtomHub:
@@ -172,7 +173,24 @@ class AtomHub:
             return None
         # mu-law: 1 byte/sample. Empty files are leftovers of an interrupted upload: treat as missing.
         a.clips = {n: size / config.SAMPLE_RATE for n, size in d.get("clips", {}).items() if size > 0}
+        a.fs = (int(d.get("total", 0)), int(d.get("used", 0)))
         return a.clips
+
+    def set_volume(self, toy: str, vol: int) -> bool:
+        """Hardware speaker volume 0..255 (0 = silent), saved on the Atom (firmware 3.2+)."""
+        a = self.atoms.get(toy)
+        if not a:
+            return False
+        vol = max(0, min(255, int(vol)))
+        try:
+            with self._http.open(urllib.request.Request(f"http://{a.ip}/volume?v={vol}", data=b"", method="POST"),
+                                 timeout=5) as r:
+                r.read()
+        except (urllib.error.URLError, OSError, TimeoutError) as e:
+            log.warning("volume on %s failed: %s", toy, e)
+            return False
+        a.flags["vol"] = str(vol)
+        return True
 
     def clear_clips(self, toy: str) -> None:
         a = self.atoms.get(toy)
@@ -200,6 +218,7 @@ class AtomHub:
                 with self._http.open(req, timeout=30) as r:
                     r.read()
                 a.clips[name] = len(body) / config.SAMPLE_RATE
+                a.fs = (a.fs[0], a.fs[1] + (len(body) + 4095) // 4096 * 4096)   # LittleFS 4 KB blocks
                 return True
             except (urllib.error.URLError, OSError, TimeoutError) as e:
                 log.warning("clip upload to %s failed (try %d/3): %s", toy, attempt + 1, e)

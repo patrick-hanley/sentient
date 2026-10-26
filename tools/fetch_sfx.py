@@ -62,6 +62,22 @@ SOUNDS = {
     "school_bell": ("school bell ring", 2.0, None, "school bell"),
     "applause":    ("kids cheering applause", 2.0, None, "cheering"),
 }
+# Halloween set (kid-friendly spooky). Stored on the toys last: they stream if flash is full.
+HALLOWEEN = {
+    "witch_cackle": ("witch cackle", 2.0, None, "witch cackling"),
+    "ghost_boo":    ("boo", 1.5, None, "friendly ghost boo"),
+    "ghost_moan":   ("ghost", 2.0, None, "ghost moaning"),
+    "bats":         ("bat wings", 1.8, None, "bats flapping"),
+    "cauldron":     ("cauldron bubbling", 2.0, None, "bubbling cauldron"),
+    "spooky_wind":  ("spooky wind howling", 2.5, None, "spooky wind"),
+    "crow":         ("crow caw", 1.5, None, "crow cawing"),
+    "bones":        ("skeleton bones rattle", 1.5, None, "rattling bones"),
+    "cat_hiss":     ("cat hiss", 1.2, None, "cat hissing"),
+    "spooky_organ": ("spooky organ", 2.5, None, "spooky organ"),
+    "monster_laugh": ("monster laugh", 2.0, None, "monster laugh"),
+}
+SETS = {**{n: ("character" if v[2] else "story") for n, v in SOUNDS.items()}, **{n: "halloween" for n in HALLOWEEN}}
+SOUNDS.update(HALLOWEEN)
 
 
 def search(query: str) -> list[dict]:
@@ -127,11 +143,13 @@ def main():
         (DL / f"{name}_{best['id']}.mp3").write_bytes(raw)
         pcm = prepare(raw, keep_s)
         sf.write(OUT / f"{name}.wav", pcm, SR, subtype="PCM_16")
-        index[name] = {"desc": desc, "toy": toy, "seconds": round(len(pcm) / SR, 2), "query": query,
+        index[name] = {"desc": desc, "toy": toy, "set": SETS[name], "seconds": round(len(pcm) / SR, 2), "query": query,
                        "freesound_id": best["id"], "title": best["title"], "author": best["user"],
                        "license": "CC0 1.0", "url": f"https://freesound.org/people/{best['user']}/sounds/{best['id']}/"}
         print(f"{name:12} {len(pcm)/SR:4.1f}s  <- '{best['title']}' by {best['user']} ({best['downloads']} downloads)")
         time.sleep(0.5)   # be polite to freesound.org
+    for n in index:   # backfill the set for sounds fetched before sets existed
+        index[n].setdefault("set", SETS.get(n, "story"))
     index_path.write_text(json.dumps(index, indent=2))
     total = sum(v["seconds"] for v in index.values())
     print(f"{len(index)} sounds, {total:.0f} s total ≈ {total * 16:.0f} KB as mu-law on a toy")

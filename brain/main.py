@@ -39,7 +39,7 @@ button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}<
 <div class=row id=toys></div>
 <p><b>Heard:</b> <span id=heard></span><br><b>Said:</b> <span id=said></span> <small id=lat></small></p>
 <details><summary>Latency stages (milliseconds)</summary><pre id=stages></pre></details>
-<button onclick="post('mute')">Mute mics</button>
+<button id=muteall onclick="post('muteall')">Mute all toys</button><button onclick="post('mute')">Mute mics</button>
 <button onclick="post('idle')">Idle chatter</button>
 <span>Say: <select id=st><option>dyno<option>sage<option>penny</select><input id=sx size=30>
 <button onclick="fetch(`/say?toy=${st.value}&text=${encodeURIComponent(sx.value)}`,{method:'POST'})">Speak</button></span><br>
@@ -53,7 +53,9 @@ button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}<
 const T=["dyno","sage","penny"];
 document.getElementById('toys').innerHTML=T.map(t=>`<div class=toy id=b_${t}><h3>${t.toUpperCase()} <small id=s_${t}></small></h3>
 <img id=i_${t}><div class=bar><div id=l_${t} style="width:0"></div></div><p id=v_${t}></p>
-<p class=voice id=vc_${t}></p><p class=voice id=hl_${t}></p><div class=vs id=vs_${t}></div></div>`).join('');
+<p class=voice id=vc_${t}></p><p class=voice id=hl_${t}></p>
+<div class=vs><b>Speaker volume</b> <input type=range id=hv_${t} min=0 max=255 step=5 onchange="setVol('${t}',this.value)" style="width:150px;vertical-align:middle">
+<span id=hvv_${t}></span> <button onclick="setVol('${t}',0)">Mute</button></div><div class=vs id=vs_${t}></div></div>`).join('');
 function post(p){fetch('/'+p,{method:'POST'})}
 function enroll(){fetch(`/enroll?toy=${et.value}&name=${encodeURIComponent(nm.value)}&pet=${pet.checked?1:0}`,{method:'POST'}).then(r=>r.text()).then(alert)}
 async function tick(){const s=await (await fetch('/state')).json();be.textContent='('+s.backend+')';
@@ -61,10 +63,13 @@ for(const t of T){const x=s.toys[t];document.getElementById('s_'+t).textContent=
 document.getElementById('l_'+t).style.width=Math.min(100,x.level/30)+'%';document.getElementById('v_'+t).textContent=x.view;
 const h=x.health||{};const hc=(+h.sfail||+h.mfail)?'#f66':((+h.sfix||+h.mfix)?'#fc6':'#8b8fb0');
 document.getElementById('hl_'+t).innerHTML=h.fw?`<span style="color:${hc}">Speaker repairs ${h.sfix||0}${+h.sfail?` (failed ${h.sfail})`:''} · mic repairs ${h.mfix||0}${+h.mfail?` (failed ${h.mfail})`:''}</span> · ${h.clips} clips on toy · ${h.fw}`:'';
+{const hv=document.getElementById('hv_'+t),v=h.vol;if(v!==undefined&&v!==null&&document.activeElement!==hv){hv.value=v;
+ document.getElementById('hvv_'+t).textContent=(+v===0?'muted':v+'/255');}}
 const vc=x.voice||{};document.getElementById('vc_'+t).innerHTML=vc.engine?`<b>Voice:</b> ${vc.label} <span class=dim>(${vc.engine} ${vc.quant||''}, ${vc.id})</span><br>speed ${vc.speed} · pitch ${vc.pitch}`+(vc.last?`<br><span class=dim>last line: ${vc.last}</span>`:''):'';
 document.getElementById('b_'+t).className='toy'+(s.talking==t?' talk':'');
 if(x.online)document.getElementById('i_'+t).src='/frame/'+t+'.jpg?'+Date.now()}
 heard.textContent=s.heard;said.textContent=s.said.map(l=>l[0].toUpperCase()+': '+l[1]).join('  /  ');
+document.getElementById('muteall').textContent=T.some(t=>s.toys[t].online&&+((s.toys[t].health||{}).vol??200)>0)?'Mute all toys':'Unmute all toys';
 lat.textContent=s.latency?('reply upload after '+s.latency.toFixed(2)+'s; speaker onset unmeasured'):'';
 stages.textContent=JSON.stringify(s.latency_breakdown,null,2);
 flags.textContent=`profile=${s.latency_profile} device=${s.device} muted=${s.muted} idle=${s.idle} canned/paused=${s.paused}`}
@@ -75,7 +80,7 @@ function renderVS(t,s){const opts=e=>(VO[e]||[]).map(v=>`<option ${v==s.voice?'s
  document.getElementById('vs_'+t).innerHTML=`<b>Voice settings</b><br>
  <label>Engine <select id=en_${t} onchange="engChange('${t}')"><option value=kokoro ${s.engine=='kokoro'?'selected':''} ${VO.kokoro.length?'':'disabled'}>Kokoro</option><option value=piper ${s.engine=='piper'?'selected':''}>Piper</option></select></label>
  <label>Voice <select id=vo_${t}>${opts(s.engine)}</select></label><br>
- ${slider(t,'speed','Speed',0.6,1.6,s.speed)}${slider(t,'pitch','Pitch',0.7,1.6,s.pitch)}<br>${slider(t,'volume','Volume',0.2,2.5,s.volume)}
+ ${slider(t,'speed','Speed',0.6,1.6,s.speed)}${slider(t,'pitch','Pitch',0.7,1.6,s.pitch)}<br>${slider(t,'volume','Voice gain',0.2,2.5,s.volume)}
  <label id=spk_${t} style="display:${s.engine=='piper'?'inline-block':'none'}">Speaker # <input id=sp_${t} type=number min=0 max=903 value="${s.speaker??''}" style="width:60px"></label><br>
  <button onclick="applyV('${t}')">Apply</button><button onclick="testV('${t}')">Test</button> <span id=vm_${t} class=dim></span>`;}
 function engChange(t){const e=document.getElementById('en_'+t).value;document.getElementById('vo_'+t).innerHTML=(VO[e]||[]).map(v=>`<option>${v}</option>`).join('');document.getElementById('spk_'+t).style.display=e=='piper'?'inline-block':'none';}
@@ -89,8 +94,10 @@ async function loadCanned(){const c=await (await fetch('/canned')).json();
    `<div class=dim>${g}</div>`+ls.map(x=>`<button class=line data-x="${x.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" onclick="playLine('${t}',this.dataset.x)">${x}</button>`).join('')).join('')+'</div>').join('')+'</div>';
  document.getElementById('canned').innerHTML=h;}
 function playLine(t,x){fetch(`/playline?toy=${t}&text=${encodeURIComponent(x)}`,{method:'POST'});}
-async function loadSfx(){const s=await (await fetch('/sfx')).json();
- document.getElementById('sfx').innerHTML=Object.entries(s).map(([n,v])=>`<button title="${v.desc}${v.owner?' ('+v.owner+')':''}" onclick="playLine(sfxt.value,'{${n}}')">${n.replace('_',' ')}</button>`).join(' ');}
+function setVol(t,v){fetch(`/speaker?toy=${t}&vol=${v}`,{method:'POST'});document.getElementById('hvv_'+t).textContent=(+v===0?'muted':v+'/255');}
+async function loadSfx(){const s=await (await fetch('/sfx')).json();const groups={character:'Character',story:'Story',halloween:'Halloween'};
+ document.getElementById('sfx').innerHTML=Object.entries(groups).map(([g,label])=>`<div><span class=dim>${label}:</span> `+
+  Object.entries(s).filter(([n,v])=>(v.set||'story')==g).map(([n,v])=>`<button title="${v.desc}${v.owner?' ('+v.owner+')':''}" onclick="playLine(sfxt.value,'{${n}}')">${n.replace('_',' ')}</button>`).join(' ')+'</div>').join('');}
 loadVoices();loadCanned();loadSfx();
 setInterval(tick,700);tick();
 </script></body></html>"""
@@ -140,7 +147,8 @@ def make_handler(hub, eyes, director, rec, voices):
                     st["toys"][t] = {"online": t in online, "ip": a.ip if a else "", "cam": bool(a and a.cam),
                                      "level": director.segs[t].level, "view": eyes.views[t].describe(),
                                      "voice": voices.describe(t),
-                                     "health": {k: a.flags.get(k) for k in ("fw", "sfix", "sfail", "mfix", "mfail")} | {"clips": len(a.clips)} if a else {}}
+                                     "health": {k: a.flags.get(k) for k in ("fw", "sfix", "sfail", "mfix", "mfail", "vol")}
+                                               | {"clips": len(a.clips), "fs_used": a.fs[1], "fs_total": a.fs[0]} if a else {}}
                 return self._send(200, json.dumps(st), "application/json")
             self._send(404, "")
 
@@ -159,6 +167,18 @@ def make_handler(hub, eyes, director, rec, voices):
                     return self._send(400, str(e))
                 getattr(hub, "resync", lambda t: None)(q["toy"])   # re-store its clips in the new voice
                 return self._send(200, json.dumps(new), "application/json")
+            elif u.path == "/speaker" and q.get("toy") in config.TOYS and q.get("vol", "").isdigit():
+                ok = hub.set_volume(q["toy"], int(q["vol"]))
+                return self._send(200 if ok else 502, "ok" if ok else "toy unreachable")
+            elif u.path == "/muteall":
+                online = hub.online()
+                if any(int(hub.atoms[t].flags.get("vol", 200)) > 0 for t in online):   # mute, remember levels
+                    hub.saved_vol = {t: int(hub.atoms[t].flags.get("vol", 200)) for t in online}
+                    for t in online:
+                        hub.set_volume(t, 0)
+                else:                                                                    # unmute to saved levels
+                    for t in online:
+                        hub.set_volume(t, getattr(hub, "saved_vol", {}).get(t, 200) or 200)
             elif u.path == "/mute":
                 hub.force_mute = not hub.force_mute
             elif u.path == "/idle":
@@ -205,7 +225,9 @@ def make_clip_sync(hub, voices, director):
         greet = canned.GREETINGS.get(toy)
         lines = list(canned.FILLERS.get(toy, [])) + [x for sc in canned.SCENES.values() for t, x in sc if t == toy]
         lines += [greet] if greet else []
-        lines += ["{%s}" % n for n in voices.sounds.names(toy)]   # sound effects, stored like any line
+        rank = {"character": 0, "story": 1, "halloween": 2}   # store in this order; the rest streams
+        snd = sorted(voices.sounds.names(toy), key=lambda n: (rank.get(voices.sounds.index[n].get("set"), 1), n))
+        lines += ["{%s}" % n for n in snd]
         needed = {voices.clip_id(toy, x) for x in lines} | {"hello"}
         if set(have) - needed:   # old voice/text versions: clear the flash and store a fresh set
             hub.clear_clips(toy)
@@ -217,7 +239,12 @@ def make_clip_sync(hub, voices, director):
                 continue
             while director.busy or director.paused:   # never compete with a live turn
                 time.sleep(0.5)
-            if hub.put_clip(toy, cid, voices.render(toy, text, persist=True)):
+            pcm = voices.render(toy, text, persist=True)
+            total, used = hub.atoms[toy].fs
+            if total and used + len(pcm) // 2 + 16384 > total * 0.9:   # keep ~10% free; later lines stream
+                log.info("%s: clip storage full (%d/%d KB) — remaining lines/sounds will stream", toy, used // 1024, total // 1024)
+                break
+            if hub.put_clip(toy, cid, pcm):
                 uploaded += 1
         if greet:   # "hello" is the fixed name the firmware plays when no brain is reachable
             gid = voices.clip_id(toy, greet)

@@ -8,7 +8,8 @@
     "title": "Dino Hiss Dragon Roar",
     "author": "999999990",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/999999990/sounds/320345/"
+    "url": "https://freesound.org/people/999999990/sounds/320345/",
+    "set": "character"
   },
   "dino_growl": {
     "desc": "Dyno's friendly growl",
@@ -19,7 +20,8 @@
     "title": "charliegrowl.m4a",
     "author": "randomalistic",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/randomalistic/sounds/460211/"
+    "url": "https://freesound.org/people/randomalistic/sounds/460211/",
+    "set": "character"
   },
   "penguin_honk": {
     "desc": "Penny's squawk",
@@ -30,7 +32,8 @@
     "title": "Penguin Squeak",
     "author": "Breviceps",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/Breviceps/sounds/705839/"
+    "url": "https://freesound.org/people/Breviceps/sounds/705839/",
+    "set": "character"
   },
   "sparkle": {
     "desc": "Sage's magic sparkle",
@@ -41,7 +44,8 @@
     "title": "GLEAM-GLOW-SFX-CHIME.wav",
     "author": "newagesoup",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/newagesoup/sounds/351408/"
+    "url": "https://freesound.org/people/newagesoup/sounds/351408/",
+    "set": "character"
   },
   "whinny": {
     "desc": "Sage's unicorn whinny",
@@ -52,7 +56,8 @@
     "title": "Horse_Whinny.wav",
     "author": "foxen10",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/foxen10/sounds/149024/"
+    "url": "https://freesound.org/people/foxen10/sounds/149024/",
+    "set": "character"
   },
   "doorbell": {
     "desc": "doorbell",
@@ -63,7 +68,8 @@
     "title": "DoorBell Shortened",
     "author": "jwheeler91",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/jwheeler91/sounds/442280/"
+    "url": "https://freesound.org/people/jwheeler91/sounds/442280/",
+    "set": "story"
   },
   "door_creak": {
     "desc": "creaky door",
@@ -74,7 +80,8 @@
     "title": "Opening a creaking door",
     "author": "Ryding",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/Ryding/sounds/125957/"
+    "url": "https://freesound.org/people/Ryding/sounds/125957/",
+    "set": "story"
   },
   "footsteps": {
     "desc": "footsteps",
@@ -85,7 +92,8 @@
     "title": "footsteps shoes hollow wood platform.flac",
     "author": "kyles",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/kyles/sounds/451142/"
+    "url": "https://freesound.org/people/kyles/sounds/451142/",
+    "set": "story"
   },
   "birds": {
     "desc": "birds chirping",
@@ -96,7 +104,8 @@
     "title": "Bird chirps then takes off flapping wings .wav",
     "author": "Ambient-X",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/Ambient-X/sounds/682534/"
+    "url": "https://freesound.org/people/Ambient-X/sounds/682534/",
+    "set": "story"
   },
   "wind": {
     "desc": "wind blowing",
@@ -107,7 +116,8 @@
     "title": "Soft Wind Blowing.mp3",
     "author": "Aeonemi",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/Aeonemi/sounds/180328/"
+    "url": "https://freesound.org/people/Aeonemi/sounds/180328/",
+    "set": "story"
   },
   "rain": {
     "desc": "rain",
@@ -118,7 +128,8 @@
     "title": "Raining in my house.m4a",
     "author": "ManDaKi",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/ManDaKi/sounds/695793/"
+    "url": "https://freesound.org/people/ManDaKi/sounds/695793/",
+    "set": "story"
   },
   "thunder": {
     "desc": "thunder",
@@ -129,7 +140,8 @@
     "title": "Closeup Thunder Strike 01",
     "author": "loganzsound",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/loganzsound/sounds/840628/"
+    "url": "https://freesound.org/people/loganzsound/sounds/840628/",
+    "set": "story"
   },
   "owl": {
     "desc": "owl hooting",
@@ -140,7 +152,8 @@
     "title": "Owl Hoot",
     "author": "Breviceps",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/Breviceps/sounds/465697/"
+    "url": "https://freesound.org/people/Breviceps/sounds/465697/",
+    "set": "story"
   },
   "dog": {
     "desc": "dog barking",
@@ -151,7 +164,8 @@
     "title": "Single Dog Bark",
     "author": "kwahmah_02",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/kwahmah_02/sounds/277058/"
+    "url": "https://freesound.org/people/kwahmah_02/sounds/277058/",
+    "set": "story"
   },
   "cat": {
     "desc": "cat meowing",
@@ -162,7 +176,8 @@
     "title": "cat meow",
     "author": "tuberatanka",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/tuberatanka/sounds/110011/"
+    "url": "https://freesound.org/people/tuberatanka/sounds/110011/",
+    "set": "story"
   },
   "cow": {
     "desc": "cow mooing",
@@ -173,7 +188,8 @@
     "title": "cows_mooing_mono_4824.wav",
     "author": "Mystikuum",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/Mystikuum/sounds/401636/"
+    "url": "https://freesound.org/people/Mystikuum/sounds/401636/",
+    "set": "story"
   },
   "pig": {
     "desc": "pig oinking",
@@ -184,7 +200,8 @@
     "title": "Pig Oink",
     "author": "qubodup",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/qubodup/sounds/442906/"
+    "url": "https://freesound.org/people/qubodup/sounds/442906/",
+    "set": "story"
   },
   "sheep": {
     "desc": "sheep baaing",
@@ -195,7 +212,8 @@
     "title": "sheep 3.mp3",
     "author": "esperar",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/esperar/sounds/171149/"
+    "url": "https://freesound.org/people/esperar/sounds/171149/",
+    "set": "story"
   },
   "duck": {
     "desc": "duck quacking",
@@ -206,7 +224,8 @@
     "title": "single quack from a duck",
     "author": "Mikes-MultiMedia",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/Mikes-MultiMedia/sounds/418509/"
+    "url": "https://freesound.org/people/Mikes-MultiMedia/sounds/418509/",
+    "set": "story"
   },
   "rooster": {
     "desc": "rooster crowing",
@@ -217,7 +236,8 @@
     "title": "Rooster crow",
     "author": "jsbarrett",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/jsbarrett/sounds/200339/"
+    "url": "https://freesound.org/people/jsbarrett/sounds/200339/",
+    "set": "story"
   },
   "frog": {
     "desc": "frog croaking",
@@ -228,7 +248,8 @@
     "title": "Frog croaking sound effect",
     "author": "betterchinese",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/betterchinese/sounds/354132/"
+    "url": "https://freesound.org/people/betterchinese/sounds/354132/",
+    "set": "story"
   },
   "wolf": {
     "desc": "wolf howling",
@@ -239,7 +260,8 @@
     "title": "Scary Ghost Wolf Howling.wav",
     "author": "BrainClaim",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/BrainClaim/sounds/267179/"
+    "url": "https://freesound.org/people/BrainClaim/sounds/267179/",
+    "set": "story"
   },
   "bee": {
     "desc": "bee buzzing",
@@ -250,7 +272,8 @@
     "title": "Bee Buzzing",
     "author": "JonCon_Library",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/JonCon_Library/sounds/481647/"
+    "url": "https://freesound.org/people/JonCon_Library/sounds/481647/",
+    "set": "story"
   },
   "splash": {
     "desc": "splash",
@@ -261,7 +284,8 @@
     "title": "Water Splashes on cement FF235.aif",
     "author": "martinimeniscus",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/martinimeniscus/sounds/199452/"
+    "url": "https://freesound.org/people/martinimeniscus/sounds/199452/",
+    "set": "story"
   },
   "bubbles": {
     "desc": "bubbles",
@@ -272,7 +296,8 @@
     "title": "Bubbles 001.wav",
     "author": "ristooooo1",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/ristooooo1/sounds/539823/"
+    "url": "https://freesound.org/people/ristooooo1/sounds/539823/",
+    "set": "story"
   },
   "clock": {
     "desc": "clock ticking",
@@ -283,7 +308,8 @@
     "title": "ticking of the clock 01.wav",
     "author": "blukotek",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/blukotek/sounds/412751/"
+    "url": "https://freesound.org/people/blukotek/sounds/412751/",
+    "set": "story"
   },
   "school_bell": {
     "desc": "school bell",
@@ -294,7 +320,8 @@
     "title": "School bell.wav",
     "author": "deleted_user_7020630",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/deleted_user_7020630/sounds/378394/"
+    "url": "https://freesound.org/people/deleted_user_7020630/sounds/378394/",
+    "set": "story"
   },
   "applause": {
     "desc": "cheering",
@@ -305,7 +332,8 @@
     "title": "Heavy Cheering from Students in a School Auditorium",
     "author": "ElevatorFan2020",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/ElevatorFan2020/sounds/852097/"
+    "url": "https://freesound.org/people/ElevatorFan2020/sounds/852097/",
+    "set": "story"
   },
   "penguin": {
     "desc": "Penny's penguin call",
@@ -316,7 +344,8 @@
     "title": "Penguin Squeak",
     "author": "Breviceps",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/Breviceps/sounds/705839/"
+    "url": "https://freesound.org/people/Breviceps/sounds/705839/",
+    "set": "character"
   },
   "knock": {
     "desc": "knock at the door",
@@ -327,6 +356,139 @@
     "title": "Knock on the door",
     "author": "HunteR4708",
     "license": "CC0 1.0",
-    "url": "https://freesound.org/people/HunteR4708/sounds/256513/"
+    "url": "https://freesound.org/people/HunteR4708/sounds/256513/",
+    "set": "story"
+  },
+  "witch_cackle": {
+    "desc": "witch cackling",
+    "toy": null,
+    "set": "halloween",
+    "seconds": 2.0,
+    "query": "witch cackle",
+    "freesound_id": "223851",
+    "title": "Witch Laugh",
+    "author": "mvVoiceActing",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/mvVoiceActing/sounds/223851/"
+  },
+  "ghost_boo": {
+    "desc": "friendly ghost boo",
+    "toy": null,
+    "set": "halloween",
+    "seconds": 1.5,
+    "query": "boo",
+    "freesound_id": "353925",
+    "title": "boo.wav",
+    "author": "dr_skitz",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/dr_skitz/sounds/353925/"
+  },
+  "ghost_moan": {
+    "desc": "ghost moaning",
+    "toy": null,
+    "set": "halloween",
+    "seconds": 1.63,
+    "query": "ghost",
+    "freesound_id": "507451",
+    "title": "Ghost Kid sigh, less verb",
+    "author": "HorrorAudio",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/HorrorAudio/sounds/507451/"
+  },
+  "cauldron": {
+    "desc": "bubbling cauldron",
+    "toy": null,
+    "set": "halloween",
+    "seconds": 2.0,
+    "query": "cauldron bubbling",
+    "freesound_id": "361540",
+    "title": "MagicCauldronBubbling.mp3",
+    "author": "katzlbt",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/katzlbt/sounds/361540/"
+  },
+  "spooky_wind": {
+    "desc": "spooky wind",
+    "toy": null,
+    "set": "halloween",
+    "seconds": 2.5,
+    "query": "spooky wind howling",
+    "freesound_id": "410369",
+    "title": "Eerie Wind",
+    "author": "BenjaminNelan",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/BenjaminNelan/sounds/410369/"
+  },
+  "crow": {
+    "desc": "crow cawing",
+    "toy": null,
+    "set": "halloween",
+    "seconds": 0.43,
+    "query": "crow caw",
+    "freesound_id": "361470",
+    "title": "Crow Caw",
+    "author": "Jofae",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Jofae/sounds/361470/"
+  },
+  "bones": {
+    "desc": "rattling bones",
+    "toy": null,
+    "set": "halloween",
+    "seconds": 1.5,
+    "query": "skeleton bones rattle",
+    "freesound_id": "202102",
+    "title": "Rattling Bones.wav",
+    "author": "spookymodem",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/spookymodem/sounds/202102/"
+  },
+  "cat_hiss": {
+    "desc": "cat hissing",
+    "toy": null,
+    "set": "halloween",
+    "seconds": 1.2,
+    "query": "cat hiss",
+    "freesound_id": "146963",
+    "title": "catHisses1.wav",
+    "author": "Zabuhailo",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Zabuhailo/sounds/146963/"
+  },
+  "spooky_organ": {
+    "desc": "spooky organ",
+    "toy": null,
+    "set": "halloween",
+    "seconds": 2.5,
+    "query": "spooky organ",
+    "freesound_id": "9320",
+    "title": "OrganLoop.ogg",
+    "author": "MisterTood",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/MisterTood/sounds/9320/"
+  },
+  "monster_laugh": {
+    "desc": "monster laugh",
+    "toy": null,
+    "set": "halloween",
+    "seconds": 2.0,
+    "query": "monster laugh",
+    "freesound_id": "337164",
+    "title": "monster-laugh",
+    "author": "newagesoup",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/newagesoup/sounds/337164/"
+  },
+  "bats": {
+    "desc": "bats flapping",
+    "toy": null,
+    "set": "halloween",
+    "seconds": 1.8,
+    "query": "bat wings",
+    "freesound_id": "593487",
+    "title": "Umbrella that sounds like bat wings.wav",
+    "author": "Scottrex05",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/Scottrex05/sounds/593487/"
   }
 }

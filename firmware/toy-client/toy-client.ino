@@ -10,6 +10,7 @@
  *   clips : PUT  /clip?name=N  (8-bit mu-law, 16 kHz) stores a clip in flash (LittleFS, ~1.5 MB)
  *           POST /playclip?name=N plays it (blocking, like /play); GET /clips lists; POST /clipclear
  *           button click with no brain reachable plays the "hello" clip
+ *   volume: POST /volume?v=0..255 sets the speaker volume (0 = silent), saved in NVS across reboots
  *           button click / hold -> "BTN click" / "BTN hold" over UDP
  * The brain tells toys apart by MAC address, so all three Atoms run this
  * exact binary.
@@ -46,7 +47,7 @@ struct WifiCred { const char* ssid; const char* pass; int channel = 0; };  // ch
 #include "secrets.h"
 static constexpr uint16_t BRAIN_PORT = 5005;
 static constexpr uint16_t ATOM_PORT  = 5006;
-static constexpr const char* FW_VERSION = "toy-client-3.1";
+static constexpr const char* FW_VERSION = "toy-client-3.2";
 
 // ---------- GC0308 camera pins — AtomS3R-CAM ----------
 #define CAM_SIOD   12
@@ -197,6 +198,7 @@ static void ensure_mic() {
 
 // ---------- clip storage (LittleFS on the 1.5 MB "spiffs" partition) ----------
 static bool fs_ok = false;
+static uint8_t spk_volume = 200;          // speaker volume 0..255 (0 = muted); persisted in NVS "toy/vol"
 
 static bool clip_name_ok(const char* n) {
   size_t len = strlen(n);
@@ -357,6 +359,20 @@ static esp_err_t clip_play_handler(httpd_req_t* req) {
   return play_and_reply(req, got, SAMPLE_RATE);
 }
 
+static esp_err_t volume_handler(httpd_req_t* req) {
+  int v = query_int(req, "v", -1);
+  if (v < 0 || v > 255) { httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "v=0..255"); return ESP_FAIL; }
+  spk_volume = (uint8_t)v;
+  M5.Speaker.setVolume(spk_volume);
+  Preferences vp;
+  vp.begin("toy", false);
+  vp.putUChar("vol", spk_volume);
+  vp.end();
+  char msg[24];
+  snprintf(msg, sizeof(msg), "OK vol %u", spk_volume);
+  return httpd_resp_send(req, msg, strlen(msg));
+}
+
 static esp_err_t clips_handler(httpd_req_t* req) {
   String js = "{\"fs\":" + String(fs_ok ? 1 : 0);
   if (fs_ok) {
@@ -394,9 +410,9 @@ static esp_err_t status_handler(httpd_req_t* req) {
   char js[320];
   snprintf(js, sizeof(js),
            "{\"mac\":\"%s\",\"fw\":\"%s\",\"cam\":%d,\"cam_port\":%d,\"mic\":%d,\"spk\":%d,\"playing\":%d,\"rssi\":%d,"
-           "\"spk_fix\":%u,\"spk_fail\":%u,\"mic_fix\":%u,\"mic_fail\":%u,\"amp\":%d,\"clips\":%d}",
+           "\"spk_fix\":%u,\"spk_fail\":%u,\"mic_fix\":%u,\"mic_fail\":%u,\"amp\":%d,\"clips\":%d,\"vol\":%u}",
            mac_str, FW_VERSION, cam_ok, cam_port, M5.Mic.isEnabled(), M5.Speaker.isEnabled(),
-           (int)(playing || play_pending), WiFi.RSSI(), spk_fix, spk_fail, mic_fix, mic_fail, has_amp_expander, clip_count());
+           (int)(playing || play_pending), WiFi.RSSI(), spk_fix, spk_fail, mic_fix, mic_fail, has_amp_expander, clip_count(), spk_volume);
   httpd_resp_set_type(req, "application/json");
   return httpd_resp_send(req, js, strlen(js));
 }
@@ -419,6 +435,8 @@ static void start_http() {
   httpd_uri_t cpl = { "/playclip",  HTTP_POST, clip_play_handler,  nullptr };
   httpd_uri_t cls = { "/clips",     HTTP_GET,  clips_handler,      nullptr };
   httpd_uri_t clr = { "/clipclear", HTTP_POST, clip_clear_handler, nullptr };
+  httpd_uri_t vol = { "/volume",    HTTP_POST, volume_handler,     nullptr };
+  httpd_register_uri_handler(server, &vol);
   httpd_register_uri_handler(server, &cpu);
   httpd_register_uri_handler(server, &cpl);
   httpd_register_uri_handler(server, &cls);
@@ -482,9 +500,9 @@ static void service_udp() {
   if (now - last_hello > 3000) {
     last_hello = now;
     char h[192];
-    snprintf(h, sizeof(h), "HELLO %s cam=%d mic=%d spk=%d fw=%s sfix=%u sfail=%u mfix=%u mfail=%u clips=%d",
+    snprintf(h, sizeof(h), "HELLO %s cam=%d mic=%d spk=%d fw=%s sfix=%u sfail=%u mfix=%u mfail=%u clips=%d vol=%u",
              mac_str, cam_ok, M5.Mic.isEnabled(), M5.Speaker.isEnabled(), FW_VERSION,
-             spk_fix, spk_fail, mic_fix, mic_fail, clip_count());
+             spk_fix, spk_fail, mic_fix, mic_fail, clip_count(), spk_volume);
     send_text(IPAddress(255, 255, 255, 255), h);
     if (brain_known) send_text(brain_ip, h);
   }
@@ -593,7 +611,14 @@ void setup() {
     mc.stereo = true;
     M5.Mic.config(mc);
   }
-  M5.Speaker.setVolume(200);
+  {
+    Preferences vp;
+    vp.begin("toy", true);
+    spk_volume = vp.getUChar("vol", 200);
+    vp.end();
+  }
+  M5.Speaker.setVolume(spk_volume);
+  Serial.printf("Speaker volume %u/255%s\n", spk_volume, spk_volume ? "" : " (muted)");
 
   if (!cam_first) {
     cam_ok = init_camera_on(0) || init_camera_on(1);

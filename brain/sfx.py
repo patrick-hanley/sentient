@@ -45,10 +45,12 @@ class Sounds:
         return sorted(n for n, v in self.index.items() if toy is None or v.get("toy") in (None, toy))
 
     def prompt_list(self) -> str:
-        story = ", ".join(n for n, v in self.index.items() if not v.get("toy"))
+        story = ", ".join(n for n, v in self.index.items() if not v.get("toy") and v.get("set") != "halloween")
+        spooky = ", ".join(n for n, v in self.index.items() if v.get("set") == "halloween")
         own = "; ".join(f"{t.upper()}: {', '.join(n for n, v in self.index.items() if v.get('toy') == t)}"
                         for t in sorted({v['toy'] for v in self.index.values() if v.get('toy')}))
-        return f"story sounds: {story}. Character sounds — {own}."
+        return (f"story sounds: {story}. Halloween sounds (only for spooky stories, keep it fun): {spooky}. "
+                f"Character sounds — {own}.")
 
     def affects(self, text: str) -> bool:
         return bool(self.pcm) and bool(TAG.search(text) or RAWR.search(text) or ROAR.search(text))
