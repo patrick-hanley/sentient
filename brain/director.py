@@ -409,14 +409,15 @@ class Director:
             w.writeframes(normalize(pcm).tobytes())
         return path
 
-    def run_canned(self):
+    def run_canned(self, scene: str | None = None):
         if not self._turn_lock.acquire(blocking=False):
             return
         self.paused = True
         self.hub.response_active.set()
-        log.info("canned scene start")
+        lines = canned.SCENES.get(scene, canned.SCENE)
+        log.info("canned scene start: %s", scene or "default")
         try:
-            for toy, text in canned.SCENE:
+            for toy, text in lines:
                 if toy in self.hub.online():
                     self.hub.play_line(toy, text, self.voices)
                     time.sleep(0.25)

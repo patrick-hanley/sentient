@@ -14,6 +14,17 @@ from . import config
 log = logging.getLogger("tts")
 
 
+def _apply_gain(pcm: bytes, gain: float) -> bytes:
+    """Volume: scale, then limit the peak so loud settings get louder without crackling."""
+    if abs(gain - 1.0) < 1e-3 or not pcm:
+        return pcm
+    x = np.frombuffer(pcm, "<i2").astype(np.float32) * gain
+    peak = float(np.abs(x).max())
+    if peak > 30000:
+        x *= 30000 / peak
+    return x.astype("<i2").tobytes()
+
+
 def _resample(x: np.ndarray, src: float, dst: float) -> np.ndarray:
     if abs(src - dst) < 1:
         return x
@@ -71,6 +82,7 @@ class Voices:
             try:
                 start = time.time()
                 pcm = self._render_kokoro(t, text) if kokoro else self._render_piper(t, text)
+                pcm = _apply_gain(pcm, t.get("gain", 1.0))
                 self.last[toy] = f"{len(pcm) / 2 / config.SAMPLE_RATE:.1f} s of speech in {time.time() - start:.1f} s"
             finally:
                 if not persist:
@@ -87,11 +99,52 @@ class Voices:
         kokoro = self._kokoro is not None and bool(t.get("kokoro"))
         spec = {"k": kokoro and self._kokoro_model, "t": text,
                 **{f: t.get(f) for f in ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch")}}
+        if t.get("gain", 1.0) != 1.0:   # only part of the key when changed, so existing clips stay valid
+            spec["g"] = t["gain"]
         return hashlib.sha1(json.dumps(spec, sort_keys=True).encode()).hexdigest()
 
     def clip_id(self, toy: str, text: str) -> str:
         """Name of this line as a clip stored on the Atom (changes when the voice or text changes)."""
         return "c" + self._spec_hash(toy, text)[:12]
+
+    # ---------- dashboard voice editing ----------
+    def kokoro_voices(self) -> list[str]:
+        return sorted(self._kokoro.get_voices()) if self._kokoro is not None else []
+
+    def piper_voices(self) -> list[str]:
+        return sorted(p.stem for p in (config.OFFLINE / "piper").glob("*.onnx"))
+
+    def settings(self, toy: str) -> dict:
+        """Editable voice settings in one engine-neutral shape."""
+        t = config.TOYS[toy]
+        if self._kokoro is not None and t.get("kokoro"):
+            return {"engine": "kokoro", "voice": t["kokoro"], "speed": t.get("kspeed", 1.0),
+                    "pitch": t.get("kpitch", 1.0), "volume": t.get("gain", 1.0), "speaker": None}
+        return {"engine": "piper", "voice": t["voice"], "speed": round(1 / t["length"], 2),
+                "pitch": t["pitch"], "volume": t.get("gain", 1.0), "speaker": t.get("speaker")}
+
+    def apply(self, toy: str, engine: str, voice: str, speed: float, pitch: float, volume: float,
+              speaker=None) -> dict:
+        """Change a toy's voice live (validated), persist it, and drop its cached audio."""
+        clamp = lambda x, lo, hi: max(lo, min(hi, float(x)))
+        speed, pitch, volume = clamp(speed, 0.6, 1.6), clamp(pitch, 0.7, 1.6), clamp(volume, 0.2, 2.5)
+        t = config.TOYS[toy]
+        if engine == "kokoro":
+            if voice not in self.kokoro_voices():
+                raise ValueError(f"unknown Kokoro voice {voice!r}")
+            t.update(kokoro=voice, kspeed=speed, kpitch=pitch)
+        elif engine == "piper":
+            if voice not in self.piper_voices():
+                raise ValueError(f"unknown Piper voice {voice!r}")
+            t.update(kokoro=None, voice=voice, length=round(1 / speed, 3), pitch=pitch,
+                     speaker=int(speaker) if speaker not in (None, "", "null") else None)
+        else:
+            raise ValueError("engine must be kokoro or piper")
+        t["gain"] = volume
+        config.save_voice_settings()
+        self._cache = {k: v for k, v in self._cache.items() if k[0] != toy}
+        self.last.pop(toy, None)
+        return self.settings(toy)
 
     def describe(self, toy: str) -> dict:
         """Dashboard summary of a toy's voice."""
@@ -123,7 +176,9 @@ class Voices:
         return np.clip(audio, -32768, 32767).astype("<i2").tobytes()
 
     def _render_piper(self, t: dict, text: str) -> bytes:
-        from piper import SynthesisConfig
+        from piper import PiperVoice, SynthesisConfig
+        if t["voice"] not in self._voices:   # chosen on the dashboard: load on first use
+            self._voices[t["voice"]] = PiperVoice.load(str(config.OFFLINE / "piper" / f"{t['voice']}.onnx"))
         voice = self._voices[t["voice"]]
         syn = SynthesisConfig(speaker_id=t["speaker"], length_scale=t["length"] * t["pitch"])
         with self._lock:  # onnxruntime sessions are not re-entrant-safe across threads here

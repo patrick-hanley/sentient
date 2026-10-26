@@ -31,24 +31,27 @@ log = logging.getLogger("brain")
 PAGE = """<!doctype html><html><head><meta charset=utf-8><title>Sentient toys</title>
 <style>body{background:#111;color:#eee;font-family:system-ui;margin:16px}.row{display:flex;gap:16px}
 .toy{flex:1;background:#1c1c1c;padding:10px;border-radius:10px}.toy img{width:100%;border-radius:6px;background:#000}
-.bar{height:8px;background:#333;border-radius:4px}.voice{font-size:13px;line-height:1.5;color:#cfd2ee;border-top:1px solid #333;padding-top:6px}.dim{color:#8b8fb0}.bar>div{height:8px;background:#4c4;border-radius:4px}
+.bar{height:8px;background:#333;border-radius:4px}.vs{font-size:13px;line-height:1.9;border-top:1px solid #333;margin-top:6px;padding-top:6px}.vs label{display:inline-block;margin-right:8px}
+.vs input[type=range]{width:110px;vertical-align:middle}.line{font-size:13px;margin:2px 0;padding:4px 8px;display:block;text-align:left;width:100%}
+.voice{font-size:13px;line-height:1.5;color:#cfd2ee;border-top:1px solid #333;padding-top:6px}.dim{color:#8b8fb0}.bar>div{height:8px;background:#4c4;border-radius:4px}
 button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}</style></head><body>
 <h2>Sentient toys &mdash; Gemma 4 on-device brain <small id=be></small></h2>
 <div class=row id=toys></div>
 <p><b>Heard:</b> <span id=heard></span><br><b>Said:</b> <span id=said></span> <small id=lat></small></p>
 <details><summary>Latency stages (milliseconds)</summary><pre id=stages></pre></details>
-<button onclick="post('canned')">Canned scene</button><button onclick="post('mute')">Mute mics</button>
+<button onclick="post('mute')">Mute mics</button>
 <button onclick="post('idle')">Idle chatter</button>
 <span>Say: <select id=st><option>dyno<option>sage<option>penny</select><input id=sx size=30>
 <button onclick="fetch(`/say?toy=${st.value}&text=${encodeURIComponent(sx.value)}`,{method:'POST'})">Speak</button></span><br>
 <span>Enroll: <input id=nm placeholder=Name size=10><select id=et><option>dyno<option selected>sage<option>penny</select>
 <label><input type=checkbox id=pet>pet</label><button onclick="enroll()">Enroll from camera</button></span>
 <p id=flags></p>
+<h3>Canned lines <small class=dim>(stored on each toy &mdash; play instantly)</small></h3><div id=canned></div>
 <script>
 const T=["dyno","sage","penny"];
 document.getElementById('toys').innerHTML=T.map(t=>`<div class=toy id=b_${t}><h3>${t.toUpperCase()} <small id=s_${t}></small></h3>
 <img id=i_${t}><div class=bar><div id=l_${t} style="width:0"></div></div><p id=v_${t}></p>
-<p class=voice id=vc_${t}></p><p class=voice id=hl_${t}></p></div>`).join('');
+<p class=voice id=vc_${t}></p><p class=voice id=hl_${t}></p><div class=vs id=vs_${t}></div></div>`).join('');
 function post(p){fetch('/'+p,{method:'POST'})}
 function enroll(){fetch(`/enroll?toy=${et.value}&name=${encodeURIComponent(nm.value)}&pet=${pet.checked?1:0}`,{method:'POST'}).then(r=>r.text()).then(alert)}
 async function tick(){const s=await (await fetch('/state')).json();be.textContent='('+s.backend+')';
@@ -63,6 +66,28 @@ heard.textContent=s.heard;said.textContent=s.said.map(l=>l[0].toUpperCase()+': '
 lat.textContent=s.latency?('reply upload after '+s.latency.toFixed(2)+'s; speaker onset unmeasured'):'';
 stages.textContent=JSON.stringify(s.latency_breakdown,null,2);
 flags.textContent=`profile=${s.latency_profile} device=${s.device} muted=${s.muted} idle=${s.idle} canned/paused=${s.paused}`}
+let VO={};
+async function loadVoices(){VO=await (await fetch('/voices')).json();for(const t of T)renderVS(t,VO.toys[t]);}
+function slider(t,k,label,lo,hi,v){return `<label>${label} <input type=range id=${k}_${t} min=${lo} max=${hi} step=0.05 value=${v} oninput="document.getElementById('${k}v_${t}').textContent=this.value"> <span id=${k}v_${t}>${v}</span></label>`;}
+function renderVS(t,s){const opts=e=>(VO[e]||[]).map(v=>`<option ${v==s.voice?'selected':''}>${v}</option>`).join('');
+ document.getElementById('vs_'+t).innerHTML=`<b>Voice settings</b><br>
+ <label>Engine <select id=en_${t} onchange="engChange('${t}')"><option value=kokoro ${s.engine=='kokoro'?'selected':''} ${VO.kokoro.length?'':'disabled'}>Kokoro</option><option value=piper ${s.engine=='piper'?'selected':''}>Piper</option></select></label>
+ <label>Voice <select id=vo_${t}>${opts(s.engine)}</select></label><br>
+ ${slider(t,'speed','Speed',0.6,1.6,s.speed)}${slider(t,'pitch','Pitch',0.7,1.6,s.pitch)}<br>${slider(t,'volume','Volume',0.2,2.5,s.volume)}
+ <label id=spk_${t} style="display:${s.engine=='piper'?'inline-block':'none'}">Speaker # <input id=sp_${t} type=number min=0 max=903 value="${s.speaker??''}" style="width:60px"></label><br>
+ <button onclick="applyV('${t}')">Apply</button><button onclick="testV('${t}')">Test</button> <span id=vm_${t} class=dim></span>`;}
+function engChange(t){const e=document.getElementById('en_'+t).value;document.getElementById('vo_'+t).innerHTML=(VO[e]||[]).map(v=>`<option>${v}</option>`).join('');document.getElementById('spk_'+t).style.display=e=='piper'?'inline-block':'none';}
+async function applyV(t){const g=k=>document.getElementById(k+'_'+t).value;
+ const r=await fetch(`/voice?toy=${t}&engine=${g('en')}&voice=${encodeURIComponent(g('vo'))}&speed=${g('speed')}&pitch=${g('pitch')}&volume=${g('volume')}&speaker=${g('sp')}`,{method:'POST'});
+ document.getElementById('vm_'+t).textContent=r.ok?'saved — re-storing its clips in the new voice':('error: '+await r.text());}
+function testV(t){fetch(`/say?toy=${t}&text=${encodeURIComponent('Hi! This is how I sound now. Do you like my voice?')}`,{method:'POST'});}
+async function loadCanned(){const c=await (await fetch('/canned')).json();
+ let h='<b>Scenes:</b> '+c.scenes.map(s=>`<button onclick="post('canned?scene=${encodeURIComponent(s)}')">&#9654; ${s}</button>`).join('');
+ h+='<div class=row>'+T.map(t=>`<div class=toy><b>${t.toUpperCase()}</b>`+Object.entries(c.lines[t]).filter(([g,ls])=>ls.length).map(([g,ls])=>
+   `<div class=dim>${g}</div>`+ls.map(x=>`<button class=line data-x="${x.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" onclick="playLine('${t}',this.dataset.x)">${x}</button>`).join('')).join('')+'</div>').join('')+'</div>';
+ document.getElementById('canned').innerHTML=h;}
+function playLine(t,x){fetch(`/playline?toy=${t}&text=${encodeURIComponent(x)}`,{method:'POST'});}
+loadVoices();loadCanned();
 setInterval(tick,700);tick();
 </script></body></html>"""
 
@@ -87,6 +112,15 @@ def make_handler(hub, eyes, director, rec, voices):
             if u.path.startswith("/frame/"):
                 v = eyes.views.get(u.path[7:].split(".")[0])
                 return self._send(200, v.annotated, "image/jpeg") if v and v.annotated else self._send(404, "")
+            if u.path == "/canned":
+                lines = {t: {"Fillers": canned.FILLERS.get(t, []), "Greeting": [canned.GREETINGS[t]] if t in canned.GREETINGS else [],
+                             **{name: [x for w, x in sc if w == t] for name, sc in canned.SCENES.items()}}
+                         for t in config.TOY_ORDER}
+                return self._send(200, json.dumps({"scenes": list(canned.SCENES), "lines": lines}), "application/json")
+            if u.path == "/voices":
+                return self._send(200, json.dumps({"kokoro": voices.kokoro_voices(), "piper": voices.piper_voices(),
+                                                   "toys": {t: voices.settings(t) for t in config.TOY_ORDER}}),
+                                  "application/json")
             if u.path == "/state":
                 online = hub.online()
                 st = {"backend": director.llm.name, "muted": hub.force_mute, "idle": director.idle_on,
@@ -107,7 +141,17 @@ def make_handler(hub, eyes, director, rec, voices):
             u = urllib.parse.urlparse(self.path)
             q = dict(urllib.parse.parse_qsl(u.query))
             if u.path == "/canned":
-                threading.Thread(target=director.run_canned, daemon=True).start()
+                threading.Thread(target=director.run_canned, args=(q.get("scene"),), daemon=True).start()
+            elif u.path == "/playline" and q.get("toy") in config.TOYS and q.get("text"):
+                threading.Thread(target=hub.play_line, args=(q["toy"], q["text"], voices), daemon=True).start()
+            elif u.path == "/voice" and q.get("toy") in config.TOYS:
+                try:
+                    new = voices.apply(q["toy"], q.get("engine", ""), q.get("voice", ""), q.get("speed", 1),
+                                       q.get("pitch", 1), q.get("volume", 1), q.get("speaker"))
+                except (ValueError, TypeError) as e:
+                    return self._send(400, str(e))
+                getattr(hub, "resync", lambda t: None)(q["toy"])   # re-store its clips in the new voice
+                return self._send(200, json.dumps(new), "application/json")
             elif u.path == "/mute":
                 hub.force_mute = not hub.force_mute
             elif u.path == "/idle":
@@ -148,7 +192,12 @@ def make_clip_sync(hub, voices, director):
             log.info("%s: firmware has no clip storage — fixed lines will stream", toy)
             return
         greet = canned.GREETINGS.get(toy)
-        lines = list(canned.FILLERS.get(toy, [])) + [x for t, x in canned.SCENE if t == toy] + ([greet] if greet else [])
+        lines = list(canned.FILLERS.get(toy, [])) + [x for sc in canned.SCENES.values() for t, x in sc if t == toy]
+        lines += [greet] if greet else []
+        needed = {voices.clip_id(toy, x) for x in lines} | {"hello"}
+        if set(have) - needed:   # old voice/text versions: clear the flash and store a fresh set
+            hub.clear_clips(toy)
+            have = {}
         uploaded = 0
         for text in lines:
             cid = voices.clip_id(toy, text)
@@ -214,7 +263,7 @@ def main():
     voices.prerender([(t, f) for t, fs in canned.FILLERS.items() for f in fs])
     # Kokoro is slower than real time on a Pi: render the canned scene in the background, only
     # when no live speech or turn needs the voice engine (and only once: it's cached on disk).
-    threading.Thread(target=voices.prerender, args=(canned.SCENE,), kwargs={"polite": True},
+    threading.Thread(target=voices.prerender, args=([l for sc in canned.SCENES.values() for l in sc],), kwargs={"polite": True},
                      daemon=True, name="prerender").start()
     llm = make_backend(args.backend, system_prompt(), gpu=not args.cpu)
 
@@ -231,6 +280,7 @@ def main():
     eyes.hold = lambda: director.busy or director.paused
     voices.busy = lambda: director.busy
     hub.on_online = make_clip_sync(hub, voices, director)
+    hub.resync = lambda toy: threading.Thread(target=hub.on_online, args=(toy,), daemon=True).start()
     hub.start()
     eyes.start()
     director.start()

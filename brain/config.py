@@ -77,8 +77,30 @@ BANTER_SEEDS = [
     "the water cycle", "a favorite board game", "I spy with colors", "a homework tip", "the Three Little Pigs",
     "a tricky spelling word", "how plants grow", "a favorite toy", "counting by fives",
 ]
+# Voice settings changed from the dashboard persist here and override TOYS at startup.
+VOICE_FILE = DATA / "voice_settings.json"
+VOICE_FIELDS = ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch", "gain")
+
+
+def save_voice_settings() -> None:
+    VOICE_FILE.write_text(json.dumps({k: {f: t.get(f) for f in VOICE_FIELDS} for k, t in TOYS.items()}, indent=2))
+
+
+def _load_voice_settings() -> None:
+    try:
+        saved = json.loads(VOICE_FILE.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return
+    for toy, fields in saved.items():
+        if toy in TOYS:
+            TOYS[toy].update({f: v for f, v in fields.items() if f in VOICE_FIELDS})
+
+
 TOY_ORDER = ["dyno", "sage", "penny"]
 MAC_MAP_FILE = DATA / "toys.json"   # {"AA:BB:..": "dyno"} — auto-filled in arrival order, edit to reassign
+
+
+_load_voice_settings()
 
 
 def load_mac_map() -> dict[str, str]:

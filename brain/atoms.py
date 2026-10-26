@@ -174,6 +174,17 @@ class AtomHub:
         a.clips = {n: size / config.SAMPLE_RATE for n, size in d.get("clips", {}).items() if size > 0}
         return a.clips
 
+    def clear_clips(self, toy: str) -> None:
+        a = self.atoms.get(toy)
+        if not a:
+            return
+        try:
+            with self._http.open(urllib.request.Request(f"http://{a.ip}/clipclear", data=b"", method="POST"), timeout=30) as r:
+                r.read()
+            a.clips = {}
+        except (urllib.error.URLError, OSError, TimeoutError) as e:
+            log.warning("clip clear on %s failed: %s", toy, e)
+
     def put_clip(self, toy: str, name: str, pcm16k: bytes) -> bool:
         a = self.atoms.get(toy)
         if not a or not pcm16k:

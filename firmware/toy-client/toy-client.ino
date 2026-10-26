@@ -36,6 +36,7 @@
 #include <esp_http_server.h>
 #include <esp_mac.h>
 #include <LittleFS.h>
+#include <vector>
 #include "img_converters.h"
 
 struct Reg { uint8_t addr, reg, val; };   // I2C register (defined early: Arduino auto-prototypes use it)
@@ -221,7 +222,7 @@ static size_t load_clip(const char* name) {
   File f = LittleFS.open(path, "r");
   if (!f) return 0;
   size_t got = 0;
-  uint8_t chunk[1024];
+  static uint8_t chunk[1024];
   while (got < PLAY_MAX) {
     int r = f.read(chunk, sizeof(chunk));
     if (r <= 0) break;
@@ -293,7 +294,7 @@ static esp_err_t play_handler(httpd_req_t* req) {
   size_t samples = req->content_len / bps;
   if (samples > PLAY_MAX) samples = PLAY_MAX;
   size_t got = 0;                                        // samples stored
-  uint8_t chunk[1024];
+  static uint8_t chunk[1024];                            // static: keeps the httpd task stack small
   size_t total = 0;                                      // bytes read
   while (total < req->content_len) {
     size_t want = req->content_len - total;
@@ -324,7 +325,7 @@ static esp_err_t clip_put_handler(httpd_req_t* req) {
   snprintf(path, sizeof(path), "/clips/%s.ul", name);
   File f = LittleFS.open(path, "w");
   if (!f) { httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "open"); return ESP_FAIL; }
-  uint8_t chunk[1024];
+  static uint8_t chunk[1024];
   size_t total = 0;
   bool ok = true;
   while (total < req->content_len) {
@@ -379,9 +380,10 @@ static esp_err_t clip_clear_handler(httpd_req_t* req) {
   int n = 0;
   if (fs_ok) {
     File d = LittleFS.open("/clips");
-    String paths[64];
-    for (File f = d.openNextFile(); f && n < 64; f = d.openNextFile()) paths[n++] = String("/clips/") + f.name();
-    for (int i = 0; i < n; ++i) LittleFS.remove(paths[i]);
+    std::vector<String> paths;   // heap, not the httpd stack
+    for (File f = d.openNextFile(); f; f = d.openNextFile()) paths.push_back(String("/clips/") + f.name());
+    for (auto& path : paths) LittleFS.remove(path);
+    n = paths.size();
   }
   char msg[32];
   snprintf(msg, sizeof(msg), "OK removed %d", n);
@@ -404,6 +406,7 @@ static void start_http() {
   cfg.server_port = 80;
   cfg.recv_wait_timeout = 10;
   cfg.max_uri_handlers = 12;
+  cfg.stack_size = 16384;   // default 4 KB overflowed in the clip handlers (stack canary panic)
   httpd_handle_t server = nullptr;
   if (httpd_start(&server, &cfg) != ESP_OK) { Serial.println("HTTP server FAILED"); return; }
   httpd_uri_t cap = { "/capture", HTTP_GET,  capture_handler, nullptr };
