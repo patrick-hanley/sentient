@@ -20,3 +20,11 @@ FILLERS = {
     "sage": ["Hmm, let me think.", "Mm-hmm."],
     "penny": ["Hee hee!", "Ooh ooh!"],
 }
+
+
+# Stored on each Atom as the "hello" clip: its button plays it when no brain is reachable.
+GREETINGS = {
+    "dyno": "Rawr! Hi, I'm Dyno! My brain is still waking up. Try again in a moment!",
+    "sage": "Hello, I'm Sage. My brain is having a little rest. Let's talk again soon.",
+    "penny": "Hi! I'm Penny the penguin! My brain is taking a quick nap.",
+}

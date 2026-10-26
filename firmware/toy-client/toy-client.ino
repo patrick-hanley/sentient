@@ -6,7 +6,10 @@
  *   eyes  : GET  /capture  -> one QVGA JPEG (brain polls 1–2 fps)
  *   mouth : POST /play[?fmt=ulaw&rate=16000] -> mono audio, int16 LE PCM (default) or
  *           8-bit G.711 mu-law (half the bytes); replies when playback is done
- *   other : GET  /status   -> one-line JSON
+ *   other : GET  /status   -> one-line JSON (incl. codec repair counters, clip count)
+ *   clips : PUT  /clip?name=N  (8-bit mu-law, 16 kHz) stores a clip in flash (LittleFS, ~1.5 MB)
+ *           POST /playclip?name=N plays it (blocking, like /play); GET /clips lists; POST /clipclear
+ *           button click with no brain reachable plays the "hello" clip
  *           button click / hold -> "BTN click" / "BTN hold" over UDP
  * The brain tells toys apart by MAC address, so all three Atoms run this
  * exact binary.
@@ -32,14 +35,17 @@
 #include <esp_camera.h>
 #include <esp_http_server.h>
 #include <esp_mac.h>
+#include <LittleFS.h>
 #include "img_converters.h"
+
+struct Reg { uint8_t addr, reg, val; };   // I2C register (defined early: Arduino auto-prototypes use it)
 
 // ---------- Wi-Fi: secrets.h (git-ignored; copy secrets.example.h) ----------
 struct WifiCred { const char* ssid; const char* pass; int channel = 0; };  // channel pins one of several same-named APs
 #include "secrets.h"
 static constexpr uint16_t BRAIN_PORT = 5005;
 static constexpr uint16_t ATOM_PORT  = 5006;
-static constexpr const char* FW_VERSION = "toy-client-2";
+static constexpr const char* FW_VERSION = "toy-client-3";
 
 // ---------- GC0308 camera pins — AtomS3R-CAM ----------
 #define CAM_SIOD   12
@@ -129,6 +135,102 @@ static bool init_camera_on(int port) {
   return true;
 }
 
+static inline int16_t ulaw_decode(uint8_t u);
+
+// ---------- Voice Base codec health ----------
+// M5Unified re-sends the ES8311 (and PI4IOE amp-enable) settings over I2C on every mic<->speaker
+// switch and ignores failures. A marginal Atom<->base contact then leaves the codec half set up:
+// silent or garbled speech, or a mic that reads zeros. Read the key registers back and re-send.
+static const Reg SPK_WRITE[] = {{0x18,0x00,0x80},{0x18,0x01,0xB5},{0x18,0x02,0x18},{0x18,0x0D,0x01},
+                                {0x18,0x12,0x00},{0x18,0x13,0x10},{0x18,0x32,0xFF},{0x18,0x37,0x08}};
+static const Reg SPK_CHECK[] = {{0x18,0x0D,0x01},{0x18,0x12,0x00},{0x18,0x13,0x10},{0x18,0x32,0xFF}};
+static const Reg AMP_WRITE[] = {{0x43,0x03,0xFF},{0x43,0x07,0x00},{0x43,0x0B,0x00},{0x43,0x05,0xFF}};
+static const Reg AMP_CHECK[] = {{0x43,0x05,0xFF}};
+static const Reg MIC_WRITE[] = {{0x18,0x00,0x80},{0x18,0x01,0xBA},{0x18,0x02,0x18},{0x18,0x0D,0x01},
+                                {0x18,0x0E,0x02},{0x18,0x14,0x10},{0x18,0x17,0xFF},{0x18,0x1C,0x6A}};
+static const Reg MIC_CHECK[] = {{0x18,0x0D,0x01},{0x18,0x0E,0x02},{0x18,0x14,0x10},{0x18,0x17,0xFF}};
+static uint16_t spk_fix = 0, spk_fail = 0, mic_fix = 0, mic_fail = 0;
+static bool has_amp_expander = false;   // newer Voice/Echo Base revision (PI4IOE at 0x43)
+#define NREGS(a) (sizeof(a) / sizeof(a[0]))
+
+static bool regs_ok(const Reg* r, size_t n) {
+  m5gfx::i2c::i2c_temporary_switcher_t sw(1, GPIO_NUM_38, GPIO_NUM_39);
+  bool ok = true;
+  for (size_t i = 0; i < n && ok; ++i) {
+    auto v = m5gfx::i2c::readRegister8(1, r[i].addr, r[i].reg, 100000);
+    ok = v.has_value() && v.value() == r[i].val;
+  }
+  sw.restore();
+  return ok;
+}
+
+static void regs_write(const Reg* r, size_t n) {
+  m5gfx::i2c::i2c_temporary_switcher_t sw(1, GPIO_NUM_38, GPIO_NUM_39);
+  for (size_t i = 0; i < n; ++i) m5gfx::i2c::writeRegister8(1, r[i].addr, r[i].reg, r[i].val, 0, 100000);
+  sw.restore();
+}
+
+// True if the settings are (now) correct; counts repairs and failures.
+static bool ensure_regs(const Reg* chk, size_t nchk, const Reg* wr, size_t nwr,
+                        uint16_t& fixed, uint16_t& failed, const char* what) {
+  if (regs_ok(chk, nchk)) return true;
+  for (int i = 0; i < 3; ++i) {
+    regs_write(wr, nwr);
+    delay(2);
+    if (regs_ok(chk, nchk)) { ++fixed; Serial.printf("%s settings re-sent (repair #%u)\n", what, fixed); return true; }
+  }
+  ++failed;
+  Serial.printf("%s settings FAILED after 3 retries (#%u)\n", what, failed);
+  return false;
+}
+
+static void ensure_speaker() {
+  ensure_regs(SPK_CHECK, NREGS(SPK_CHECK), SPK_WRITE, NREGS(SPK_WRITE), spk_fix, spk_fail, "Speaker");
+  if (has_amp_expander)
+    ensure_regs(AMP_CHECK, NREGS(AMP_CHECK), AMP_WRITE, NREGS(AMP_WRITE), spk_fix, spk_fail, "Amp");
+}
+
+static void ensure_mic() {
+  ensure_regs(MIC_CHECK, NREGS(MIC_CHECK), MIC_WRITE, NREGS(MIC_WRITE), mic_fix, mic_fail, "Mic");
+}
+
+// ---------- clip storage (LittleFS on the 1.5 MB "spiffs" partition) ----------
+static bool fs_ok = false;
+
+static bool clip_name_ok(const char* n) {
+  size_t len = strlen(n);
+  if (len == 0 || len > 40) return false;
+  for (size_t i = 0; i < len; ++i)
+    if (!(isalnum((unsigned char)n[i]) || n[i] == '_' || n[i] == '-')) return false;
+  return true;
+}
+
+static int clip_count() {
+  if (!fs_ok) return 0;
+  int n = 0;
+  File d = LittleFS.open("/clips");
+  for (File f = d.openNextFile(); f; f = d.openNextFile()) ++n;
+  return n;
+}
+
+// Loads /clips/<name>.ul (mu-law) into play_buf; returns samples (0 = missing).
+static size_t load_clip(const char* name) {
+  if (!fs_ok || !clip_name_ok(name)) return 0;
+  char path[64];
+  snprintf(path, sizeof(path), "/clips/%s.ul", name);
+  File f = LittleFS.open(path, "r");
+  if (!f) return 0;
+  size_t got = 0;
+  uint8_t chunk[1024];
+  while (got < PLAY_MAX) {
+    int r = f.read(chunk, sizeof(chunk));
+    if (r <= 0) break;
+    for (int i = 0; i < r && got < PLAY_MAX; ++i) play_buf[got++] = ulaw_decode(chunk[i]);
+  }
+  f.close();
+  return got;
+}
+
 // ---------- HTTP ----------
 static esp_err_t capture_handler(httpd_req_t* req) {
   if (!cam_ok) { httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "no camera"); return ESP_FAIL; }
@@ -165,6 +267,20 @@ static bool query_is(httpd_req_t* req, const char* key, const char* want) {
          httpd_query_key_value(q, key, v, sizeof(v)) == ESP_OK && strcmp(v, want) == 0;
 }
 
+// Queue play_buf[0..got) for loop(), wait until the speaker is done, then reply.
+static esp_err_t play_and_reply(httpd_req_t* req, size_t got, uint32_t rate) {
+  play_len = got;
+  play_rate = rate;
+  play_pending = true;                       // loop() picks it up (mic/speaker switch stays on one task)
+  uint32_t limit = millis() + play_len * 1000 / rate + 5000;
+  while ((play_pending || playing) && millis() < limit) delay(5);
+  rx_busy = false;
+  char msg[32];
+  snprintf(msg, sizeof(msg), "OK %u ms", (unsigned)(play_len * 1000 / rate));
+  httpd_resp_set_type(req, "text/plain");
+  return httpd_resp_send(req, msg, strlen(msg));
+}
+
 // Blocking by design: waits for any line already playing, plays this one, and
 // replies only when the speaker is done — the brain unmutes mics on our reply.
 static esp_err_t play_handler(httpd_req_t* req) {
@@ -194,24 +310,91 @@ static esp_err_t play_handler(httpd_req_t* req) {
       for (int i = 0; i + 1 < r && got < samples; i += 2) play_buf[got++] = (int16_t)(chunk[i] | (chunk[i + 1] << 8));
     }
   }
-  play_len = got;
-  play_rate = rate;
-  play_pending = true;                       // loop() picks it up (mic/speaker switch stays on one task)
-  uint32_t limit = millis() + play_len * 1000 / rate + 5000;
-  while ((play_pending || playing) && millis() < limit) delay(5);
-  rx_busy = false;
+  return play_and_reply(req, got, rate);
+}
+
+static esp_err_t clip_put_handler(httpd_req_t* req) {
+  char name[48] = {0}, q[64];
+  if (httpd_req_get_url_query_str(req, q, sizeof(q)) != ESP_OK || httpd_query_key_value(q, "name", name, sizeof(name)) != ESP_OK
+      || !clip_name_ok(name) || !fs_ok || req->content_len > PLAY_MAX) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "name/size/fs");
+    return ESP_FAIL;
+  }
+  char path[64];
+  snprintf(path, sizeof(path), "/clips/%s.ul", name);
+  File f = LittleFS.open(path, "w");
+  if (!f) { httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "open"); return ESP_FAIL; }
+  uint8_t chunk[1024];
+  size_t total = 0;
+  bool ok = true;
+  while (total < req->content_len) {
+    size_t want = req->content_len - total;
+    int r = httpd_req_recv(req, (char*)chunk, want > sizeof(chunk) ? sizeof(chunk) : want);
+    if (r == HTTPD_SOCK_ERR_TIMEOUT) continue;
+    if (r <= 0) { ok = false; break; }
+    if (f.write(chunk, r) != (size_t)r) { ok = false; break; }   // flash full
+    total += r;
+  }
+  f.close();
+  if (!ok) { LittleFS.remove(path); httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "write"); return ESP_FAIL; }
+  char msg[48];
+  snprintf(msg, sizeof(msg), "OK %u bytes", (unsigned)total);
+  return httpd_resp_send(req, msg, strlen(msg));
+}
+
+static esp_err_t clip_play_handler(httpd_req_t* req) {
+  char name[48] = {0}, q[64];
+  if (httpd_req_get_url_query_str(req, q, sizeof(q)) != ESP_OK || httpd_query_key_value(q, "name", name, sizeof(name)) != ESP_OK) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "name");
+    return ESP_FAIL;
+  }
+  uint32_t t0 = millis();
+  while ((play_pending || playing) && millis() - t0 < 30000) delay(10);
+  rx_busy = true;
+  size_t got = load_clip(name);
+  if (!got) { rx_busy = false; httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "no such clip"); return ESP_FAIL; }
+  return play_and_reply(req, got, SAMPLE_RATE);
+}
+
+static esp_err_t clips_handler(httpd_req_t* req) {
+  String js = "{\"fs\":" + String(fs_ok ? 1 : 0);
+  if (fs_ok) {
+    js += ",\"total\":" + String((unsigned)LittleFS.totalBytes()) + ",\"used\":" + String((unsigned)LittleFS.usedBytes()) + ",\"clips\":{";
+    File d = LittleFS.open("/clips");
+    bool first = true;
+    for (File f = d.openNextFile(); f; f = d.openNextFile()) {
+      String n = f.name();
+      if (n.endsWith(".ul")) n = n.substring(0, n.length() - 3);
+      js += (first ? "\"" : ",\"") + n + "\":" + String((unsigned)f.size());
+      first = false;
+    }
+    js += "}";
+  }
+  js += "}";
+  httpd_resp_set_type(req, "application/json");
+  return httpd_resp_send(req, js.c_str(), js.length());
+}
+
+static esp_err_t clip_clear_handler(httpd_req_t* req) {
+  int n = 0;
+  if (fs_ok) {
+    File d = LittleFS.open("/clips");
+    String paths[64];
+    for (File f = d.openNextFile(); f && n < 64; f = d.openNextFile()) paths[n++] = String("/clips/") + f.name();
+    for (int i = 0; i < n; ++i) LittleFS.remove(paths[i]);
+  }
   char msg[32];
-  snprintf(msg, sizeof(msg), "OK %u ms", (unsigned)(play_len * 1000 / rate));
-  httpd_resp_set_type(req, "text/plain");
+  snprintf(msg, sizeof(msg), "OK removed %d", n);
   return httpd_resp_send(req, msg, strlen(msg));
 }
 
 static esp_err_t status_handler(httpd_req_t* req) {
-  char js[200];
+  char js[320];
   snprintf(js, sizeof(js),
-           "{\"mac\":\"%s\",\"fw\":\"%s\",\"cam\":%d,\"cam_port\":%d,\"mic\":%d,\"spk\":%d,\"playing\":%d,\"rssi\":%d}",
+           "{\"mac\":\"%s\",\"fw\":\"%s\",\"cam\":%d,\"cam_port\":%d,\"mic\":%d,\"spk\":%d,\"playing\":%d,\"rssi\":%d,"
+           "\"spk_fix\":%u,\"spk_fail\":%u,\"mic_fix\":%u,\"mic_fail\":%u,\"amp\":%d,\"clips\":%d}",
            mac_str, FW_VERSION, cam_ok, cam_port, M5.Mic.isEnabled(), M5.Speaker.isEnabled(),
-           (int)(playing || play_pending), WiFi.RSSI());
+           (int)(playing || play_pending), WiFi.RSSI(), spk_fix, spk_fail, mic_fix, mic_fail, has_amp_expander, clip_count());
   httpd_resp_set_type(req, "application/json");
   return httpd_resp_send(req, js, strlen(js));
 }
@@ -220,6 +403,7 @@ static void start_http() {
   httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
   cfg.server_port = 80;
   cfg.recv_wait_timeout = 10;
+  cfg.max_uri_handlers = 12;
   httpd_handle_t server = nullptr;
   if (httpd_start(&server, &cfg) != ESP_OK) { Serial.println("HTTP server FAILED"); return; }
   httpd_uri_t cap = { "/capture", HTTP_GET,  capture_handler, nullptr };
@@ -228,6 +412,14 @@ static void start_http() {
   httpd_register_uri_handler(server, &cap);
   httpd_register_uri_handler(server, &ply);
   httpd_register_uri_handler(server, &sts);
+  httpd_uri_t cpu = { "/clip",      HTTP_PUT,  clip_put_handler,   nullptr };
+  httpd_uri_t cpl = { "/playclip",  HTTP_POST, clip_play_handler,  nullptr };
+  httpd_uri_t cls = { "/clips",     HTTP_GET,  clips_handler,      nullptr };
+  httpd_uri_t clr = { "/clipclear", HTTP_POST, clip_clear_handler, nullptr };
+  httpd_register_uri_handler(server, &cpu);
+  httpd_register_uri_handler(server, &cpl);
+  httpd_register_uri_handler(server, &cls);
+  httpd_register_uri_handler(server, &clr);
 }
 
 // ---------- Wi-Fi ----------
@@ -286,9 +478,10 @@ static void service_udp() {
   uint32_t now = millis();
   if (now - last_hello > 3000) {
     last_hello = now;
-    char h[96];
-    snprintf(h, sizeof(h), "HELLO %s cam=%d mic=%d spk=%d fw=%s",
-             mac_str, cam_ok, M5.Mic.isEnabled(), M5.Speaker.isEnabled(), FW_VERSION);
+    char h[192];
+    snprintf(h, sizeof(h), "HELLO %s cam=%d mic=%d spk=%d fw=%s sfix=%u sfail=%u mfix=%u mfail=%u clips=%d",
+             mac_str, cam_ok, M5.Mic.isEnabled(), M5.Speaker.isEnabled(), FW_VERSION,
+             spk_fix, spk_fail, mic_fix, mic_fail, clip_count());
     send_text(IPAddress(255, 255, 255, 255), h);
     if (brain_known) send_text(brain_ip, h);
   }
@@ -312,8 +505,8 @@ static void service_udp() {
 }
 
 // ---------- audio ----------
-static void mic_on()  { M5.Speaker.end(); M5.Mic.begin(); frames_rec = 0; }
-static void spk_on()  { while (M5.Mic.isRecording()) M5.delay(1); M5.Mic.end(); M5.Speaker.begin(); }
+static void mic_on()  { M5.Speaker.end(); M5.Mic.begin(); ensure_mic(); frames_rec = 0; }
+static void spk_on()  { while (M5.Mic.isRecording()) M5.delay(1); M5.Mic.end(); M5.Speaker.begin(); ensure_speaker(); }
 
 static void do_playback() {
   playing = true;
@@ -414,6 +607,17 @@ void setup() {
   }
   prefs.end();
 
+  {  // newer Voice/Echo Base revision has a PI4IOE amp-enable expander at 0x43
+    m5gfx::i2c::i2c_temporary_switcher_t sw(1, GPIO_NUM_38, GPIO_NUM_39);
+    has_amp_expander = m5gfx::i2c::readRegister8(1, 0x43, 0x03, 100000).has_value();
+    sw.restore();
+  }
+  fs_ok = LittleFS.begin(true, "/littlefs", 10, "spiffs");   // formats on first use
+  if (fs_ok && !LittleFS.exists("/clips")) LittleFS.mkdir("/clips");
+  Serial.printf("Amp expander: %s | clip storage: %s, %d clips, %u/%u bytes used\n",
+                has_amp_expander ? "yes" : "no", fs_ok ? "OK" : "FAILED", clip_count(),
+                fs_ok ? (unsigned)LittleFS.usedBytes() : 0, fs_ok ? (unsigned)LittleFS.totalBytes() : 0);
+
   mic_ring = (int16_t*)heap_caps_calloc(RING * FRAME, sizeof(int16_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   play_buf = (int16_t*)heap_caps_malloc(PLAY_MAX * sizeof(int16_t), MALLOC_CAP_SPIRAM);
   if (!mic_ring || !play_buf) Serial.println("ALLOC FAILED (is PSRAM = OPI PSRAM?)");
@@ -422,6 +626,7 @@ void setup() {
   Serial.println(M5.Mic.isEnabled()     ? "Mic enabled"     : "Mic DISABLED");
   Serial.println(M5.Speaker.isEnabled() ? "Speaker enabled" : "Speaker DISABLED");
   boot_selftest();
+  Serial.printf("Codec repairs at boot: speaker %u (failed %u), mic %u (failed %u)\n", spk_fix, spk_fail, mic_fix, mic_fail);
 
   uint8_t m[6];
   esp_read_mac(m, ESP_MAC_WIFI_STA);   // eFuse MAC; WiFi.macAddress() is junk before Wi-Fi starts
@@ -444,4 +649,8 @@ void loop() {
 
   if (M5.BtnA.wasHold() && brain_known)    send_text(brain_ip, "BTN hold");
   if (M5.BtnA.wasClicked() && brain_known) send_text(brain_ip, "BTN click");
+  if (M5.BtnA.wasClicked() && !brain_known && !playing && !play_pending) {   // no brain: say hello from flash
+    size_t got = load_clip("hello");
+    if (got) { play_len = got; play_rate = SAMPLE_RATE; play_pending = true; }
+  }
 }

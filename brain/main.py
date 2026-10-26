@@ -48,12 +48,14 @@ button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}<
 const T=["dyno","sage","penny"];
 document.getElementById('toys').innerHTML=T.map(t=>`<div class=toy id=b_${t}><h3>${t.toUpperCase()} <small id=s_${t}></small></h3>
 <img id=i_${t}><div class=bar><div id=l_${t} style="width:0"></div></div><p id=v_${t}></p>
-<p class=voice id=vc_${t}></p></div>`).join('');
+<p class=voice id=vc_${t}></p><p class=voice id=hl_${t}></p></div>`).join('');
 function post(p){fetch('/'+p,{method:'POST'})}
 function enroll(){fetch(`/enroll?toy=${et.value}&name=${encodeURIComponent(nm.value)}&pet=${pet.checked?1:0}`,{method:'POST'}).then(r=>r.text()).then(alert)}
 async function tick(){const s=await (await fetch('/state')).json();be.textContent='('+s.backend+')';
 for(const t of T){const x=s.toys[t];document.getElementById('s_'+t).textContent=x.online?(x.ip+(x.cam?'':' no-cam')):'offline';
 document.getElementById('l_'+t).style.width=Math.min(100,x.level/30)+'%';document.getElementById('v_'+t).textContent=x.view;
+const h=x.health||{};const hc=(+h.sfail||+h.mfail)?'#f66':((+h.sfix||+h.mfix)?'#fc6':'#8b8fb0');
+document.getElementById('hl_'+t).innerHTML=h.fw?`<span style="color:${hc}">Speaker repairs ${h.sfix||0}${+h.sfail?` (failed ${h.sfail})`:''} · mic repairs ${h.mfix||0}${+h.mfail?` (failed ${h.mfail})`:''}</span> · ${h.clips} clips on toy · ${h.fw}`:'';
 const vc=x.voice||{};document.getElementById('vc_'+t).innerHTML=vc.engine?`<b>Voice:</b> ${vc.label} <span class=dim>(${vc.engine} ${vc.quant||''}, ${vc.id})</span><br>speed ${vc.speed} · pitch ${vc.pitch}`+(vc.last?`<br><span class=dim>last line: ${vc.last}</span>`:''):'';
 document.getElementById('b_'+t).className='toy'+(s.talking==t?' talk':'');
 if(x.online)document.getElementById('i_'+t).src='/frame/'+t+'.jpg?'+Date.now()}
@@ -96,7 +98,8 @@ def make_handler(hub, eyes, director, rec, voices):
                     a = hub.atoms.get(t)
                     st["toys"][t] = {"online": t in online, "ip": a.ip if a else "", "cam": bool(a and a.cam),
                                      "level": director.segs[t].level, "view": eyes.views[t].describe(),
-                                     "voice": voices.describe(t)}
+                                     "voice": voices.describe(t),
+                                     "health": {k: a.flags.get(k) for k in ("fw", "sfix", "sfail", "mfix", "mfail")} | {"clips": len(a.clips)} if a else {}}
                 return self._send(200, json.dumps(st), "application/json")
             self._send(404, "")
 
@@ -133,6 +136,34 @@ def enroll_live(rec, hub, toy, name, is_pet) -> str:
     n = (enroll_pet if is_pet else enroll_person)(rec, name, imgs)
     rec.save_db()
     return f"{name}: {n}/{len(imgs)} frames enrolled from {toy}'s camera" + ("" if n else " — nothing detected, try closer/brighter")
+
+
+def make_clip_sync(hub, voices, director):
+    """Store each toy's fixed lines (fillers, its canned-scene lines, offline greeting) in its own
+    flash, so they play instantly and without the network. Only missing clips are uploaded."""
+    def sync(toy):
+        time.sleep(2)   # let the Atom finish connecting
+        have = hub.list_clips(toy)
+        if have is None:
+            log.info("%s: firmware has no clip storage — fixed lines will stream", toy)
+            return
+        greet = canned.GREETINGS.get(toy)
+        lines = list(canned.FILLERS.get(toy, [])) + [x for t, x in canned.SCENE if t == toy] + ([greet] if greet else [])
+        uploaded = 0
+        for text in lines:
+            cid = voices.clip_id(toy, text)
+            if cid in have:
+                continue
+            while director.busy or director.paused:   # never compete with a live turn
+                time.sleep(0.5)
+            if hub.put_clip(toy, cid, voices.render(toy, text, persist=True)):
+                uploaded += 1
+        if greet:   # "hello" is the fixed name the firmware plays when no brain is reachable
+            gid = voices.clip_id(toy, greet)
+            if abs(have.get("hello", -1) - hub.atoms[toy].clips.get(gid, -2)) > 1e-3:
+                hub.put_clip(toy, "hello", voices.render(toy, greet, persist=True))
+        log.info("%s: %d clips stored on the Atom (%d uploaded now)", toy, len(hub.atoms[toy].clips), uploaded)
+    return sync
 
 
 def selftest(args):
@@ -199,6 +230,7 @@ def main():
     eyes.on_seen = director.on_seen
     eyes.hold = lambda: director.busy or director.paused
     voices.busy = lambda: director.busy
+    hub.on_online = make_clip_sync(hub, voices, director)
     hub.start()
     eyes.start()
     director.start()

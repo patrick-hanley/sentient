@@ -62,8 +62,7 @@ class Voices:
         t = config.TOYS[toy]
         kokoro = self._kokoro is not None and bool(t.get("kokoro"))
         # disk cache for fixed lines (fillers, canned scene): keyed by engine + voice settings + text
-        spec = {"k": kokoro and self._kokoro_model, "t": text, **{f: t.get(f) for f in ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch")}}
-        path = self._disk / (hashlib.sha1(json.dumps(spec, sort_keys=True).encode()).hexdigest() + ".pcm")
+        path = self._disk / (self._spec_hash(toy, text) + ".pcm")
         if persist and path.exists():
             pcm = path.read_bytes()
         else:
@@ -82,6 +81,17 @@ class Voices:
         if len(self._cache) < 500:
             self._cache[key] = pcm
         return pcm
+
+    def _spec_hash(self, toy: str, text: str) -> str:
+        t = config.TOYS[toy]
+        kokoro = self._kokoro is not None and bool(t.get("kokoro"))
+        spec = {"k": kokoro and self._kokoro_model, "t": text,
+                **{f: t.get(f) for f in ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch")}}
+        return hashlib.sha1(json.dumps(spec, sort_keys=True).encode()).hexdigest()
+
+    def clip_id(self, toy: str, text: str) -> str:
+        """Name of this line as a clip stored on the Atom (changes when the voice or text changes)."""
+        return "c" + self._spec_hash(toy, text)[:12]
 
     def describe(self, toy: str) -> dict:
         """Dashboard summary of a toy's voice."""

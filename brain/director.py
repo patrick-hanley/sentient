@@ -35,7 +35,7 @@ Reply ONLY in this exact format and nothing else. The toy lines come FIRST, the 
 <TOY NAME>: <exactly what that toy says out loud>
 HEARD: <the child's words, or - if there are none>
 Rules:
-- One or two toy lines. Each line under 20 words. Words a 2nd to 5th grader knows. Warm, playful, curious.
+- One to three toy lines; when all three toys are here, usually let all three join in. Each line under 20 words. Words a 2nd to 5th grader knows. Warm, playful, curious.
 - Talk about these things:
 {topics}
 - EVERY line must be about those topics. The toys never talk about their own hobbies, food, or where they live.
@@ -252,8 +252,12 @@ class Director:
             if seen:
                 seed = random.choice(config.BANTER_SEEDS)
                 return f"{NAMES[t]} is looking at {seen[0]}. {NAMES[t]} asks {seen[0]} something about {seed}, who answers."
-        a, b = random.sample(online, 2)
         seed = random.choice(config.BANTER_SEEDS)
+        if len(online) >= 3:
+            names = [NAMES[t] for t in random.sample(online, 3)]
+            return (f"Nobody has talked for a while. {names[0]}, {names[1]} and {names[2]} chat about {seed} "
+                    f"to invite the child to play. Each of them says one short line.")
+        a, b = random.sample(online, 2)
         return f"Nobody has talked for a while. {NAMES[a]} and {NAMES[b]} chat about {seed} to invite the child to play."
 
     def _turn(self, utt=None, event=None):
@@ -280,7 +284,7 @@ class Director:
             toy = utt.toy if utt and utt.toy in online else online[0]
             if utt and config.PLAY_FILLERS:
                 f = random.choice(canned.FILLERS.get(toy, ["Hmm!"]))
-                filler = threading.Thread(target=self.hub.play, args=(toy, self.voices.render(toy, f)), daemon=True)
+                filler = threading.Thread(target=self.hub.play_line, args=(toy, f, self.voices), daemon=True)
                 filler.start()
             scene = self.eyes.scene_text()
             image = None
@@ -414,7 +418,7 @@ class Director:
         try:
             for toy, text in canned.SCENE:
                 if toy in self.hub.online():
-                    self.hub.play(toy, self.voices.render(toy, text))
+                    self.hub.play_line(toy, text, self.voices)
                     time.sleep(0.25)
         finally:
             self._flush()

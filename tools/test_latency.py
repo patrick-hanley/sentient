@@ -52,6 +52,9 @@ class FakeHub:
         self.started.set()
         return .02
 
+    def play_line(self, toy, text, voices, **kw):
+        return self.play(toy, voices.render(toy, text), **kw)
+
 
 class Backend:
     hears_audio = True
@@ -88,6 +91,7 @@ class ReplyTests(unittest.TestCase):
         self.parser.feed("HEARD: what is seven times eight\n")
         self.assertEqual(self.heard, ["what is seven times eight"])
 
+    @patch.object(config, "MAX_LINES", 2)   # checks the cap itself
     def test_first_sentence_is_spoken_while_the_line_is_still_being_written(self):
         self.parser.feed("DYNO: Seven times eight is fifty-six! That")
         self.assertEqual(self.lines, [("dyno", "Seven times eight is fifty-six!")])
@@ -116,6 +120,7 @@ class ReplyTests(unittest.TestCase):
         self.parser.feed("HEARD:\nDYNO: Let's play!\n")
         self.assertEqual(self.lines, [("dyno", "Let's play!")])
 
+    @patch.object(config, "MAX_LINES", 2)   # checks the cap itself
     def test_thought_blocks_unknown_toys_and_extra_lines_are_ignored(self):
         for delta in ["<thi", "nk>\nHEARD: draft\nDYNO: secret\n</think>\n", "HEARD: hi\n",
                       "PENNY: offline\nDYNO: First.\nSAGE: Second.\nDYNO: Third.\n"]:

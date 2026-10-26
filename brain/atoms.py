@@ -7,7 +7,8 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -47,6 +48,8 @@ class Atom:
     last_seen: float = 0.0
     rms: float = 0.0
     pkts: int = 0
+    flags: dict = field(default_factory=dict)   # from HELLO: fw, codec repair counters (sfix/sfail/mfix/mfail), clips
+    clips: dict = field(default_factory=dict)   # clip name -> seconds, stored in the Atom's flash (firmware 3+)
 
 
 class AtomHub:
@@ -59,6 +62,7 @@ class AtomHub:
     def __init__(self, on_audio, on_button=None):
         self.on_audio = on_audio
         self.on_button = on_button or (lambda toy, kind: None)
+        self.on_online = None   # main sets this: called (in a thread) when an Atom appears or moves IP
         self.atoms: dict[str, Atom] = {}
         self.by_ip: dict[str, Atom] = {}
         self.mac_map = config.load_mac_map()
@@ -129,6 +133,9 @@ class AtomHub:
                     a = Atom(mac=mac, ip=ip, toy=toy)
                     self.atoms[toy] = a
                     self.by_ip[ip] = a
+                    if self.on_online:
+                        threading.Thread(target=self.on_online, args=(toy,), daemon=True, name=f"online-{toy}").start()
+                a.flags = flags
                 a.cam = flags.get("cam") == "1"
                 a.last_seen = now
                 self.sock.sendto(b"ACK", (ip, config.ATOM_PORT))
@@ -150,6 +157,84 @@ class AtomHub:
         except (urllib.error.URLError, OSError, TimeoutError):
             return None
 
+    # ---------- clips stored on the Atom (firmware toy-client-3+) ----------
+    def list_clips(self, toy: str) -> dict | None:
+        """name -> seconds of audio on the Atom, or None if its firmware has no clip storage."""
+        a = self.atoms.get(toy)
+        if not a:
+            return None
+        try:
+            with self._http.open(f"http://{a.ip}/clips", timeout=5) as r:
+                d = json.loads(r.read())
+        except (urllib.error.URLError, OSError, TimeoutError, ValueError):
+            return None
+        if not d.get("fs"):
+            return None
+        # mu-law: 1 byte/sample. Empty files are leftovers of an interrupted upload: treat as missing.
+        a.clips = {n: size / config.SAMPLE_RATE for n, size in d.get("clips", {}).items() if size > 0}
+        return a.clips
+
+    def put_clip(self, toy: str, name: str, pcm16k: bytes) -> bool:
+        a = self.atoms.get(toy)
+        if not a or not pcm16k:
+            return False
+        body = ulaw_encode(np.frombuffer(pcm16k, "<i2"))
+        for attempt in range(3):   # flash erases can stall the Atom for a moment: be patient, retry
+            req = urllib.request.Request(f"http://{a.ip}/clip?name={name}", data=body, method="PUT",
+                                         headers={"Content-Type": "application/octet-stream"})
+            try:
+                with self._http.open(req, timeout=30) as r:
+                    r.read()
+                a.clips[name] = len(body) / config.SAMPLE_RATE
+                return True
+            except (urllib.error.URLError, OSError, TimeoutError) as e:
+                log.warning("clip upload to %s failed (try %d/3): %s", toy, attempt + 1, e)
+                time.sleep(2)
+        return False
+
+    def play_line(self, toy: str, text: str, voices, **kw) -> float:
+        """Fixed lines (fillers, canned scene): play from the Atom's own flash when stored there,
+        otherwise synthesize and stream as usual."""
+        a = self.atoms.get(toy)
+        name = voices.clip_id(toy, text)
+        if a and name in a.clips:
+            dur = self._send(toy, f"http://{a.ip}/playclip?name={name}", None, a.clips[name], "clip " + name, **kw)
+            if dur is not None:
+                return dur
+            a.clips.pop(name, None)   # missing on the Atom after all: fall back
+        return self.play(toy, voices.render(toy, text, persist=True), **kw)
+
+    def _send(self, toy, url, body, dur, what, *, on_dispatch=None, raise_on_error=False):
+        """POST to the Atom and wait: it replies only after its speaker has finished, so the
+        reply time is the true end of speech. Returns seconds, or None if a clip was missing."""
+        with self._play_lock:
+            self.talking = toy
+            self.mute_until = max(self.mute_until, time.time() + dur + 2.0)
+            try:
+                req = urllib.request.Request(url, data=body or b"", method="POST",
+                                             headers={"Content-Type": "application/octet-stream"})
+                t0 = time.monotonic()
+                if on_dispatch:
+                    on_dispatch()
+                with self._http.open(req, timeout=15 + dur) as response:
+                    response.read()
+                log.info("play %s: %.1fs audio (%s), done after %.1fs (%.1fs network/switch overhead)",
+                         toy, dur, what, time.monotonic() - t0, time.monotonic() - t0 - dur)
+            except urllib.error.HTTPError as e:
+                if e.code == 404 and body is None:
+                    return None
+                log.warning("play to %s failed: %s", toy, e)
+                if raise_on_error:
+                    raise
+            except (urllib.error.URLError, OSError, TimeoutError) as e:
+                log.warning("play to %s failed: %s", toy, e)
+                if raise_on_error:
+                    raise
+            finally:
+                self.mute_until = time.time() + config.MIC_TAIL_S
+                self.talking = None
+        return dur
+
     def play(self, toy: str, pcm: bytes, *, on_dispatch=None, raise_on_error=False) -> float:
         """Blocking: sends speech to `toy`, returns after it has finished playing."""
         a = self.atoms.get(toy)
@@ -159,27 +244,7 @@ class AtomHub:
             if raise_on_error:
                 raise RuntimeError(f"{toy} is offline or its audio is empty")
             return 0.0
-        with self._play_lock:
-            self.talking = toy
-            self.mute_until = max(self.mute_until, time.time() + dur + 2.0)
-            try:
-                # The Atom replies only after the speaker has finished (firmware queues behind
-                # any line already playing), so the reply time is the true end of speech.
-                body, query = encode_for_atom(pcm)
-                req = urllib.request.Request(f"http://{a.ip}/play?{query}", data=body, method="POST",
-                                             headers={"Content-Type": "application/octet-stream"})
-                t0 = time.monotonic()
-                if on_dispatch:
-                    on_dispatch()
-                with self._http.open(req, timeout=15 + dur) as response:
-                    response.read()
-                log.info("play %s: %.1fs audio (%d KB %s), done after %.1fs (%.1fs network/switch overhead)",
-                         toy, dur, len(body) // 1024, query, time.monotonic() - t0, time.monotonic() - t0 - dur)
-            except (urllib.error.URLError, OSError, TimeoutError) as e:
-                log.warning("play to %s failed: %s", toy, e)
-                if raise_on_error:
-                    raise
-            finally:
-                self.mute_until = time.time() + config.MIC_TAIL_S
-                self.talking = None
+        body, query = encode_for_atom(pcm)
+        self._send(toy, f"http://{a.ip}/play?{query}", body, dur, f"{len(body) // 1024} KB {query}",
+                   on_dispatch=on_dispatch, raise_on_error=raise_on_error)
         return dur
