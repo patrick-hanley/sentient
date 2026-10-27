@@ -20,7 +20,7 @@ import numpy as np
 from brain import canned, config
 from brain.atoms import Atom, AtomHub, encode_for_atom
 from brain.director import Director, ReplyLines
-from brain.latency import TurnTrace
+from brain.latency import TurnLog, TurnTrace
 from brain.llm import GenieXBackend, LlamaCppBackend, LiteRTBackend, _sse, _text, make_backend
 from brain.pipeline import SpeechPipeline
 from brain.vad import Segmenter, Utterance, arbitrate
@@ -109,6 +109,14 @@ class ReplyTests(unittest.TestCase):
     def test_short_clause_waits_for_more_words(self):
         self.parser.feed("DYNO: Rawr, hi")
         self.assertEqual(self.lines, [])
+
+    def test_first_clause_releases_at_three_words_later_ones_wait_for_five(self):
+        self.parser.feed("DYNO: What a question, I wonder")
+        self.assertEqual(self.lines, [("dyno", "What a question,")])      # 3 words: enough for the first piece
+        self.parser.feed(" why, ok")
+        self.assertEqual(len(self.lines), 1)                               # "I wonder why," is 3 words: later bar is 5
+        self.parser.feed(" so let us see, then")
+        self.assertEqual(len(self.lines), 2)
 
     def test_heard_last_closes_the_reply(self):
         self.parser.feed("DYNO: Hi!\nHEARD: hello\nSAGE: A second draft.\n")
@@ -589,6 +597,23 @@ class InputTests(unittest.TestCase):
         self.assertEqual(state["milestones_ms"]["first_audio_post_ms"],500)
         self.assertFalse(state["audio_onset_measured"])
         self.assertNotIn("text",json.dumps(state))
+
+
+class TurnLogTests(unittest.TestCase):
+    def test_jsonl_is_content_free_and_summary_has_percentiles(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = f"{d}/turns.jsonl"
+            log = TurnLog(path)
+            for ms in (100, 200, 300):
+                t = TurnTrace(source="speech", toy="sage")
+                t.mark("first_audio_post_ms", t.origin + ms / 1000)
+                t.finish("ok")
+                log.add(t.snapshot())
+            lines = [json.loads(x) for x in open(path)]
+            self.assertEqual([x["turn_id"] for x in lines], [1, 2, 3])
+            self.assertEqual(set(lines[0]) - {"host"}, {"source", "toy", "status", "reference", "milestones_ms",
+                                             "stage_work_ms", "audio_onset_measured", "turn_id", "wall"})
+            self.assertEqual(log.summary()["summary"]["first_audio_post_ms"]["p50"], 200)
 
 
 if __name__ == "__main__":

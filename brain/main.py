@@ -39,6 +39,7 @@ button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}<
 <div class=row id=toys></div>
 <p><b>Heard:</b> <span id=heard></span><br><b>Said:</b> <span id=said></span> <small id=lat></small></p>
 <details><summary>Latency stages (milliseconds)</summary><pre id=stages></pre></details>
+<details ontoggle="if(this.open)loadWf()"><summary>Latency waterfall (last turns, p50/p95)</summary><button onclick="loadWf()">Refresh</button><pre id=wfsum></pre><div id=wf></div></details>
 <button id=muteall onclick="post('muteall')">Mute all toys</button><button onclick="post('mute')">Mute mics</button>
 <button onclick="post('idle')">Idle chatter</button>
 <span>Say: <select id=st><option>dyno<option>sage<option>penny</select><input id=sx size=30>
@@ -100,6 +101,14 @@ function setVol(t,v){fetch(`/speaker?toy=${t}&vol=${v}`,{method:'POST'});documen
 async function loadSfx(){const s=await (await fetch('/sfx')).json();const groups={character:'Character',story:'Story',halloween:'Halloween'};
  document.getElementById('sfx').innerHTML=Object.entries(groups).map(([g,label])=>`<div><span class=dim>${label}:</span> `+
   Object.entries(s).filter(([n,v])=>(v.set||'story')==g).map(([n,v])=>`<button title="${v.desc}${v.owner?' ('+v.owner+')':''}" onclick="playLine(sfxt.value,'{${n}}')">${n.replace('_',' ')}</button>`).join(' ')+'</div>').join('');}
+const WF=[["utterance_ready_ms","#8b8fb0"],["turn_started_ms","#6a6"],["first_model_text_ms","#c9a"],["first_line_ready_ms","#fc6"],["first_pcm_ready_ms","#6cf"],["first_audio_post_ms","#f66"],["atom_reply_sample_ms","#fff"]];
+async function loadWf(){const d=await (await fetch('/latency')).json();
+ wfsum.textContent=Object.entries(d.summary).map(([k,v])=>`${k.padEnd(28)} n=${v.n} p50=${v.p50} p95=${v.p95}`).join('\n');
+ const ts=d.turns.slice(-20).reverse(),mx=Math.max(1000,...ts.map(t=>Math.max(...Object.values(t.milestones_ms||{0:0}))));
+ wf.innerHTML=ts.map(t=>{const m=t.milestones_ms||{};let prev=0;
+  const segs=WF.filter(([k])=>k in m).map(([k,c])=>{const w=Math.max(0,m[k]-prev)/mx*100;prev=Math.max(prev,m[k]);return `<span title="${k} ${m[k]}ms" style="display:inline-block;height:12px;width:${w}%;background:${c}"></span>`}).join('');
+  return `<div style="font-size:12px;white-space:nowrap">#${t.turn_id} ${t.toy||'event'} ${t.status} ${m.first_audio_post_ms??'-'}ms<div>${segs}</div></div>`}).join('')+
+  '<div class=dim style="font-size:12px">'+WF.map(([k,c])=>`<span style="color:${c}">&#9632;</span> ${k.replace('_ms','')}`).join(' ')+'</div>';}
 loadVoices();loadCanned();loadSfx();
 setInterval(tick,700);tick();
 </script></body></html>"""
@@ -137,6 +146,8 @@ def make_handler(hub, eyes, director, rec, voices):
                 return self._send(200, json.dumps({"kokoro": voices.kokoro_voices(), "piper": voices.piper_voices(),
                                                    "toys": {t: voices.settings(t) for t in config.TOY_ORDER}}),
                                   "application/json")
+            if u.path == "/latency":
+                return self._send(200, json.dumps(director.turn_log.summary()), "application/json")
             if u.path == "/state":
                 online = hub.online()
                 st = {"backend": director.llm.name, "muted": hub.force_mute, "idle": director.idle_on,
@@ -308,7 +319,9 @@ def main():
     if args.selftest:
         sys.exit(selftest(args))
 
+    config.pin(config.TTS_CORES)   # onnxruntime's pool inherits the mask of the thread that creates the session
     voices = Voices()
+    config.pin(config.LLM_CORES)   # threads created from here on (LiteRT, HTTP, director) use the LLM cores
     log.info("pre-rendering canned scene + fillers…")
     voices.prerender([(t, f) for t, fs in canned.FILLERS.items() for f in fs])
     # Kokoro is slower than real time on a Pi: render the canned scene in the background, only
@@ -317,6 +330,8 @@ def main():
                      daemon=True, name="prerender").start()
     llm = make_backend(args.backend, system_prompt(), gpu=not args.cpu)
 
+    if hasattr(llm, "warm"):   # prefill the persona prompt now so the first child's turn isn't ~10 s slower
+        threading.Thread(target=llm.warm, daemon=True, name="llm-warm").start()
     segs = {}
     director = None
     hub = AtomHub(on_audio=lambda toy, pcm: segs[toy].feed(pcm) if toy in segs else None,

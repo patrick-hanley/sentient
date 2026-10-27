@@ -1,0 +1,7 @@
+{"seed": 3, "toys": ["dyno", "sage", "penny"],
+ "turns": [{"at": 0.5, "toy": "dyno", "clip": "say:Why is the sky blue?"},
+           {"at": 0.6, "toy": "sage", "clip": "say:Why is the sky blue?"},
+           {"at": 0.7, "toy": "penny", "clip": "say:Why is the sky blue?"},
+           {"at": 9.0, "toy": "dyno", "clip": "say:Can you spell the word elephant?"}],
+ "model": {"prefill_per_audio_s": 0.5, "first_token_s": 0.3, "lines": 1, "tts_rtf": 0.9},
+ "settle_s": 15}

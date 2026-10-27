@@ -1,0 +1,4 @@
+{"seed": 1, "toys": ["dyno"],
+ "turns": [{"at": 0.5, "toy": "dyno", "clip": "say:What is seven times eight?"}],
+ "model": {"prefill_per_audio_s": 0.5, "first_token_s": 0.3, "lines": 1, "tts_rtf": 0.9},
+ "settle_s": 8}

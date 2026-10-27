@@ -18,6 +18,11 @@
  * Discovery: the Atom broadcasts "HELLO <mac> cam=<0|1> mic=<0|1> spk=<0|1>"
  * to UDP 5005 every 3 s. The brain answers "ACK" to UDP 5006, and mic
  * packets then go unicast to whoever sent the last ACK.
+ * OTA:    POST /update with header X-OTA-Token (OTA_TOKEN in secrets.h) and the .ino.bin as the body; the Atom
+ *         writes the spare app slot, verifies it, replies, and reboots. tools/ota.py does this for all Atoms.
+ * Timing/control over UDP: brain "SYNC <n>" -> Atom "SYNCR <n> <us>" (esp_timer microseconds, for clock offset);
+ * Atom sends "PLAYING <us>" right after playback is queued and "PLAYED <us>" when it ends;
+ * brain "STOP" cuts playback at once (barge-in).
  * Mic packet: 'M' + uint16 seq (LE) + 320 int16 samples (20 ms) = 643 bytes.
  *
  * Half-duplex by hardware (mic and speaker share the ES8311): while /play
@@ -36,6 +41,8 @@
 #include <esp_camera.h>
 #include <esp_http_server.h>
 #include <esp_mac.h>
+#include <esp_timer.h>
+#include <Update.h>
 #include <LittleFS.h>
 #include <vector>
 #include "img_converters.h"
@@ -47,7 +54,7 @@ struct WifiCred { const char* ssid; const char* pass; int channel = 0; };  // ch
 #include "secrets.h"
 static constexpr uint16_t BRAIN_PORT = 5005;
 static constexpr uint16_t ATOM_PORT  = 5006;
-static constexpr const char* FW_VERSION = "toy-client-3.2";
+static constexpr const char* FW_VERSION = "toy-client-3.4";
 
 // ---------- GC0308 camera pins — AtomS3R-CAM ----------
 #define CAM_SIOD   12
@@ -417,6 +424,50 @@ static esp_err_t status_handler(httpd_req_t* req) {
   return httpd_resp_send(req, js, strlen(js));
 }
 
+// ---------- OTA: POST /update, body = firmware .bin ----------
+static volatile bool ota_reboot = false;
+
+static esp_err_t update_handler(httpd_req_t* req) {
+#ifndef OTA_TOKEN
+  httpd_resp_send_err(req, HTTPD_403_FORBIDDEN, "OTA disabled (no OTA_TOKEN in secrets.h)");
+  return ESP_FAIL;
+#else
+  char tok[48] = {0};
+  if (httpd_req_get_hdr_value_str(req, "X-OTA-Token", tok, sizeof(tok)) != ESP_OK || strcmp(tok, OTA_TOKEN) != 0) {
+    httpd_resp_send_err(req, HTTPD_403_FORBIDDEN, "token");
+    return ESP_FAIL;
+  }
+  if (req->content_len < 100000 || !Update.begin(req->content_len)) {   // a real image is >1 MB; Update checks it fits the slot
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "size");
+    return ESP_FAIL;
+  }
+  rx_busy = true;                                        // no mic UDP while the image streams in
+  static uint8_t chunk[1024];
+  size_t total = 0;
+  while (total < req->content_len) {
+    size_t want = req->content_len - total;
+    if (want > sizeof(chunk)) want = sizeof(chunk);
+    int r = httpd_req_recv(req, (char*)chunk, want);
+    if (r == HTTPD_SOCK_ERR_TIMEOUT) continue;
+    if (r <= 0 || Update.write(chunk, r) != (size_t)r) {
+      Update.abort();
+      rx_busy = false;
+      httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "write");
+      return ESP_FAIL;
+    }
+    total += r;
+  }
+  if (!Update.end(true)) {                               // true = verify image header/hash before switching slots
+    rx_busy = false;
+    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "verify");
+    return ESP_FAIL;
+  }
+  httpd_resp_send(req, "OK rebooting", HTTPD_RESP_USE_STRLEN);
+  ota_reboot = true;                                     // loop() restarts after the reply has left
+  return ESP_OK;
+#endif
+}
+
 static void start_http() {
   httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
   cfg.server_port = 80;
@@ -436,6 +487,8 @@ static void start_http() {
   httpd_uri_t cls = { "/clips",     HTTP_GET,  clips_handler,      nullptr };
   httpd_uri_t clr = { "/clipclear", HTTP_POST, clip_clear_handler, nullptr };
   httpd_uri_t vol = { "/volume",    HTTP_POST, volume_handler,     nullptr };
+  httpd_uri_t upd = { "/update",    HTTP_POST, update_handler,     nullptr };
+  httpd_register_uri_handler(server, &upd);
   httpd_register_uri_handler(server, &vol);
   httpd_register_uri_handler(server, &cpu);
   httpd_register_uri_handler(server, &cpl);
@@ -514,7 +567,15 @@ static void service_udp() {
   while (n > 0) {
     char buf[32] = {0};
     udp.read(buf, sizeof(buf) - 1);
-    if (strncmp(buf, "ACK", 3) == 0) {
+    if (strncmp(buf, "SYNC ", 5) == 0) {
+      char r[48];
+      snprintf(r, sizeof(r), "SYNCR %s %lld", buf + 5, (long long)esp_timer_get_time());
+      udp.beginPacket(udp.remoteIP(), udp.remotePort());   // reply to whoever asked (the brain's socket)
+      udp.write((const uint8_t*)r, strlen(r));
+      udp.endPacket();
+    } else if (strncmp(buf, "STOP", 4) == 0) {
+      M5.Speaker.stop();   // do_playback's wait loop then ends and the mic comes back
+    } else if (strncmp(buf, "ACK", 3) == 0) {
       if (!brain_known || brain_ip != udp.remoteIP())
         Serial.printf("HELLO ack from brain %s\n", udp.remoteIP().toString().c_str());
       brain_ip = udp.remoteIP();
@@ -534,10 +595,18 @@ static void do_playback() {
   play_pending = false;
   spk_on();
   M5.Speaker.playRaw(play_buf, play_len, play_rate, false, 1, 0);
+  char t[40];
+  if (brain_known) {   // first sample is being clocked out now: the brain turns this into a latency mark
+    snprintf(t, sizeof(t), "PLAYING %lld", (long long)esp_timer_get_time());
+    send_text(brain_ip, t);
+  }
   while (M5.Speaker.isPlaying()) { M5.delay(1); service_udp(); }
   mic_on();
   playing = false;
-  if (brain_known) send_text(brain_ip, "PLAYED");
+  if (brain_known) {
+    snprintf(t, sizeof(t), "PLAYED %lld", (long long)esp_timer_get_time());
+    send_text(brain_ip, t);
+  }
 }
 
 static void stream_mic() {
@@ -672,6 +741,7 @@ void loop() {
   if (WiFi.status() != WL_CONNECTED) { Serial.println("WiFi dropped"); connect_wifi(); }
   service_udp();
 
+  if (ota_reboot) { delay(500); ESP.restart(); }
   if (play_pending) do_playback();
   stream_mic();
 

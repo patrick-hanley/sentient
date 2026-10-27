@@ -128,3 +128,65 @@ The five-run scheduling simulation used 80 ms to the first model line, another 4
 | Total turn | 1,082 ms | 793 ms |
 
 First audio POST fell 71.9% in this controlled simulation. These values demonstrate scheduling overlap; they are not VENTUNO Q performance predictions. Firmware, microphone transport and camera calibration files are outside this change.
+
+## Measuring it (turn log, virtual Atoms, scoring)
+
+**Always on.** Every turn appends a content-free record to `brain/data/latency/turns.jsonl` (milestones, stage work,
+`speech_ms`, Pi CPU %/temp/throttle flag, per-Atom RSSI and lost mic packets, floor-control violations). The dashboard
+has a "Latency waterfall" panel and `GET /latency` returns the last 200 turns plus p50/p95 per stage.
+
+**Virtual Atoms** (no hardware, no human):
+
+    python tools/virtual_atoms.py tools/scenarios/one_toy.json --selfhost      # fake models: tests the rig only
+    python tools/virtual_atoms.py tools/scenarios/three_toys_chain.json --brain 192.168.2.5   # real brain on the Pi
+    python tools/score_run.py runs/<file>.jsonl [runs/<other>.jsonl]           # gaps, overlap, dead air, A/B delta
+
+`--selfhost --set END_SILENCE_MS=700 --set PLAY_FILLERS=false` runs A/B arms with the same seed. Against the Pi, change
+the knob in `brain/config.py` or the environment and restart `sentient-brain` between runs. Timings from `--selfhost`
+use made-up model delays from the scenario's `model` block; only runs against the Pi measure Gemma/Kokoro.
+Scenario `chain` feeds one toy's reply into another toy's mic (Tier A agent-to-agent, no air gap).
+
+**Judge:** `--transcribe` makes a text transcript (local faster-whisper, audio stays in RAM); `tools/judge.py` scores it
+with the Anthropic API (or prints the prompt without a key) and `--calibrate` compares it with human ratings.
+
+**Debug audio:** `SENTIENT_DEBUG_RECORD=1` writes input/output WAVs to a private temp dir that is deleted at exit
+(files older than an hour are pruned). Default off: nothing is written.
+
+**CPU budgeting (experimental):** `SENTIENT_LLM_CORES=0,1,2 SENTIENT_TTS_CORES=3` pins the LLM and the TTS worker.
+
+**Firmware 3.3 (compiled, not yet flashed):** the Atom answers `SYNC <n>` with `SYNCR <n> <us>` (the brain keeps the
+lowest-RTT offset per Atom), sends `PLAYING <us>` as the first sample is queued and `PLAYED <us>` at the end, and stops
+playback on `STOP` (`AtomHub.stop(toy)` sends it). The brain turns these into `atom_first_sample_ms`,
+`atom_reply_sample_ms` and `atom_play_end_ms` milestones. Older firmware ignores SYNC/STOP, so the brain works with both.
+Build: `arduino-cli compile -b m5stack:esp32:m5stack_atoms3r:CDCOnBoot=cdc,PSRAM=opi firmware/toy-client` (the CLI is inside
+Arduino IDE.app).
+
+Not built yet: streamed playout with a jitter buffer (a whole line is ~16-48 KB, so the transfer is tens of ms on a good
+link; measure `first_audio_post_ms` to `atom_reply_sample_ms` on the Pi first), a barge-in policy that calls `stop()`,
+and Tier B acoustic runs.
+
+## Measured on the Pi 5 (Oct 26, real Gemma + Kokoro, Mac speaking near the toys, 3 Atoms on firmware 3.4)
+
+Time after the child stops speaking (ms, p50 / p95, 9-11 turns per arm):
+
+| Arm | filler heard | first token | first line ready | reply audio ready | reply audible on Atom |
+|---|---|---|---|---|---|
+| Baseline | 694 / 917 | 2542 / 12810 | 4301 / 14855 | 7210 / 17896 | 7440 / 18029 |
+| + conversation warm-up | 716 / 5107 | 2559 / 3671 | 3841 / 5595 | 6788 / 10509 | 6895 / 10644 |
+| + LLM cores 0-2, TTS core 3 | 694 / 926 | 2772 / 4229 | 4226 / 5284 | 6921 / 8011 | 7030 / 8125 |
+| + 3-word first clause | 701 / 941 | 2776 / 4251 | 4042 / 5536 | 6724 / 8620 | 6846 / 8732 |
+
+What it shows:
+- The 6 s was never one thing. A canned filler is audible at 0.7 s; the real reply takes about 6.8 s.
+- Every ~8th turn (and the first after a restart) paid ~10 s: Gemma prefilled the persona prompt cold when the
+  conversation reset. `LiteRTBackend.warm()` now does that in the background. p95 first audio fell from 17.9 s to ~8-9 s.
+- Pinning Gemma to cores 0-2 and TTS to core 3 cut the time for Gemma to finish the whole reply from ~16 s to ~9-10 s,
+  but not time-to-first-audio.
+- Time-to-first-audio is now: ~2.7 s to first token (audio prefill), ~1.3 s for the first sentence, ~2.7 s for Kokoro to
+  render it, ~0.1 s to reach the Atom. Atom-side upload is not a bottleneck (0.1 s), so streamed playout is not worth building.
+- Kokoro is single-threaded in effect: 1 core or 4 cores renders at about 1x real time plus ~0.6 s per call
+  (2.1 s of speech in 2.1 s). Piper renders the same text in 0.2-0.4 s but is a different voice.
+- No CPU throttling (0x0), 51-58 C, mic packet loss about 0.2%.
+
+Not done: a different TTS or parallel Kokoro sessions (the next real lever for first audio), and acoustic Tier B scoring
+with the judge. The 5-word minimum for later chunks leaves small gaps between chunks because Kokoro is ~1x real time.

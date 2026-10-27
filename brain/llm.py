@@ -12,6 +12,7 @@ import json
 import logging
 import shutil
 import subprocess
+import threading
 import time
 import urllib.request
 
@@ -61,6 +62,8 @@ def _sse(response):
 class LiteRTBackend:
     hears_audio = True
     name = "LiteRT-LM"
+    _lock = threading.RLock()   # one conversation: a turn waits for a warm-up (one backend per process)
+    _warming = False
 
     def __init__(self, system: str, gpu: bool = True):
         import litert_lm as lm
@@ -98,7 +101,35 @@ class LiteRTBackend:
             max_output_tokens=120))
         self.turns = 0
 
+    WARM = "[SCENE] Nothing is happening.\n[EVENT] The toys wait quietly. Reply with exactly one line: HEARD: -"
+
+    def warm(self):
+        """Start a fresh conversation and prefill the system prompt now, while nobody is waiting. A cold first turn
+        measured ~10 s slower on the Pi 5 (Gemma prefills the persona prompt on the first message)."""
+        with self._lock:
+            self._warming = True
+            try:
+                self.new_conversation()
+                send = getattr(self.conv, "send_message_async", None)
+                for _ in (send(self.WARM) if send else (self.conv.send_message(self.WARM),)):
+                    pass
+                self.turns = 0
+            except Exception as exc:  # noqa: BLE001 — a failed warm-up just means the next turn is cold
+                log.warning("conversation warm-up failed (%s)", exc)
+                self.new_conversation()
+            finally:
+                self._warming = False
+
+    def maybe_warm(self):
+        """Called after each turn: when the next one would reset the conversation, do it in the background instead."""
+        if self.turns >= config.RESET_AFTER_TURNS and not self._warming:
+            threading.Thread(target=self.warm, daemon=True, name="llm-warm").start()
+
     def stream(self, text: str, wav: str | None = None, image: str | None = None):
+        with self._lock:
+            yield from self._stream(text, wav, image)
+
+    def _stream(self, text, wav, image):
         if self.turns >= config.RESET_AFTER_TURNS:
             self.new_conversation()
         parts = []

@@ -145,6 +145,21 @@ def apply_latency_profile(name: str) -> None:
     END_SILENCE_MS, ARBITRATE_S, PLAY_FILLERS = (
         (500, .12, True) if name == "responsive" else (700, .35, True))   # fillers mask Gemma's ~3-5 s on the Pi
 
+# ---- CPU budgeting (Linux only; experiment on the Pi 5, e.g. SENTIENT_LLM_CORES=0,1,2 SENTIENT_TTS_CORES=3) ----
+def _cores(name):
+    raw = os.environ.get(name, "").strip()
+    return {int(x) for x in raw.split(",") if x.strip().isdigit()} or None
+
+
+LLM_CORES, TTS_CORES = _cores("SENTIENT_LLM_CORES"), _cores("SENTIENT_TTS_CORES")
+
+
+def pin(cores) -> None:
+    """Restrict the calling thread (and threads it creates afterwards) to `cores`; no-op where unsupported."""
+    if cores and hasattr(os, "sched_setaffinity"):
+        os.sched_setaffinity(0, cores)
+
+
 # ---- perception ----
 CAPTURE_FPS = 0.5            # one snapshot per toy every 2 s; paused entirely during a turn
 FACE_MATCH = 0.40            # SFace cosine; OpenCV suggests 0.363

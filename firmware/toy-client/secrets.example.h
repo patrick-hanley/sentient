@@ -4,3 +4,6 @@ static const WifiCred WIFI_LIST[] = {
   // { "SameNameAP", "password", 11 },         // optional 3rd field: pin a channel if two APs share a name
   { "YOUR_PHONE_HOTSPOT", "YOUR_PASSWORD" },  // fallback (iPhone: Maximize Compatibility ON)
 };
+
+// Over-the-air update password (any random string); without it POST /update is refused.
+#define OTA_TOKEN "CHANGE_ME_random_string"

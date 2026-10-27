@@ -11,9 +11,9 @@ import threading
 import time
 import wave
 
-from . import canned, config
+from . import canned, config, debugrec
 from .vad import arbitrate, normalize
-from .latency import TurnTrace
+from .latency import HostSampler, TurnLog, TurnTrace
 from .pipeline import SpeechPipeline
 
 log = logging.getLogger("director")
@@ -93,12 +93,14 @@ class ReplyLines:
     SENTENCE_END = re.compile(r"[.!?](?=\s)")
     CLAUSE_END = re.compile(r"[,;:\u2014](?=\s)")
     CLAUSE_MIN_WORDS = 5   # each TTS call has ~0.4 s fixed cost on the Pi; don't split tiny clauses
+    FIRST_CLAUSE_MIN_WORDS = 3   # ...but the first piece of a reply sets time-to-first-audio (Kokoro renders ~1x real time)
 
     def __init__(self, online, on_line, on_heard):
         self.online, self.on_line, self.on_heard = set(online), on_line, on_heard
         self.buffer = ""
         self.header, self.closed, self.in_thought, self.count = False, False, False, 0
         self.by_name = {value: key for key, value in NAMES.items()}
+        self.pieces = 0   # chunks handed to TTS so far in this reply
         self.cur, self.spoken = None, 0   # (toy, allowed) of the line in progress; chars of it already spoken
 
     def feed(self, delta):
@@ -122,8 +124,9 @@ class ReplyLines:
         if ends:
             cut = ends[-1].end()
         else:   # no sentence end yet: release a long clause so synthesis can start sooner
+            need = self.CLAUSE_MIN_WORDS if self.pieces else self.FIRST_CLAUSE_MIN_WORDS
             cut = next((m.end() for m in self.CLAUSE_END.finditer(rest)
-                        if len(rest[:m.end()].split()) >= self.CLAUSE_MIN_WORDS), 0)
+                        if len(rest[:m.end()].split()) >= need), 0)
         if cut:
             self._speak(self.by_name[match.group(1).upper()], rest[:cut])
             self.spoken += cut
@@ -135,6 +138,7 @@ class ReplyLines:
             self.cur = (toy, allowed)
         text = clean(raw_text)
         if self.cur[1] and text:
+            self.pieces += 1
             self.on_line(toy, text)
 
     def _line(self, raw):
@@ -203,12 +207,30 @@ class Director:
         self._turn_lock = threading.Lock()
         self.active_trace = None
         self.last_trace = {}
+        (config.DATA / "latency").mkdir(exist_ok=True)
+        self.turn_log = TurnLog(config.DATA / "latency" / "turns.jsonl")
+        self.sampler = HostSampler(hub)
+        if hasattr(hub, "on_playback"):
+            hub.on_playback = self._atom_playback
+
+    def _atom_playback(self, toy, kind, when):
+        """Atom-side timestamps (firmware 3.3+): the first sample the speaker clocks out, and the end of the clip."""
+        t = self.active_trace
+        if not t:
+            return
+        if kind == "PLAYING":
+            t.mark("atom_first_sample_ms", when)                  # earliest sound of any kind (filler or reply)
+            if "first_audio_post_ms" in t.events:
+                t.mark("atom_reply_sample_ms", when)              # first clip started after the reply was posted
+        else:
+            t.mark("atom_play_end_ms", when, first=False)
 
     def latency_state(self):
         trace = self.active_trace
         return trace.snapshot() if trace else self.last_trace
 
     def start(self):
+        self.sampler.start()
         threading.Thread(target=self._loop, daemon=True, name="director").start()
 
     # ---------- inputs ----------
@@ -232,6 +254,7 @@ class Director:
             if self.paused:
                 continue
             u = arbitrate(u, self.utter_q, expected_toys=self.hub.online())
+            u.arbitrated = time.monotonic()
             log.info("utterance: %s %.1fs rms=%.0f", u.toy, len(u.pcm) / config.SAMPLE_RATE, u.rms)
             self._turn(utt=u)
 
@@ -272,10 +295,15 @@ class Director:
         self.busy = True
         self.hub.response_active.set()
         origin = utt.last_voiced_received if utt else None
-        trace = TurnTrace(origin, ("speech" if origin is not None else "speech_uninstrumented") if utt else "event")
+        trace = TurnTrace(origin, ("speech" if origin is not None else "speech_uninstrumented") if utt else "event",
+                          toy=utt.toy if utt else None)
         self.active_trace = trace
         if utt and utt.emitted is not None:
             trace.mark("utterance_ready_ms", utt.emitted)
+        if utt and utt.speech_ms:
+            trace.durations["speech_ms"] = utt.speech_ms
+        if utt and utt.arbitrated is not None:
+            trace.mark("arbitrate_done_ms", utt.arbitrated)
         trace.mark("turn_started_ms")
         self.last_latency, self.last_lines = 0., []
         tmp_files = []
@@ -302,6 +330,7 @@ class Director:
             said = ""
             if utt:
                 wav = self._wav(utt.pcm)
+                debugrec.save("in", toy, normalize(utt.pcm).tobytes())
                 tmp_files.append(wav)
                 prompt += f"[HEARD BY] {NAMES[toy]} (closest to the child).\n"
                 if self.llm.hears_audio:
@@ -376,10 +405,12 @@ class Director:
             self.busy = False
             self.last_activity = time.time()
             trace.finish(status)
-            self.last_trace = trace.snapshot()
+            self.last_trace = self.turn_log.add(dict(trace.snapshot(), host=self.sampler.latest(),
+                                                    floor=getattr(self.hub, "floor", None) and self.hub.floor.snapshot()))
             self.active_trace = None
             self._turn_lock.release()
             log.info("latency: %s", self.last_trace)
+            getattr(self.llm, "maybe_warm", lambda: None)()
 
     def _flush(self):
         """Drop speech captured while we were busy (it is usually toy echo or stale)."""
