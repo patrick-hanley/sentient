@@ -64,7 +64,7 @@ document.getElementById('l_'+t).style.width=Math.min(100,x.level/30)+'%';documen
 const h=x.health||{};const hc=(+h.sfail||+h.mfail)?'#f66':((+h.sfix||+h.mfix)?'#fc6':'#8b8fb0');
 document.getElementById('hl_'+t).innerHTML=h.fw?`<span style="color:${hc}">Speaker repairs ${h.sfix||0}${+h.sfail?` (failed ${h.sfail})`:''} · mic repairs ${h.mfix||0}${+h.mfail?` (failed ${h.mfail})`:''}</span> · ${h.clips} clips on toy · ${h.fw}`:'';
 {const hv=document.getElementById('hv_'+t),v=h.vol;if(v!==undefined&&v!==null&&document.activeElement!==hv){hv.value=v;
- document.getElementById('hvv_'+t).textContent=(+v===0?'muted':v+'/255');}}
+ const e=document.getElementById('hvv_'+t);e.textContent=(+v===0?'MUTED — raise to hear':v+'/255');e.style.color=(+v===0?'#f66':'');}}
 const vc=x.voice||{};document.getElementById('vc_'+t).innerHTML=vc.engine?`<b>Voice:</b> ${vc.label} <span class=dim>(${vc.engine} ${vc.quant||''}, ${vc.id})</span><br>speed ${vc.speed} · pitch ${vc.pitch}`+(vc.last?`<br><span class=dim>last line: ${vc.last}</span>`:''):'';
 document.getElementById('b_'+t).className='toy'+(s.talking==t?' talk':'');
 if(x.online)document.getElementById('i_'+t).src='/frame/'+t+'.jpg?'+Date.now()}
@@ -84,10 +84,12 @@ function renderVS(t,s){const opts=e=>(VO[e]||[]).map(v=>`<option ${v==s.voice?'s
  <label id=spk_${t} style="display:${s.engine=='piper'?'inline-block':'none'}">Speaker # <input id=sp_${t} type=number min=0 max=903 value="${s.speaker??''}" style="width:60px"></label><br>
  <button onclick="applyV('${t}')">Apply</button><button onclick="testV('${t}')">Test</button> <span id=vm_${t} class=dim></span>`;}
 function engChange(t){const e=document.getElementById('en_'+t).value;document.getElementById('vo_'+t).innerHTML=(VO[e]||[]).map(v=>`<option>${v}</option>`).join('');document.getElementById('spk_'+t).style.display=e=='piper'?'inline-block':'none';}
-async function applyV(t){const g=k=>document.getElementById(k+'_'+t).value;
- const r=await fetch(`/voice?toy=${t}&engine=${g('en')}&voice=${encodeURIComponent(g('vo'))}&speed=${g('speed')}&pitch=${g('pitch')}&volume=${g('volume')}&speaker=${g('sp')}`,{method:'POST'});
+async function applyV(t){const r=await fetch('/voice?'+formQ(t),{method:'POST'});
  document.getElementById('vm_'+t).textContent=r.ok?'saved — re-storing its clips in the new voice':('error: '+await r.text());}
-function testV(t){fetch(`/say?toy=${t}&text=${encodeURIComponent('Hi! This is how I sound now. Do you like my voice?')}`,{method:'POST'});}
+function formQ(t){const g=k=>document.getElementById(k+'_'+t).value;
+ return `toy=${t}&engine=${g('en')}&voice=${encodeURIComponent(g('vo'))}&speed=${g('speed')}&pitch=${g('pitch')}&volume=${g('volume')}&speaker=${g('sp')}`;}
+async function testV(t){const r=await fetch('/preview?'+formQ(t),{method:'POST'});   // plays the slider values, unsaved
+ document.getElementById('vm_'+t).textContent=r.ok?('preview '+(await r.text())):('error: '+await r.text());}
 async function loadCanned(){const c=await (await fetch('/canned')).json();
  let h='<b>Scenes:</b> '+c.scenes.map(s=>`<button onclick="post('canned?scene=${encodeURIComponent(s)}')">&#9654; ${s}</button>`).join('');
  h+='<div class=row>'+T.map(t=>`<div class=toy><b>${t.toUpperCase()}</b>`+Object.entries(c.lines[t]).filter(([g,ls])=>ls.length).map(([g,ls])=>
@@ -159,6 +161,15 @@ def make_handler(hub, eyes, director, rec, voices):
                 threading.Thread(target=director.run_canned, args=(q.get("scene"),), daemon=True).start()
             elif u.path == "/playline" and q.get("toy") in config.TOYS and q.get("text"):
                 threading.Thread(target=hub.play_line, args=(q["toy"], q["text"], voices), daemon=True).start()
+            elif u.path == "/preview" and q.get("toy") in config.TOYS:
+                try:
+                    pcm = voices.preview(q["toy"], q.get("engine", ""), q.get("voice", ""), q.get("speed", 1),
+                                         q.get("pitch", 1), q.get("volume", 1), q.get("speaker"))
+                except (ValueError, TypeError) as e:
+                    return self._send(400, str(e))
+                threading.Thread(target=hub.play, args=(q["toy"], pcm), daemon=True).start()
+                muted = q["toy"] in hub.atoms and str(hub.atoms[q["toy"]].flags.get("vol", "200")) == "0"
+                return self._send(200, "playing" + (" — but this toy's speaker volume is 0 (muted)" if muted else ""))
             elif u.path == "/voice" and q.get("toy") in config.TOYS:
                 try:
                     new = voices.apply(q["toy"], q.get("engine", ""), q.get("voice", ""), q.get("speed", 1),

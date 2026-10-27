@@ -84,7 +84,7 @@ class Voices:
             try:
                 start = time.time()
                 pcm = self._render_with_sfx(t, text, kokoro)
-                pcm = _apply_gain(pcm, t.get("gain", 1.0))
+                pcm = _apply_gain(pcm, (t.get("gain") or 1.0))
                 self.last[toy] = f"{len(pcm) / 2 / config.SAMPLE_RATE:.1f} s of speech in {time.time() - start:.1f} s"
             finally:
                 if not persist:
@@ -104,7 +104,7 @@ class Voices:
         parts = []
         for kind, value in self.sounds.segments(text):
             if kind == "sfx":
-                gain = 1.0 / max(t.get("gain", 1.0), 1e-3)   # sounds keep their level; volume applies after
+                gain = 1.0 / max((t.get("gain") or 1.0), 1e-3)   # sounds keep their level; volume applies after
                 parts.append(_apply_gain(self.sounds.pcm[value], gain))
             elif any(ch.isalnum() for ch in value):
                 parts.append(speak(value))
@@ -116,7 +116,7 @@ class Voices:
         kokoro = self._kokoro is not None and bool(t.get("kokoro"))
         spec = {"k": kokoro and self._kokoro_model, "t": text,
                 **{f: t.get(f) for f in ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch")}}
-        if t.get("gain", 1.0) != 1.0:   # only part of the key when changed, so existing clips stay valid
+        if (t.get("gain") or 1.0) != 1.0:   # only part of the key when changed, so existing clips stay valid
             spec["g"] = t["gain"]
         if self.sounds.affects(text):    # lines with sound effects (and "Rawr!") render differently now
             spec["sfx"] = 1
@@ -133,17 +133,31 @@ class Voices:
     def piper_voices(self) -> list[str]:
         return sorted(p.stem for p in (config.OFFLINE / "piper").glob("*.onnx"))
 
+    def preview(self, toy: str, engine: str, voice: str, speed: float, pitch: float, volume: float,
+                speaker=None, text: str = "Hi! This is how I sound now. Do you like my voice?") -> bytes:
+        """Render with unsaved dashboard values (the Test button) — nothing is changed or cached."""
+        saved = dict(config.TOYS[toy])
+        try:
+            self.apply(toy, engine, voice, speed, pitch, volume, speaker, persist=False)
+            t = config.TOYS[toy]
+            kokoro = self._kokoro is not None and bool(t.get("kokoro"))
+            with_sfx = self._render_with_sfx(t, text, kokoro)
+            return _apply_gain(with_sfx, t.get("gain") or 1.0)
+        finally:
+            config.TOYS[toy].clear()
+            config.TOYS[toy].update(saved)
+
     def settings(self, toy: str) -> dict:
         """Editable voice settings in one engine-neutral shape."""
         t = config.TOYS[toy]
         if self._kokoro is not None and t.get("kokoro"):
             return {"engine": "kokoro", "voice": t["kokoro"], "speed": t.get("kspeed", 1.0),
-                    "pitch": t.get("kpitch", 1.0), "volume": t.get("gain", 1.0), "speaker": None}
+                    "pitch": t.get("kpitch", 1.0), "volume": (t.get("gain") or 1.0), "speaker": None}
         return {"engine": "piper", "voice": t["voice"], "speed": round(1 / t["length"], 2),
-                "pitch": t["pitch"], "volume": t.get("gain", 1.0), "speaker": t.get("speaker")}
+                "pitch": t["pitch"], "volume": (t.get("gain") or 1.0), "speaker": t.get("speaker")}
 
     def apply(self, toy: str, engine: str, voice: str, speed: float, pitch: float, volume: float,
-              speaker=None) -> dict:
+              speaker=None, persist: bool = True) -> dict:
         """Change a toy's voice live (validated), persist it, and drop its cached audio."""
         clamp = lambda x, lo, hi: max(lo, min(hi, float(x)))
         speed, pitch, volume = clamp(speed, 0.6, 1.6), clamp(pitch, 0.7, 1.6), clamp(volume, 0.2, 2.5)
@@ -160,6 +174,8 @@ class Voices:
         else:
             raise ValueError("engine must be kokoro or piper")
         t["gain"] = volume
+        if not persist:
+            return self.settings(toy)
         config.save_voice_settings()
         self._cache = {k: v for k, v in self._cache.items() if k[0] != toy}
         self.last.pop(toy, None)

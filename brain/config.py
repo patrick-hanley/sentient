@@ -84,7 +84,8 @@ VOICE_FIELDS = ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pit
 
 
 def save_voice_settings() -> None:
-    VOICE_FILE.write_text(json.dumps({k: {f: t.get(f) for f in VOICE_FIELDS} for k, t in TOYS.items()}, indent=2))
+    VOICE_FILE.write_text(json.dumps({k: {f: t[f] for f in VOICE_FIELDS if t.get(f) is not None or f in ("kokoro", "speaker")}
+                                      for k, t in TOYS.items()}, indent=2))
 
 
 def _load_voice_settings() -> None:
@@ -94,7 +95,8 @@ def _load_voice_settings() -> None:
         return
     for toy, fields in saved.items():
         if toy in TOYS:
-            TOYS[toy].update({f: v for f, v in fields.items() if f in VOICE_FIELDS})
+            # null means "not set" (an older save wrote gain: null): keep the default then
+            TOYS[toy].update({f: v for f, v in fields.items() if f in VOICE_FIELDS and (v is not None or f in ("kokoro", "speaker"))})
 
 
 TOY_ORDER = ["dyno", "sage", "penny"]
