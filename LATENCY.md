@@ -190,3 +190,27 @@ What it shows:
 
 Not done: a different TTS or parallel Kokoro sessions (the next real lever for first audio), and acoustic Tier B scoring
 with the judge. The 5-word minimum for later chunks leaves small gaps between chunks because Kokoro is ~1x real time.
+
+## Planned speaking order (Oct 26)
+
+`brain/choreo.py` `plan_order()` picks the speaker sequence before the model writes anything, e.g. Penny, Sage, Dyno, Penny: everyone speaks before anyone repeats, nobody twice in a row. Idle banter passes it to Gemma as `[ORDER] ...`; on the Pi Gemma followed it exactly. For a child's turn the prompt now allows any order and a repeat speaker (`MAX_LINES` 3 -> 4). Each turn logs `handoff_gap_ms` (sum) and `handoff_gap_max_ms`: the silence between one toy finishing and the next starting.
+
+Measured on the Pi (3 turns, 3 handoffs each): about 1.2 s average dead air per handoff, 1.9-2.3 s worst. It is not the network (0.1 s upload) but Gemma writing and Kokoro rendering line N+1 (~1x real time plus 0.6 s) while line N plays. Queue depth went from 2 to 3 and did not change that. Closing the gap needs faster or parallel TTS, the same lever as time-to-first-audio.
+
+## Bridge clips and Kokoro-LiteRT (Oct 26)
+
+Canned reactions used to play only once, at the start of a child's turn. `SpeechPipeline._bridge` now also plays one from the next speaker (a clip already in the Atom's flash) when that speaker's line is still rendering after `BRIDGE_WAIT_S` (0.35 s), up to `MAX_BRIDGES` (3) per turn. It adds `bridge_ms` / `first_bridge_ms` to the turn log.
+
+Kokoro-LiteRT (`litert-community/Kokoro-82M`), re-checked: the `.litertlm` files run only through the C++ `omni_runner` (Bazel build); `litert-lm` on PyPI is still 0.18.1 with no TTS API. The card's 6-10x real time is a phone GPU number. The Pi has no usable GPU, and the CPU file uses the same int8 weights as our ONNX model (~1.1x). The deprecated fp32 `.tflite` files measured RTF 1.8 on a Pixel 8a, slower than what we run. Not built.
+
+## TTS benchmark on the Pi 5 (Oct 26, brain stopped, pinned to core 3, 4.7 s test line)
+
+| Model | Speed (x real time) | Notes |
+|---|---|---|
+| Kokoro int8 (in use) | 1.3 | ~0.6 s fixed cost per call; our voices |
+| Kitten TTS nano 0.8 int8 / fp32 | 4.1-4.6 / 4.8-5.1 | 15M params, 8 voices (Bella, Jasper, ...) |
+| Supertonic 3, 8 steps (default) | 1.6 | `total_steps` trades quality for speed |
+| Supertonic 3, 4 / 3 / 2 steps | 2.8 / 3.4 / 4.5 | quality at low steps not judged yet |
+| Piper (earlier) | 8-10 | current fallback voice |
+
+Setup: `/data/bench-venv` (supertonic), `/data/bench-k312` (kittentts, Python 3.12 via uv, no torch), caches in `/data/bench-cache`; scripts in `/data/bench-out`. The Pi's root disk is small (6.8 GB), so keep installs and caches on /data. Pocket TTS needs PyTorch and a gated Hugging Face download, so it was not tried. A run while the brain was live read 30% slower and noisier: stop the service for clean numbers.

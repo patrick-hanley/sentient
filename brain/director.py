@@ -12,6 +12,7 @@ import time
 import wave
 
 from . import canned, config, debugrec
+from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
 from .pipeline import SpeechPipeline
@@ -37,7 +38,7 @@ Reply ONLY in this exact format and nothing else. The toy lines come FIRST, the 
 <TOY NAME>: <exactly what that toy says out loud>
 HEARD: <the child's words, or - if there are none>
 Rules:
-- One to three toy lines; when all three toys are here, usually let all three join in. Each line under 20 words. Words a 2nd to 5th grader knows. Warm, playful, curious.
+- One to four toy lines; when all three toys are here, usually let all three join in. The order is free and a toy may speak again after another toy (Dyno, Sage, Dyno, Penny), but never twice in a row. Toys react to the line before. If [ORDER] is given, write exactly one line per entry in exactly that order. Each line under 20 words. Words a 2nd to 5th grader knows. Warm, playful, curious.
 - Talk about these things:
 {topics}
 - EVERY line must be about those topics. The toys never talk about their own hobbies, food, or where they live.
@@ -279,12 +280,9 @@ class Director:
                 seed = random.choice(config.BANTER_SEEDS)
                 return f"{NAMES[t]} is looking at {seen[0]}. {NAMES[t]} asks {seen[0]} something about {seed}, who answers."
         seed = random.choice(config.BANTER_SEEDS)
-        if len(online) >= 3:
-            names = [NAMES[t] for t in random.sample(online, 3)]
-            return (f"Nobody has talked for a while. {names[0]}, {names[1]} and {names[2]} chat about {seed} "
-                    f"to invite the child to play. Each of them says one short line.")
-        a, b = random.sample(online, 2)
-        return f"Nobody has talked for a while. {NAMES[a]} and {NAMES[b]} chat about {seed} to invite the child to play."
+        order = ", ".join(NAMES[t] for t in plan_order(online))
+        return (f"Nobody has talked for a while. The toys chat about {seed} to invite the child to play. "
+                f"[ORDER] {order}. One short line each, each reacting to the one before.")
 
     def _turn(self, utt=None, event=None):
         if not self._turn_lock.acquire(blocking=False):

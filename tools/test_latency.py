@@ -338,6 +338,35 @@ class PipelineTests(unittest.TestCase):
             pipeline.finish()
         self.assertNotIn("last_playback_ack_ms", pipeline.trace.snapshot()["milestones_ms"])
 
+    def test_dead_air_is_bridged_with_a_canned_clip_from_the_next_speaker(self):
+        hub = FakeHub(("dyno", "sage"))
+        hub.atoms = {"sage": types.SimpleNamespace(clips={"c-hmm": 1.0})}
+        hub.play_line = Mock(side_effect=lambda toy, text, voices: hub.played.append(("bridge", toy, text)))
+        voices = FakeVoices()
+        voices.clip_id = lambda toy, text: "c-hmm" if text == "Mm-hmm." else "other"
+        slow = threading.Event()
+        voices.render = lambda toy, text: (slow.wait(2), b"\0\0" * 320)[1]
+        pipeline = SpeechPipeline(hub, voices, TurnTrace())
+        with patch.object(config, "BRIDGE_WAIT_S", .05), patch.object(config, "PLAY_FILLERS", True):
+            pipeline.submit("sage", "Real answer")
+            time.sleep(.3)
+            slow.set()
+            pipeline.finish()
+        self.assertEqual(hub.played[0], ("bridge", "sage", "Mm-hmm."))   # only the clip stored on the Atom qualifies
+        self.assertEqual(hub.played[1], "sage")
+        self.assertIn("first_bridge_ms", pipeline.trace.snapshot()["milestones_ms"])
+
+    def test_no_bridge_when_the_line_is_ready(self):
+        hub = FakeHub(("sage",))
+        hub.atoms = {"sage": types.SimpleNamespace(clips={"c-hmm": 1.0})}
+        hub.play_line = Mock()
+        voices = FakeVoices()
+        voices.clip_id = lambda toy, text: "c-hmm"
+        pipeline = SpeechPipeline(hub, voices, TurnTrace())
+        pipeline.submit("sage", "Quick")
+        pipeline.finish()
+        hub.play_line.assert_not_called()
+
     def test_filler_wait_is_separate_from_audio_transport(self):
         clock = [0.]
         hub = FakeHub()
@@ -614,6 +643,30 @@ class TurnLogTests(unittest.TestCase):
             self.assertEqual(set(lines[0]) - {"host"}, {"source", "toy", "status", "reference", "milestones_ms",
                                              "stage_work_ms", "audio_onset_measured", "turn_id", "wall"})
             self.assertEqual(log.summary()["summary"]["first_audio_post_ms"]["p50"], 200)
+
+
+class ChoreoTests(unittest.TestCase):
+    def test_orders_vary_never_repeat_back_to_back_and_include_everyone(self):
+        import random
+        from brain.choreo import plan_order
+        rng, seen = random.Random(1), set()
+        for _ in range(200):
+            order = plan_order(["dyno", "sage", "penny"], rng)
+            self.assertTrue(3 <= len(order) <= config.MAX_LINES)
+            self.assertEqual(set(order), {"dyno", "sage", "penny"})
+            self.assertTrue(all(a != b for a, b in zip(order, order[1:])))
+            seen.add(tuple(order))
+        self.assertGreater(len(seen), 6)
+        self.assertTrue(any(len(set(o)) < len(o) for o in seen))   # someone speaks twice, e.g. 1,2,1,3
+
+    def test_first_speaker_and_small_groups(self):
+        from brain.choreo import plan_order
+        self.assertEqual(plan_order(["sage"]), ["sage"])
+        self.assertEqual(plan_order([]), [])
+        for _ in range(20):
+            o = plan_order(["dyno", "penny"], first="penny")
+            self.assertEqual(o[0], "penny")
+            self.assertTrue(all(a != b for a, b in zip(o, o[1:])))
 
 
 if __name__ == "__main__":

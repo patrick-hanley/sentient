@@ -133,6 +133,8 @@ ARBITRATE_S = 0.12           # upper bound; stop sooner when all online mics hav
 # pause tolerance for children who pause between words. Neither changes VAD onset.
 LATENCY_PROFILE = "responsive"
 PLAY_FILLERS = True
+BRIDGE_WAIT_S = 0.35         # next line not rendered after this long: its speaker plays a canned reaction
+MAX_BRIDGES = 3              # per turn
 PAUSE_CAPTURE_DURING_TURN = True
 VISION_MAX_AGE_S = 3.0
 
@@ -170,4 +172,4 @@ IDLE_BANTER_S = 45           # 0 disables idle toy-to-toy chatter
 # ---- LLM ----
 VISION_MODE = os.environ.get("SENTIENT_VISION", "sage")   # sage | always | never
 RESET_AFTER_TURNS = 8
-MAX_LINES = 3                # one line each when all three toys are here
+MAX_LINES = 4                # e.g. dyno, sage, dyno, penny: toys may speak more than once
