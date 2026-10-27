@@ -202,3 +202,15 @@ Measured on the Pi (3 turns, 3 handoffs each): about 1.2 s average dead air per 
 Canned reactions used to play only once, at the start of a child's turn. `SpeechPipeline._bridge` now also plays one from the next speaker (a clip already in the Atom's flash) when that speaker's line is still rendering after `BRIDGE_WAIT_S` (0.35 s), up to `MAX_BRIDGES` (3) per turn. It adds `bridge_ms` / `first_bridge_ms` to the turn log.
 
 Kokoro-LiteRT (`litert-community/Kokoro-82M`), re-checked: the `.litertlm` files run only through the C++ `omni_runner` (Bazel build); `litert-lm` on PyPI is still 0.18.1 with no TTS API. The card's 6-10x real time is a phone GPU number. The Pi has no usable GPU, and the CPU file uses the same int8 weights as our ONNX model (~1.1x). The deprecated fp32 `.tflite` files measured RTF 1.8 on a Pixel 8a, slower than what we run. Not built.
+
+## TTS benchmark on the Pi 5 (Oct 26, brain stopped, pinned to core 3, 4.7 s test line)
+
+| Model | Speed (x real time) | Notes |
+|---|---|---|
+| Kokoro int8 (in use) | 1.3 | ~0.6 s fixed cost per call; our voices |
+| Kitten TTS nano 0.8 int8 / fp32 | 4.1-4.6 / 4.8-5.1 | 15M params, 8 voices (Bella, Jasper, ...) |
+| Supertonic 3, 8 steps (default) | 1.6 | `total_steps` trades quality for speed |
+| Supertonic 3, 4 / 3 / 2 steps | 2.8 / 3.4 / 4.5 | quality at low steps not judged yet |
+| Piper (earlier) | 8-10 | current fallback voice |
+
+Setup: `/data/bench-venv` (supertonic), `/data/bench-k312` (kittentts, Python 3.12 via uv, no torch), caches in `/data/bench-cache`; scripts in `/data/bench-out`. The Pi's root disk is small (6.8 GB), so keep installs and caches on /data. Pocket TTS needs PyTorch and a gated Hugging Face download, so it was not tried. A run while the brain was live read 30% slower and noisier: stop the service for clean numbers.
