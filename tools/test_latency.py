@@ -708,5 +708,19 @@ class KittenVoiceTests(unittest.TestCase):
                 config.TOYS[k].clear(); config.TOYS[k].update(t)
 
 
+class DashboardPageTests(unittest.TestCase):
+    def test_page_script_is_valid_javascript(self):
+        import re, shutil, subprocess
+        from brain import main
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node not installed")
+        js = "\n".join(re.findall(r"<script>(.*?)</script>", main.PAGE, re.S))
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as f:
+            f.write(js)
+        r = subprocess.run([node, "--check", f.name], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

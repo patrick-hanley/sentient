@@ -103,7 +103,7 @@ async function loadSfx(){const s=await (await fetch('/sfx')).json();const groups
   Object.entries(s).filter(([n,v])=>(v.set||'story')==g).map(([n,v])=>`<button title="${v.desc}${v.owner?' ('+v.owner+')':''}" onclick="playLine(sfxt.value,'{${n}}')">${n.replace('_',' ')}</button>`).join(' ')+'</div>').join('');}
 const WF=[["utterance_ready_ms","#8b8fb0"],["turn_started_ms","#6a6"],["first_model_text_ms","#c9a"],["first_line_ready_ms","#fc6"],["first_pcm_ready_ms","#6cf"],["first_audio_post_ms","#f66"],["atom_reply_sample_ms","#fff"]];
 async function loadWf(){const d=await (await fetch('/latency')).json();
- wfsum.textContent=Object.entries(d.summary).map(([k,v])=>`${k.padEnd(28)} n=${v.n} p50=${v.p50} p95=${v.p95}`).join('\n');
+ wfsum.textContent=Object.entries(d.summary).map(([k,v])=>`${k.padEnd(28)} n=${v.n} p50=${v.p50} p95=${v.p95}`).join('\\n');
  const ts=d.turns.slice(-20).reverse(),mx=Math.max(1000,...ts.map(t=>Math.max(...Object.values(t.milestones_ms||{0:0}))));
  wf.innerHTML=ts.map(t=>{const m=t.milestones_ms||{};let prev=0;
   const segs=WF.filter(([k])=>k in m).map(([k,c])=>{const w=Math.max(0,m[k]-prev)/mx*100;prev=Math.max(prev,m[k]);return `<span title="${k} ${m[k]}ms" style="display:inline-block;height:12px;width:${w}%;background:${c}"></span>`}).join('');
