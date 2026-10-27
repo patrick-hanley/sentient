@@ -50,6 +50,20 @@ Heard by ear (Patrick): **Supertonic at low steps (2-4) sounds terrible**, and a
 ## Kitten live on the Pi (Oct 26)
 Kitten runs as a sidecar (`tools/kitten_server.py`, `deploy/sentient-kitten.service`, Python 3.12 venv `/data/bench-k312`, CPU core 3) because misaki needs Python <3.13. The brain calls it through `Voices._render_kitten`, with a 30 s fallback to Kokoro/Piper if it is down. Dashboard engine "Kitten (fast)". Trial setup: Dyno = Jasper, Penny = Bella at speed 1.3, Sage stays Kokoro bf_emma (no British Kitten voice). Revert on the dashboard (Dyno am_eric, Penny af_heart). First lines: 2.3 s speech in 0.9 s, 4.3 s in 1.3 s.
 
+## Live A/B on the Atoms: Kitten/Piper mix vs all Kokoro (Oct 26-27)
+Method: `tools/live_run.py --atom penny` plays a recorded child question through Penny's speaker (`tools/atom_ask.py` on the Pi); Dyno and Sage hear it on their mics. Atom-side timestamps, ms after the child stops. Raw turns: `data/live_ab_2026-10-27.json`, TTS numbers: `data/tts_bench_2026-10-26.csv`.
+
+| | Kitten Jasper + Piper alba (g0.4) + Kitten Rosie (n=7) | All Kokoro (n=4) |
+|---|---|---|
+| Filler audible | 0.7 s | 0.7 s |
+| **Real reply audible, p50 (max)** | **5.3 s (5.9)** | 6.4 s (7.2) |
+| Silence between toys, per turn | ~1 ms (one 40 ms) | 1.7 s in 2 of 3 turns |
+| Whole turn, p50 | 9.6 s | 11.6 s |
+
+About 1.1 s sooner to the first real words and the dead air between toys is gone, with small n and one room. Caveats: a run that played the questions from the Mac speaker (not through an Atom) had a 13.4 s outlier and several misses, so it is not in the table. The Kokoro arm was cut short when the Mac left the Pi's network. Gotcha found on the way: after a brain restart all three Atoms read volume 0 (`POST /speaker?toy=X&vol=200`), and the questions then go unheard.
+
+**State left on the Pi: it is still on the all-Kokoro voices from the A/B run.** Restore the approved mix: Dyno Kitten Jasper, Sage Piper en_GB-alba-medium speed 0.93 gain 0.4, Penny Kitten Rosie speed 1.0.
+
 ## Handoff dead air between toys
 About 1.2 s average, up to ~2.3 s: Gemma writing line N+1 and Kokoro rendering it while line N plays. Needs faster TTS.
 

@@ -1,0 +1,11 @@
+model,config,line_speech_s,render_s,x_realtime,notes
+kokoro-int8,af_heart/am_eric 1 core,4.7,3.5,1.3,brain stopped
+kitten-nano-0.8-int8,Jasper,4.9,1.19,4.1,
+kitten-nano-0.8-int8,Bella,8.4,1.85,4.6,speaks slowly
+kitten-nano-0.8-fp32,Jasper,4.9,1.01,4.8,
+kitten-nano-0.8-fp32,Bella,8.4,1.64,5.1,
+supertonic-3,M1 8 steps,6.0,3.80,1.6,default
+supertonic-3,M1 5 steps,6.0,2.56,2.3,
+supertonic-3,M1 4 steps,6.0,2.16,2.8,heard as terrible
+supertonic-3,M1 3 steps,6.0,1.74,3.4,heard as terrible
+supertonic-3,M1 2 steps,6.0,1.32,4.5,heard as terrible

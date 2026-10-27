@@ -1,0 +1,136 @@
+{
+ "date": "2026-10-26/27",
+ "method": "tools/live_run.py --atom penny: a recorded child question (macOS say, Samantha) played through Penny's speaker; Dyno and Sage mics hear it. Times in ms after the last voiced frame, Atom-side clock-synced timestamps (reply = atom_reply_sample_ms, gap = handoff_gap_ms sum between toys, done = turn_done_ms).",
+ "caveat": "Small n (7 vs 4), one room, one session. Kokoro arm interrupted when the Mac left the Pi's network.",
+ "arms": {
+  "Dyno Kitten Jasper + Sage Piper alba gain 0.4 + Penny Kitten Rosie": {
+   "turns": [
+    {
+     "turn": 18,
+     "filler": 1094,
+     "reply": 5905,
+     "gap": 0.85,
+     "done": 9621
+    },
+    {
+     "turn": 19,
+     "filler": 680,
+     "reply": 5322,
+     "gap": 1.22,
+     "done": 11782
+    },
+    {
+     "turn": 20,
+     "filler": 685,
+     "reply": 4336,
+     "gap": 1.04,
+     "done": 9142
+    },
+    {
+     "turn": 21,
+     "filler": 666,
+     "reply": 5284,
+     "gap": 1.07,
+     "done": 11754
+    },
+    {
+     "turn": 22,
+     "filler": 742,
+     "reply": 4489,
+     "gap": 0.95,
+     "done": 9069
+    },
+    {
+     "turn": 23,
+     "filler": 711,
+     "reply": 4122,
+     "gap": 40.31,
+     "done": 9046
+    },
+    {
+     "turn": 24,
+     "filler": 932,
+     "reply": 5628,
+     "gap": 0.97,
+     "done": 12246
+    }
+   ],
+   "summary": {
+    "filler": {
+     "p50": 711,
+     "max": 1094,
+     "n": 7
+    },
+    "reply": {
+     "p50": 5284,
+     "max": 5905,
+     "n": 7
+    },
+    "gap": {
+     "p50": 1.0,
+     "max": 40.31,
+     "n": 7
+    },
+    "done": {
+     "p50": 9621,
+     "max": 12246,
+     "n": 7
+    }
+   }
+  },
+  "All Kokoro (dyno am_eric, sage bf_emma, penny af_heart)": {
+   "turns": [
+    {
+     "turn": 25,
+     "filler": 694,
+     "reply": 7221,
+     "gap": null,
+     "done": 9500
+    },
+    {
+     "turn": 26,
+     "filler": 629,
+     "reply": 6500,
+     "gap": 1743,
+     "done": 12050
+    },
+    {
+     "turn": 27,
+     "filler": 695,
+     "reply": 6345,
+     "gap": 0.59,
+     "done": 11154
+    },
+    {
+     "turn": 28,
+     "filler": 699,
+     "reply": 6314,
+     "gap": 1744,
+     "done": 12405
+    }
+   ],
+   "summary": {
+    "filler": {
+     "p50": 694.5,
+     "max": 699,
+     "n": 4
+    },
+    "reply": {
+     "p50": 6422.5,
+     "max": 7221,
+     "n": 4
+    },
+    "gap": {
+     "p50": 1743,
+     "max": 1744,
+     "n": 3
+    },
+    "done": {
+     "p50": 11602.0,
+     "max": 12405,
+     "n": 4
+    }
+   }
+  }
+ }
+}
