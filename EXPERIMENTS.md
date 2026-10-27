@@ -45,13 +45,13 @@ Filler audible ~0.7 s. Real reply, p50: Gemma first token ~2.7 s, first sentence
 | Supertonic 3 at 8 / 4 / 3 / 2 steps | 1.6 / 2.8 / 3.4 / 4.5 |
 | Piper | 8-10 |
 
-Quality not yet judged by ear. Pocket TTS needs PyTorch and a gated download: untried. The Pi's root disk is small: keep installs on `/data`.
+Heard by ear (Patrick): **Supertonic at low steps (2-4) sounds terrible**, and at its default 8 steps it is only 1.6x, so it is dropped. Kitten and Piper not yet judged. Pocket TTS needs PyTorch and a gated download: untried. The Pi's root disk is small: keep installs on `/data`.
 
 ## Handoff dead air between toys
 About 1.2 s average, up to ~2.3 s: Gemma writing line N+1 and Kokoro rendering it while line N plays. Needs faster TTS.
 
 ## Not done yet
-- Pick a faster voice (Kitten / Supertonic low steps) and wire it as a per-toy option.
+- Judge Kitten by ear; if it passes, wire it as a per-toy option (Supertonic is out).
 - Tier B acoustic scoring with the judge; judge calibration on ~20 human-rated runs.
 - Barge-in policy (`hub.stop()`).
 - Jetson Orin Nano for Gemma (published 0.9 s TTFT).
