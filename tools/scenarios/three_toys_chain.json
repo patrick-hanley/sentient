@@ -1,0 +1,5 @@
+{"seed": 2, "toys": ["dyno", "sage", "penny"],
+ "turns": [{"at": 0.5, "toy": "sage", "clip": "say:Tell us about the planets in our solar system."}],
+ "chain": {"max_hops": 3, "delay_s": 0.5, "min_dur_s": 1.5},
+ "model": {"prefill_per_audio_s": 0.5, "first_token_s": 0.3, "lines": 2, "line_gap_s": 0.8, "tts_rtf": 0.9},
+ "settle_s": 25}

@@ -5,6 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 import queue
 import threading
 
+from . import config, debugrec
+
 
 class SpeechPipeline:
     def __init__(self, hub, voices, trace, on_dispatch=None, before_play=None):
@@ -23,10 +25,12 @@ class SpeechPipeline:
             raise RuntimeError("Speech pipeline is closed")
 
         def render():
+            config.pin(config.TTS_CORES)
             with self.trace.span("tts_ms"):
                 pcm = self.voices.render(toy, text)
             if pcm:
                 self.trace.mark("first_pcm_ready_ms")
+                debugrec.save("out", toy, pcm)
             return pcm
         self.pending.put((toy, text, self.renders.submit(render)))
 

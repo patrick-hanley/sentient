@@ -24,3 +24,6 @@ deck/node_modules/
 deck/qa/
 deck/img/frame_*.jpg
 deck/img/first_frame_palm.jpg
+
+# virtual-Atom run logs
+runs/

@@ -23,6 +23,8 @@ class Utterance:
     rms: float            # mean RMS over voiced frames: loudest mic = closest toy
     last_voiced_received: float | None = None  # monotonic host receipt time, not sensor time
     emitted: float | None = None
+    arbitrated: float | None = None
+    speech_ms: float = 0.0   # first voiced pre-roll to last voiced frame, host clock
 
 
 class Segmenter:
@@ -60,6 +62,7 @@ class Segmenter:
                 self.buf = list(self.pre)
                 self.voiced, self.voiced_rms, self.silence = sum(self.hist), rms * sum(self.hist), 0
                 self.last_voiced_received = time.monotonic()
+                self.start_mono = self.last_voiced_received - len(self.pre) * FRAME_MS / 1000
             return
         self.buf.append(pcm)
         if speech:
@@ -75,7 +78,8 @@ class Segmenter:
                 pcm_all = np.concatenate(self.buf[: len(self.buf) - max(0, self.silence - 10)])
                 self.out.put(Utterance(self.toy, self.start, time.time(), pcm_all,
                                        self.voiced_rms / max(1, self.voiced),
-                                       self.last_voiced_received, time.monotonic()))
+                                       self.last_voiced_received, time.monotonic(), None,
+                                       (self.last_voiced_received - self.start_mono) * 1000))
             self.reset()
 
 
