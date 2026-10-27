@@ -47,6 +47,9 @@ Filler audible ~0.7 s. Real reply, p50: Gemma first token ~2.7 s, first sentence
 
 Heard by ear (Patrick): **Supertonic at low steps (2-4) sounds terrible**, and at its default 8 steps it is only 1.6x, so it is dropped. Kitten and Piper not yet judged. Pocket TTS needs PyTorch and a gated download: untried. The Pi's root disk is small: keep installs on `/data`.
 
+## Kitten live on the Pi (Oct 26)
+Kitten runs as a sidecar (`tools/kitten_server.py`, `deploy/sentient-kitten.service`, Python 3.12 venv `/data/bench-k312`, CPU core 3) because misaki needs Python <3.13. The brain calls it through `Voices._render_kitten`, with a 30 s fallback to Kokoro/Piper if it is down. Dashboard engine "Kitten (fast)". Trial setup: Dyno = Jasper, Penny = Bella at speed 1.3, Sage stays Kokoro bf_emma (no British Kitten voice). Revert on the dashboard (Dyno am_eric, Penny af_heart). First lines: 2.3 s speech in 0.9 s, 4.3 s in 1.3 s.
+
 ## Handoff dead air between toys
 About 1.2 s average, up to ~2.3 s: Gemma writing line N+1 and Kokoro rendering it while line N plays. Needs faster TTS.
 

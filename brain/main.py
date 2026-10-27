@@ -22,7 +22,7 @@ from .atoms import AtomHub
 from .director import Director, system_prompt
 from .llm import make_backend
 from .perception import Perceiver, Recognizer
-from .tts import Voices
+from .tts import KITTEN_VOICES, Voices
 from .vad import Segmenter
 from . import canned
 
@@ -79,7 +79,7 @@ async function loadVoices(){VO=await (await fetch('/voices')).json();for(const t
 function slider(t,k,label,lo,hi,v){return `<label>${label} <input type=range id=${k}_${t} min=${lo} max=${hi} step=0.05 value=${v} oninput="document.getElementById('${k}v_${t}').textContent=this.value"> <span id=${k}v_${t}>${v}</span></label>`;}
 function renderVS(t,s){const opts=e=>(VO[e]||[]).map(v=>`<option ${v==s.voice?'selected':''}>${v}</option>`).join('');
  document.getElementById('vs_'+t).innerHTML=`<b>Voice settings</b><br>
- <label>Engine <select id=en_${t} onchange="engChange('${t}')"><option value=kokoro ${s.engine=='kokoro'?'selected':''} ${VO.kokoro.length?'':'disabled'}>Kokoro</option><option value=piper ${s.engine=='piper'?'selected':''}>Piper</option></select></label>
+ <label>Engine <select id=en_${t} onchange="engChange('${t}')"><option value=kokoro ${s.engine=='kokoro'?'selected':''} ${VO.kokoro.length?'':'disabled'}>Kokoro</option><option value=piper ${s.engine=='piper'?'selected':''}>Piper</option><option value=kitten ${s.engine=='kitten'?'selected':''}>Kitten (fast)</option></select></label>
  <label>Voice <select id=vo_${t}>${opts(s.engine)}</select></label><br>
  ${slider(t,'speed','Speed',0.6,1.6,s.speed)}${slider(t,'pitch','Pitch',0.7,1.6,s.pitch)}<br>${slider(t,'volume','Voice gain',0.2,2.5,s.volume)}
  <label id=spk_${t} style="display:${s.engine=='piper'?'inline-block':'none'}">Speaker # <input id=sp_${t} type=number min=0 max=903 value="${s.speaker??''}" style="width:60px"></label><br>
@@ -143,7 +143,7 @@ def make_handler(hub, eyes, director, rec, voices):
                 return self._send(200, json.dumps({n: dict(v, owner=v.get("toy")) for n, v in voices.sounds.index.items()}),
                                   "application/json")
             if u.path == "/voices":
-                return self._send(200, json.dumps({"kokoro": voices.kokoro_voices(), "piper": voices.piper_voices(),
+                return self._send(200, json.dumps({"kokoro": voices.kokoro_voices(), "piper": voices.piper_voices(), "kitten": KITTEN_VOICES,
                                                    "toys": {t: voices.settings(t) for t in config.TOY_ORDER}}),
                                   "application/json")
             if u.path == "/latency":

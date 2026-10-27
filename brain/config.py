@@ -80,7 +80,7 @@ BANTER_SEEDS = [
 ]
 # Voice settings changed from the dashboard persist here and override TOYS at startup.
 VOICE_FILE = DATA / "voice_settings.json"
-VOICE_FIELDS = ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch", "gain")
+VOICE_FIELDS = ("kitten", "kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch", "gain")
 
 
 def save_voice_settings() -> None:

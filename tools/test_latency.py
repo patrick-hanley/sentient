@@ -669,5 +669,44 @@ class ChoreoTests(unittest.TestCase):
             self.assertTrue(all(a != b for a, b in zip(o, o[1:])))
 
 
+class KittenVoiceTests(unittest.TestCase):
+    def _voices(self):
+        from brain.tts import Voices
+        v = object.__new__(Voices)
+        v._kokoro, v._kokoro_model, v._cache = None, None, {}
+        v.sounds = types.SimpleNamespace(affects=lambda text: False)
+        v.last, v._lock = {}, threading.Lock()
+        return v
+
+    def test_kitten_toy_uses_sidecar_and_falls_back_to_piper_when_it_is_down(self):
+        v = self._voices()
+        toy = dict(config.TOYS["dyno"], kitten="Jasper", kokoro=None, kpitch=1.0, kspeed=1.0)
+        pcm24 = (np.ones(2400, "<i2") * 1000).tobytes()   # 0.1 s at 24 kHz
+        with patch("brain.tts.urllib.request.urlopen") as op:
+            op.return_value.__enter__.return_value.read.return_value = pcm24
+            out = v._render_with_sfx(toy, "Hi there", False)
+            self.assertAlmostEqual(len(out) / 2 / config.SAMPLE_RATE, 0.1, places=2)
+            self.assertIn("voice=Jasper", op.call_args.args[0].full_url)
+        v._render_piper = Mock(return_value=b"piper")
+        with patch("brain.tts.urllib.request.urlopen", side_effect=OSError("down")):
+            self.assertEqual(v._render_with_sfx(toy, "Hi", False), b"piper")
+            self.assertFalse(v._kitten_up())    # skipped for a while, no retry per line
+            v._render_with_sfx(toy, "Again", False)
+        from brain.tts import Voices
+        Voices._kitten_down_until = 0.0
+
+    def test_apply_switches_engines_and_rejects_unknown_voice(self):
+        v = self._voices()
+        saved = {k: dict(t) for k, t in config.TOYS.items()}
+        try:
+            v.apply("sage", "kitten", "Bella", 1.0, 1.0, 1.0, persist=False)
+            self.assertEqual(v.settings("sage")["engine"], "kitten")
+            with self.assertRaises(ValueError):
+                v.apply("sage", "kitten", "Nobody", 1.0, 1.0, 1.0, persist=False)
+        finally:
+            for k, t in saved.items():
+                config.TOYS[k].clear(); config.TOYS[k].update(t)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -6,12 +6,15 @@ import json
 import logging
 import threading
 import time
+import urllib.request
 
 import numpy as np
 
 from . import config
 
 log = logging.getLogger("tts")
+KITTEN_URL = "http://127.0.0.1:8099/tts"   # tools/kitten_server.py, a Python 3.12 sidecar
+KITTEN_VOICES = ["Bella", "Jasper", "Luna", "Bruno", "Rosie", "Hugo", "Kiki", "Leo"]
 
 
 def _apply_gain(pcm: bytes, gain: float) -> bytes:
@@ -98,7 +101,10 @@ class Voices:
 
     def _render_with_sfx(self, t: dict, text: str, kokoro: bool) -> bytes:
         """Speech with sound effects mixed in: '{knock} Who is it?' -> knock, short gap, speech."""
-        speak = (lambda x: self._render_kokoro(t, x)) if kokoro else (lambda x: self._render_piper(t, x))
+        if t.get("kitten") and self._kitten_up():
+            speak = lambda x: self._render_kitten(t, x)
+        else:
+            speak = (lambda x: self._render_kokoro(t, x)) if kokoro else (lambda x: self._render_piper(t, x))
         if not self.sounds.affects(text):
             return speak(text)
         parts = []
@@ -116,6 +122,8 @@ class Voices:
         kokoro = self._kokoro is not None and bool(t.get("kokoro"))
         spec = {"k": kokoro and self._kokoro_model, "t": text,
                 **{f: t.get(f) for f in ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch")}}
+        if t.get("kitten"):   # only part of the key when used, so existing clips stay valid
+            spec["kt"] = t["kitten"]
         if (t.get("gain") or 1.0) != 1.0:   # only part of the key when changed, so existing clips stay valid
             spec["g"] = t["gain"]
         if self.sounds.affects(text):    # lines with sound effects (and "Rawr!") render differently now
@@ -150,6 +158,9 @@ class Voices:
     def settings(self, toy: str) -> dict:
         """Editable voice settings in one engine-neutral shape."""
         t = config.TOYS[toy]
+        if t.get("kitten"):
+            return {"engine": "kitten", "voice": t["kitten"], "speed": t.get("kspeed", 1.0),
+                    "pitch": t.get("kpitch", 1.0), "volume": (t.get("gain") or 1.0), "speaker": None}
         if self._kokoro is not None and t.get("kokoro"):
             return {"engine": "kokoro", "voice": t["kokoro"], "speed": t.get("kspeed", 1.0),
                     "pitch": t.get("kpitch", 1.0), "volume": (t.get("gain") or 1.0), "speaker": None}
@@ -162,17 +173,21 @@ class Voices:
         clamp = lambda x, lo, hi: max(lo, min(hi, float(x)))
         speed, pitch, volume = clamp(speed, 0.6, 1.6), clamp(pitch, 0.7, 1.6), clamp(volume, 0.2, 2.5)
         t = config.TOYS[toy]
-        if engine == "kokoro":
+        if engine == "kitten":
+            if voice not in KITTEN_VOICES:
+                raise ValueError(f"unknown Kitten voice {voice!r}")
+            t.update(kitten=voice, kspeed=speed, kpitch=pitch)
+        elif engine == "kokoro":
             if voice not in self.kokoro_voices():
                 raise ValueError(f"unknown Kokoro voice {voice!r}")
-            t.update(kokoro=voice, kspeed=speed, kpitch=pitch)
+            t.update(kitten=None, kokoro=voice, kspeed=speed, kpitch=pitch)
         elif engine == "piper":
             if voice not in self.piper_voices():
                 raise ValueError(f"unknown Piper voice {voice!r}")
-            t.update(kokoro=None, voice=voice, length=round(1 / speed, 3), pitch=pitch,
+            t.update(kitten=None, kokoro=None, voice=voice, length=round(1 / speed, 3), pitch=pitch,
                      speaker=int(speaker) if speaker not in (None, "", "null") else None)
         else:
-            raise ValueError("engine must be kokoro or piper")
+            raise ValueError("engine must be kokoro, piper or kitten")
         t["gain"] = volume
         if not persist:
             return self.settings(toy)
@@ -184,6 +199,10 @@ class Voices:
     def describe(self, toy: str) -> dict:
         """Dashboard summary of a toy's voice."""
         t = config.TOYS[toy]
+        if t.get("kitten"):
+            return {"engine": "Kitten TTS nano", "label": t["kitten"], "quant": "int8", "id": t["kitten"],
+                    "speed": t.get("kspeed", 1.0), "pitch": t.get("kpitch", 1.0), "model": "kitten-tts-nano-0.8-int8",
+                    "last": self.last.get(toy, "")}
         if self._kokoro is not None and t.get("kokoro"):
             v = t["kokoro"]   # e.g. af_heart: a/b = American/British, f/m = female/male
             accent = {"a": "American", "b": "British"}.get(v[0], v[0])
@@ -208,6 +227,29 @@ class Voices:
                                             lang="en-gb" if voice.startswith("b") else "en-us")
         audio = _resample(np.asarray(audio, np.float32) * 32767, sr * pitch, config.SAMPLE_RATE)
         log.info("kokoro %s: %.1fs speech in %.1fs", voice, len(audio) / config.SAMPLE_RATE, time.time() - start)
+        return np.clip(audio, -32768, 32767).astype("<i2").tobytes()
+
+    _kitten_down_until = 0.0
+
+    def _kitten_up(self) -> bool:
+        """The sidecar answers; after a failure fall back to Kokoro/Piper for 30 s instead of retrying every line."""
+        return time.time() >= self._kitten_down_until
+
+    def _render_kitten(self, t: dict, text: str) -> bytes:
+        voice, pitch = t["kitten"], t.get("kpitch", 1.0)
+        start = time.time()
+        speed = t.get("kspeed", 1.0) / pitch
+        req = urllib.request.Request(f"{KITTEN_URL}?voice={voice}&speed={speed:.3f}", data=text.encode(), method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=20) as r:
+                raw = r.read()
+        except OSError as e:
+            Voices._kitten_down_until = time.time() + 30
+            log.warning("Kitten sidecar unavailable (%s) — using Kokoro/Piper for 30 s", e)
+            kokoro = self._kokoro is not None and bool(t.get("kokoro"))
+            return self._render_kokoro(t, text) if kokoro else self._render_piper(t, text)
+        audio = _resample(np.frombuffer(raw, "<i2").astype(np.float32), 24000 * pitch, config.SAMPLE_RATE)
+        log.info("kitten %s: %.1fs speech in %.1fs", voice, len(audio) / config.SAMPLE_RATE, time.time() - start)
         return np.clip(audio, -32768, 32767).astype("<i2").tobytes()
 
     def _render_piper(self, t: dict, text: str) -> bytes:

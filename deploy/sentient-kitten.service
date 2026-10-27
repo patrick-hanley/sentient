@@ -1,0 +1,14 @@
+[Unit]
+Description=Kitten TTS sidecar for the toys brain
+After=network.target
+
+[Service]
+User=sentient
+Environment=HF_HOME=/data/bench-cache/hf
+CPUAffinity=3
+ExecStart=/data/bench-k312/bin/python /data/sentient/tools/kitten_server.py 8099
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
