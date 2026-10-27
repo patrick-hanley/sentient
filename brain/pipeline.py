@@ -4,6 +4,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 import queue
 import threading
+import time
 
 from . import config, debugrec
 
@@ -14,8 +15,9 @@ class SpeechPipeline:
         self.on_dispatch = on_dispatch or (lambda toy, text: None)
         self.before_play = before_play or (lambda: None)
         self.renders = ThreadPoolExecutor(max_workers=1, thread_name_prefix="reply-tts")
-        self.pending = queue.Queue(maxsize=2)
+        self.pending = queue.Queue(maxsize=3)   # renders run ahead of playback so the next toy is ready at the handoff
         self.errors = []
+        self.last_end = None   # monotonic end of the previous line, to measure dead air between toys
         self.closed = False
         self.player = threading.Thread(target=self._play, name="reply-playback", daemon=True)
         self.player.start()
@@ -49,6 +51,11 @@ class SpeechPipeline:
 
                 def dispatched():
                     self.trace.mark("first_audio_post_ms")
+                    if self.last_end is not None:
+                        gap = (time.monotonic() - self.last_end) * 1000
+                        with self.trace.lock:
+                            self.trace.durations["handoff_gap_ms"] = self.trace.durations.get("handoff_gap_ms", 0.) + gap
+                            self.trace.durations["handoff_gap_max_ms"] = max(self.trace.durations.get("handoff_gap_max_ms", 0.), gap)
                     self.on_dispatch(toy, text)
 
                 with self.trace.span("filler_wait_ms"):
@@ -56,6 +63,7 @@ class SpeechPipeline:
                 with self.trace.span("audio_post_and_playback_ms"):
                     self.hub.play(toy, pcm, on_dispatch=dispatched, raise_on_error=True)
                 self.trace.mark("last_playback_ack_ms", first=False)
+                self.last_end = time.monotonic()
             except Exception as exc:
                 self.errors.append(exc)
 

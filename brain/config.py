@@ -170,4 +170,4 @@ IDLE_BANTER_S = 45           # 0 disables idle toy-to-toy chatter
 # ---- LLM ----
 VISION_MODE = os.environ.get("SENTIENT_VISION", "sage")   # sage | always | never
 RESET_AFTER_TURNS = 8
-MAX_LINES = 3                # one line each when all three toys are here
+MAX_LINES = 4                # e.g. dyno, sage, dyno, penny: toys may speak more than once

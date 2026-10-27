@@ -190,3 +190,9 @@ What it shows:
 
 Not done: a different TTS or parallel Kokoro sessions (the next real lever for first audio), and acoustic Tier B scoring
 with the judge. The 5-word minimum for later chunks leaves small gaps between chunks because Kokoro is ~1x real time.
+
+## Planned speaking order (Oct 26)
+
+`brain/choreo.py` `plan_order()` picks the speaker sequence before the model writes anything, e.g. Penny, Sage, Dyno, Penny: everyone speaks before anyone repeats, nobody twice in a row. Idle banter passes it to Gemma as `[ORDER] ...`; on the Pi Gemma followed it exactly. For a child's turn the prompt now allows any order and a repeat speaker (`MAX_LINES` 3 -> 4). Each turn logs `handoff_gap_ms` (sum) and `handoff_gap_max_ms`: the silence between one toy finishing and the next starting.
+
+Measured on the Pi (3 turns, 3 handoffs each): about 1.2 s average dead air per handoff, 1.9-2.3 s worst. It is not the network (0.1 s upload) but Gemma writing and Kokoro rendering line N+1 (~1x real time plus 0.6 s) while line N plays. Queue depth went from 2 to 3 and did not change that. Closing the gap needs faster or parallel TTS, the same lever as time-to-first-audio.

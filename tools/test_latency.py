@@ -616,5 +616,29 @@ class TurnLogTests(unittest.TestCase):
             self.assertEqual(log.summary()["summary"]["first_audio_post_ms"]["p50"], 200)
 
 
+class ChoreoTests(unittest.TestCase):
+    def test_orders_vary_never_repeat_back_to_back_and_include_everyone(self):
+        import random
+        from brain.choreo import plan_order
+        rng, seen = random.Random(1), set()
+        for _ in range(200):
+            order = plan_order(["dyno", "sage", "penny"], rng)
+            self.assertTrue(3 <= len(order) <= config.MAX_LINES)
+            self.assertEqual(set(order), {"dyno", "sage", "penny"})
+            self.assertTrue(all(a != b for a, b in zip(order, order[1:])))
+            seen.add(tuple(order))
+        self.assertGreater(len(seen), 6)
+        self.assertTrue(any(len(set(o)) < len(o) for o in seen))   # someone speaks twice, e.g. 1,2,1,3
+
+    def test_first_speaker_and_small_groups(self):
+        from brain.choreo import plan_order
+        self.assertEqual(plan_order(["sage"]), ["sage"])
+        self.assertEqual(plan_order([]), [])
+        for _ in range(20):
+            o = plan_order(["dyno", "penny"], first="penny")
+            self.assertEqual(o[0], "penny")
+            self.assertTrue(all(a != b for a, b in zip(o, o[1:])))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
