@@ -15,6 +15,7 @@ class SpeechPipeline:
     def __init__(self, hub, voices, trace, on_dispatch=None, before_play=None):
         self.hub, self.voices, self.trace = hub, voices, trace
         self.on_dispatch = on_dispatch or (lambda toy, text: None)
+        self.has_filler = before_play is not None   # a child's turn already opens with a canned filler
         self.before_play = before_play or (lambda: None)
         self.renders = ThreadPoolExecutor(max_workers=1, thread_name_prefix="reply-tts")
         self.pending = queue.Queue(maxsize=3)   # renders run ahead of playback so the next toy is ready at the handoff
@@ -75,6 +76,8 @@ class SpeechPipeline:
         """Dead air before this line (synthesis still running): the speaker reacts with a canned clip
         that lives in the Atom's flash, so it starts at once and costs the brain no synthesis."""
         if future.done() or not config.PLAY_FILLERS or self.bridges >= config.MAX_BRIDGES:
+            return
+        if self.has_filler and self.last_end is None:   # first line: the opening filler already covers it
             return
         atom = getattr(self.hub, "atoms", {}).get(toy)
         clip_id = getattr(self.voices, "clip_id", None)
