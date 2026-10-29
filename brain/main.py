@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import sys
 import threading
 import time
@@ -23,6 +24,7 @@ from .director import Director, system_prompt
 from .llm import make_backend
 from .perception import Perceiver, Recognizer
 from .spectrum import Monitor
+from . import parent as parent_mod, parent_web, scripted
 from .tts import KITTEN_VOICES, Voices
 from . import debugrec
 from .vad import Segmenter
@@ -41,6 +43,9 @@ button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}<
 <div class=row id=toys></div>
 <p><b>Heard:</b> <span id=heard></span><br><b>Said:</b> <span id=said></span> <small id=lat></small></p>
 <details ontoggle="if(this.open)specLoop()"><summary>Sound spectrum (mics, dB re full scale)</summary><pre id=spec></pre></details>
+<details ontoggle="if(this.open)imuDraw()"><summary>Motion sounds (IMU)</summary>
+<div class=dim>Needs firmware 3.5. <b>Calibrate</b> with the toy standing upright and still; <b>Test</b> plays the toy's own clip and the friends' reaction.</div>
+<div id=imu></div></details>
 <details><summary>Latency stages (milliseconds)</summary><pre id=stages></pre></details>
 <details ontoggle="if(this.open)loadWf()"><summary>Latency waterfall (last turns, p50/p95)</summary><button onclick="loadWf()">Refresh</button><pre id=wfsum></pre><div id=wf></div></details>
 <button id=muteall onclick="post('muteall')">Mute all toys</button><button onclick="post('mute')">Mute mics</button>
@@ -110,6 +115,11 @@ async function specLoop(){if(specT)return;const tick=async()=>{const o=document.
  try{const d=await (await fetch('/spectrum')).json();const bands=Object.keys(Object.values(d).find(x=>Object.keys(x).length)||{});
  spec.textContent=('band Hz'.padEnd(11)+T.map(t=>t.padStart(8)).join(''))+'\\n'+bands.map(b=>b.padEnd(11)+T.map(t=>(d[t][b]===undefined?'-':d[t][b].toFixed(0)).padStart(8)).join('')).join('\\n');}catch(e){}
  specT=setTimeout(tick,1000);};tick();}
+const IMUEV=["sleep","woken","tossed","shaken","rocked","dropped","spun","upside_down"];
+function imuDraw(){const w=document.getElementById('imu');w.textContent='';T.forEach(t=>{const row=document.createElement('div');row.style.margin='6px 0';
+ const cal=document.createElement('button');cal.textContent='Calibrate '+t;cal.onclick=()=>fetch('/calibrate?toy='+t,{method:'POST'}).then(r=>r.text()).then(m=>{cal.textContent=r_ok(m)});row.append(cal,' ');
+ IMUEV.forEach(e=>{const b=document.createElement('button');b.textContent=e.replace('_',' ');b.onclick=()=>fetch('/imu?toy='+t+'&event='+e,{method:'POST'});row.append(b)});w.append(row)})}
+function r_ok(m){return m&&m.length<60?m:'sent'}
 async function loadWf(){const d=await (await fetch('/latency')).json();
  wfsum.textContent=Object.entries(d.summary).map(([k,v])=>`${k.padEnd(28)} n=${v.n} p50=${v.p50} p95=${v.p95}`).join('\\n');
  const ts=d.turns.slice(-20).reverse(),mx=Math.max(1000,...ts.map(t=>Math.max(...Object.values(t.milestones_ms||{0:0}))));
@@ -181,7 +191,7 @@ def make_handler(hub, eyes, director, rec, voices):
                     st["toys"][t] = {"online": t in online, "ip": a.ip if a else "", "cam": bool(a and a.cam),
                                      "level": director.segs[t].level, "view": eyes.views[t].describe(),
                                      "voice": voices.describe(t),
-                                     "health": {k: a.flags.get(k) for k in ("fw", "sfix", "sfail", "mfix", "mfail", "vol")}
+                                     "health": {k: a.flags.get(k) for k in ("fw", "sfix", "sfail", "mfix", "mfail", "vol", "imu")}
                                                | {"clips": len(a.clips), "fs_used": a.fs[1], "fs_total": a.fs[0]} if a else {}}
                 return self._send(200, json.dumps(st), "application/json")
             self._send(404, "")
@@ -226,6 +236,12 @@ def make_handler(hub, eyes, director, rec, voices):
                 hub.force_mute = not hub.force_mute
             elif u.path == "/idle":
                 director.idle_on = not director.idle_on
+            elif u.path == "/imu" and q.get("toy") in config.TOYS and q.get("event") in scripted.IMU_EVENTS:
+                # test without moving a toy: the toy plays its own clip, then the others react (rate limits skipped)
+                threading.Thread(target=hub.play_local, args=(q["toy"], "imu_" + q["event"]), daemon=True).start()
+                director.on_imu(q["toy"], q["event"], force=True)
+            elif u.path == "/calibrate" and q.get("toy") in config.TOYS:
+                return self._send(200 if hub.calibrate(q["toy"]) else 502, "stand the toy upright and still for 2 s")
             elif u.path == "/say" and q.get("toy") in config.TOYS and q.get("text"):
                 threading.Thread(target=hub.play, args=(q["toy"], voices.render(q["toy"], q["text"])), daemon=True).start()
             elif u.path == "/enroll":
@@ -252,6 +268,47 @@ def enroll_live(rec, hub, toy, name, is_pet) -> str:
     return f"{name}: {n}/{len(imgs)} frames enrolled from {toy}'s camera" + ("" if n else " — nothing detected, try closer/brighter")
 
 
+def _fw_at_least(flags, major, minor):
+    m = re.match(r"toy-client-(\d+)(?:\.(\d+))?", flags.get("fw", ""))
+    return bool(m) and (int(m.group(1)), int(m.group(2) or 0)) >= (major, minor)
+
+
+def sync_imu_clips(hub, voices, toy, have):
+    """The toy's own motion sounds (snore, toss yell...) live in ITS flash as fixed names imu_<event>, so firmware 3.5 can play
+    them with no brain and no network. Names are fixed (the firmware cannot know a hash), so which text/voice each one was
+    rendered with is remembered in brain/data/imu_clips.json and a stale one is re-uploaded. They go in BEFORE the sound
+    effects: if the flash is too full for them it is cleared once and refilled in priority order (the sounds that no longer
+    fit simply stream from the Pi, as before). Returns the (possibly emptied) list of clips on the Atom."""
+    path = config.DATA / "imu_clips.json"
+    try:
+        recorded = json.loads(path.read_text()).get(toy, {})
+    except (OSError, ValueError):
+        recorded = {}
+    texts = {f"imu_{ev}": scripted.IMU_LOCAL[ev][toy] for ev in scripted.IMU_EVENTS}
+    want = {n: voices.clip_id(toy, t) for n, t in texts.items()}
+    missing = [n for n in texts if n not in have or recorded.get(n) != want[n]]
+    if not missing:
+        return have
+    pcms = {n: voices.render(toy, texts[n], persist=True) for n in missing}
+    total, used = hub.atoms[toy].fs
+    need = sum(len(p) // 2 + 4096 for p in pcms.values())
+    if total and total - used < need + 16384:
+        log.info("%s: clearing the flash to make room for its %d motion sounds (%d KB)", toy, len(missing), need // 1024)
+        hub.clear_clips(toy)
+        have, recorded = {}, {}
+        pcms = {n: voices.render(toy, t, persist=True) for n, t in texts.items()}
+    for n, pcm in pcms.items():
+        if pcm and hub.put_clip(toy, n, pcm):
+            recorded[n] = want[n]
+    try:
+        allrec = json.loads(path.read_text()) if path.exists() else {}
+    except (OSError, ValueError):
+        allrec = {}
+    allrec[toy] = recorded
+    path.write_text(json.dumps(allrec))
+    return hub.list_clips(toy) or have
+
+
 def make_clip_sync(hub, voices, director):
     """Store each toy's fixed lines (fillers, its canned-scene lines, offline greeting) in its own
     flash, so they play instantly and without the network. Only missing clips are uploaded."""
@@ -271,10 +328,15 @@ def make_clip_sync(hub, voices, director):
         rank = {"character": 0, "story": 1, "halloween": 2}   # store in this order; the rest streams
         snd = sorted(voices.sounds.names(toy), key=lambda n: (rank.get(voices.sounds.index[n].get("set"), 1), n))
         lines += ["{%s}" % n for n in snd]
+        has_imu = _fw_at_least(hub.atoms[toy].flags, 3, 5)
         needed = {voices.clip_id(toy, x) for x in lines} | {"hello"}
+        if has_imu:
+            needed |= {f"imu_{ev}" for ev in scripted.IMU_EVENTS}
         if set(have) - needed:   # old voice/text versions: clear the flash and store a fresh set
             hub.clear_clips(toy)
             have = {}
+        if has_imu:
+            have = sync_imu_clips(hub, voices, toy, have)
         uploaded = 0
         for text in lines:
             cid = voices.clip_id(toy, text)
@@ -347,8 +409,8 @@ def main():
     voices.prerender([(t, f) for t, fs in canned.FILLERS.items() for f in fs])
     # Kokoro is slower than real time on a Pi: render the canned scene in the background, only
     # when no live speech or turn needs the voice engine (and only once: it's cached on disk).
-    threading.Thread(target=voices.prerender, args=([l for sc in canned.SCENES.values() for l in sc],), kwargs={"polite": True},
-                     daemon=True, name="prerender").start()
+    threading.Thread(target=voices.prerender, args=([l for sc in canned.SCENES.values() for l in sc] + scripted.all_lines(),),
+                     kwargs={"polite": True}, daemon=True, name="prerender").start()
     llm = make_backend(args.backend, system_prompt(), gpu=not args.cpu)
 
     if hasattr(llm, "warm"):   # prefill the persona prompt now so the first child's turn isn't ~10 s slower
@@ -361,6 +423,7 @@ def main():
     rec = Recognizer()
     eyes = Perceiver(hub, rec)
     director = Director(hub, voices, eyes, llm, segs)
+    hub.on_imu = director.on_imu
     for t in config.TOY_ORDER:
         segs[t] = Segmenter(t, director.utter_q)
     eyes.on_seen = director.on_seen
@@ -368,6 +431,12 @@ def main():
     voices.busy = lambda: director.busy
     hub.on_online = make_clip_sync(hub, voices, director)
     hub.resync = lambda toy: threading.Thread(target=hub.on_online, args=(toy,), daemon=True).start()
+    if config.PARENT_PORT:   # Parent Board: its own port, PIN-protected, encrypted profiles (docs/parent-board.md)
+        parent = parent_mod.Parent(activity=lambda: director.last_activity)
+        director.parent = parent
+        parent_web.serve(parent, director, config.PARENT_PORT)
+        if not parent_mod.available():
+            log.warning("Parent Board: the 'cryptography' package is missing, profiles cannot be stored (pip install cryptography)")
     hub.start()
     eyes.start()
     director.start()

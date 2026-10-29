@@ -12,11 +12,13 @@ from . import canned, config, debugrec
 
 
 class SpeechPipeline:
-    def __init__(self, hub, voices, trace, on_dispatch=None, before_play=None):
+    def __init__(self, hub, voices, trace, on_dispatch=None, before_play=None, cancelled=None, gate=None):
         self.hub, self.voices, self.trace = hub, voices, trace
         self.on_dispatch = on_dispatch or (lambda toy, text: None)
         self.has_filler = before_play is not None   # a child's turn already opens with a canned filler
         self.before_play = before_play or (lambda: None)
+        self.cancelled = cancelled or (lambda: False)   # a parent's 'stop everything now' drops the rest of the reply
+        self.gate = gate or (lambda: None)              # blocks while a parent cue is speaking, then the reply resumes
         self.renders = ThreadPoolExecutor(max_workers=1, thread_name_prefix="reply-tts")
         self.pending = queue.Queue(maxsize=3)   # renders run ahead of playback so the next toy is ready at the handoff
         self.errors = []
@@ -49,7 +51,10 @@ class SpeechPipeline:
             try:
                 self._bridge(toy, future)
                 pcm = future.result()
-                if self.errors:
+                if self.errors or self.cancelled():
+                    continue
+                self.gate()
+                if self.cancelled():
                     continue
                 if not pcm or toy not in self.hub.online():
                     raise RuntimeError(f"No playable audio for {toy}")

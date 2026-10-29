@@ -35,6 +35,7 @@ ENROLL_DB = DATA / "enroll.npz"
 BRAIN_PORT = 5005      # Atoms -> brain (HELLO, mic, BTN)
 ATOM_PORT = 5006       # brain -> Atoms (ACK)
 DASH_PORT = 8080
+PARENT_PORT = int(os.environ.get("SENTIENT_PARENT_PORT", "8090"))   # Parent Board (PIN, encrypted profiles); 0 = off
 SAMPLE_RATE = 16000
 # Speech sent to the Atoms: "ulaw" = 8-bit G.711 (half the bytes of "pcm"). PLAY_RATE 8000 halves it again
 # (telephone quality; fine on the tiny speaker if the network is very slow).

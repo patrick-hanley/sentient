@@ -11,7 +11,7 @@ echo "== Python 3.${PYV#3} / wheelhouse $WH"
 VENV="$ROOT/.venv-brain"
 if python3 -m venv "$VENV" 2>/dev/null; then PIP="$VENV/bin/pip"; PY="$VENV/bin/python"
 else echo "venv unavailable (apt install python3-venv) — falling back to pip --user"; PIP="python3 -m pip"; PY=python3; EXTRA="--user"; fi
-for pkgs in "numpy opencv-python-headless webrtcvad-wheels piper-tts" "litert-lm-api" "litert-lm" "mediapipe"; do
+for pkgs in "numpy opencv-python-headless webrtcvad-wheels piper-tts cryptography" "litert-lm-api" "litert-lm" "mediapipe"; do
   $PIP install -q ${EXTRA:-} --no-index -f "$WH" $pkgs && echo "OK   $pkgs" || echo "FAIL $pkgs"
 done
 # mediapipe drags in opencv-contrib-python (needs libGL, absent on Pi OS Lite) over the headless build:

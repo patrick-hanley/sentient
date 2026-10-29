@@ -1,6 +1,7 @@
 """Turn-taking: utterance/event in -> Gemma -> one or two toy lines out."""
 from __future__ import annotations
 
+import collections
 import logging
 import os
 import queue
@@ -11,7 +12,7 @@ import threading
 import time
 import wave
 
-from . import canned, config, debugrec
+from . import canned, config, debugrec, scripted
 from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
@@ -206,6 +207,13 @@ class Director:
         self.last_lines: list = []
         self.last_latency = 0.0
         self._turn_lock = threading.Lock()
+        self._gen = 0                              # bumped by interrupt(): the running reply is dropped
+        self.cue_hold = threading.Event()          # set while a parent cue speaks: the reply waits at its next line boundary
+        self.parent = None                         # brain.parent.Parent, set by main (profiles, cues; None = feature off)
+        self._notes_sent = ""                       # the notes block the toys' conversation currently contains
+        self.imu = {}                              # toy -> {"asleep", "commented", "last"}: per-episode memory, RAM only
+        self._reactions = collections.deque(maxlen=6)   # times of recent IMU reactions (rate limit)
+        self._variant = {}                         # (toy, key) -> last variant used, so a repeat is not word for word
         self.active_trace = None
         self.last_trace = {}
         (config.DATA / "latency").mkdir(exist_ok=True)
@@ -217,7 +225,7 @@ class Director:
     def _atom_playback(self, toy, kind, when):
         """Atom-side timestamps (firmware 3.3+): the first sample the speaker clocks out, and the end of the clip."""
         t = self.active_trace
-        if not t:
+        if not t or getattr(self.hub, "talking", toy) != toy:   # a toy's own flash clip (IMU yell) is not part of this turn
             return
         if kind == "PLAYING":
             t.mark("atom_first_sample_ms", when)                  # earliest sound of any kind (filler or reply)
@@ -243,6 +251,192 @@ class Director:
             threading.Thread(target=self.run_canned, daemon=True).start()
         else:
             self.events.put(f"{NAMES[toy]} was gently tapped. {NAMES[toy]} says hello to the child.")
+
+    # ---------- scripted lines: IMU reactions and parent cues ----------
+    def child_speaking(self) -> bool:
+        return any(getattr(seg, "active", False) for seg in self.segs.values())
+
+    def _pick(self, toy, key, variants):
+        """A variant of a line, not the one used last time for this (toy, key)."""
+        last = self._variant.get((toy, key))
+        options = [v for v in variants if v != last] or list(variants)
+        choice = random.choice(options)
+        self._variant[(toy, key)] = choice
+        return choice
+
+    def play_scripted(self, lines, wait_s: float = 4.0) -> bool:
+        """Play fixed (toy, text) lines from the TTS cache as a short turn. Never over a child or another turn: waits up
+        to wait_s for a free floor and then drops the lines (a late reaction is worse than none)."""
+        deadline = time.time() + wait_s
+        while True:
+            if self.paused:
+                return False
+            if not self.child_speaking() and self._turn_lock.acquire(blocking=False):
+                break
+            if time.time() >= deadline:
+                return False
+            time.sleep(0.1)
+        gen = self._gen
+        self.busy = True
+        self.hub.response_active.set()
+        try:
+            for toy, text in lines:
+                if self._gen != gen or toy not in self.hub.online():
+                    continue
+                pcm = self.voices.render(toy, text, persist=True)
+                if pcm:
+                    self.hub.play(toy, pcm)
+            return True
+        except Exception:  # noqa: BLE001
+            log.exception("scripted lines failed")
+            return False
+        finally:
+            self.hub.response_active.clear()
+            self.busy = False
+            self.last_activity = time.time()
+            self._turn_lock.release()
+
+    def on_imu(self, toy, event, force: bool = False):
+        """'IMU <event>' from a toy (firmware 3.5+). The moved toy already made its own sound from flash; here the other
+        toys react once, in character, from cached lines (no Gemma wait). Dropped, not queued, when the floor is busy."""
+        if event not in scripted.IMU_EVENTS or toy not in config.TOYS:
+            return
+        now = time.time()
+        st = self.imu.setdefault(toy, {"asleep": False, "since": 0.0, "commented": set(), "last": {}})
+        if st["asleep"] and now - st["since"] > 1800:
+            st["asleep"] = False   # a lost wake-up must not silence every later sleep reaction
+        if event == "sleep":
+            if st["asleep"]:
+                return
+            st["asleep"], st["since"], st["commented"] = True, now, set()
+        elif event == "woken":
+            was, st["asleep"] = st["asleep"], False   # cleared first: rate limits below must never leave it stuck
+            if not was:
+                return
+        if not force and now - st["last"].get(event, 0) < 5:
+            return
+        st["last"][event] = now
+        if self.paused:
+            return
+        while self._reactions and now - self._reactions[0] > 60:
+            self._reactions.popleft()
+        if not force and (len(self._reactions) >= 4 or (self._reactions and now - self._reactions[-1] < 5)):
+            return   # a flurry (a child tossing a toy over and over) must not become a chorus
+        friends = [t for t in self.hub.online() if t != toy]
+        if event == "woken":   # nobody comments more than once per sleep episode
+            friends = [t for t in friends if t not in st["commented"]]
+        if not friends:
+            if event == "woken":
+                st["asleep"] = False
+            return
+        count = min(scripted.IMU_FRIEND_COUNT.get(event, 1), len(friends))
+        chosen = random.sample(friends, count)
+        name = config.TOYS[toy]["name"]
+        lines = [(f, self._pick(f, event, scripted.IMU_FRIENDS[event][f]).format(name=name)) for f in chosen]
+        if event == "sleep":
+            st["commented"].update(chosen)
+        if event == "woken":
+            st["asleep"] = False
+        self._reactions.append(now)
+        log.info("imu: %s %s -> %d friend line(s)", toy, event, len(lines))
+        wait = 0.0 if force else self._local_clip_s(toy, event)
+        threading.Thread(target=self._react_later, args=(lines, wait), daemon=True, name="imu-react").start()
+
+    def _local_clip_s(self, toy, event) -> float:
+        """How long the moved toy's own clip (its yell, its first snore) will take, so the friends speak after it, not over it."""
+        atom = getattr(self.hub, "atoms", {}).get(toy)
+        if atom is None:
+            return 0.0
+        return min(5.0, float(atom.clips.get(f"imu_{event}", 2.0)) + 0.4)
+
+    def _react_later(self, lines, wait):
+        time.sleep(wait)
+        self.play_scripted(lines)
+
+    def _wait_cue(self):
+        while self.cue_hold.is_set():
+            time.sleep(0.05)
+
+    def interrupt(self):
+        """Parent's 'stop everything now': cut every toy's speech and drop the rest of the running reply."""
+        self._gen += 1
+        self.hub.stop_all()
+
+    def cue(self, text: str = "", cue_id: str | None = None, urgent: bool = False) -> dict:
+        """The parent's 'Say it now'. The parent supplies the meaning, the toys supply the reaction: a known cue plays fixed
+        in-character lines at once, anything else is interpreted by Gemma. Ephemeral: nothing is stored or logged
+        (not even the text), and nothing is queued for later if no toy is online."""
+        online = self.hub.online()
+        if not online:
+            return {"ok": False, "reason": "No toy is online right now."}
+        cue_id = cue_id if cue_id in scripted.CUES else scripted.match_cue(text)
+        if cue_id:
+            order = random.sample(online, len(online))
+            lines = [(t, self._pick(t, "cue-" + cue_id, scripted.CUES[cue_id]["lines"][t])) for t in order]
+            mode = "fixed"
+        else:
+            if not text.strip():
+                return {"ok": False, "reason": "Nothing to say."}
+            if not hasattr(self.llm, "complete"):
+                return {"ok": False, "reason": "Interpreting free text needs Gemma; pick one of the chips instead."}
+            lines, mode = None, "gemma"
+        threading.Thread(target=self._run_cue, args=(lines, text, online, urgent), daemon=True, name="cue").start()
+        return {"ok": True, "mode": mode, "cue": cue_id}
+
+    def _run_cue(self, lines, text, online, urgent):
+        try:
+            persist = lines is not None   # fixed chip lines are cached on disk; a typed cue's lines are never written anywhere
+            if lines is None:
+                lines = self._interpret_cue(text, online)
+                if not lines:
+                    return
+            if urgent:
+                self.interrupt()
+                got = self._turn_lock.acquire(timeout=3)   # release only a lock we hold: the running turn releases its own
+                try:
+                    self.cue_hold.clear()
+                    self._play_cue_lines(lines, persist)
+                finally:
+                    if got:
+                        self._turn_lock.release()
+                return
+            self.cue_hold.set()   # a reply in progress pauses at its next line boundary, then resumes
+            try:
+                self._play_cue_lines(lines, persist)
+            finally:
+                self.cue_hold.clear()
+        except Exception:  # noqa: BLE001
+            log.exception("cue failed")
+            self.cue_hold.clear()
+
+    def _play_cue_lines(self, lines, persist=True):
+        self.hub.response_active.set()
+        try:
+            for toy, line in lines:
+                if toy in self.hub.online():
+                    pcm = self.voices.render(toy, line, persist=persist)
+                    if pcm:
+                        self.hub.play(toy, pcm)
+        finally:
+            self.hub.response_active.clear()
+            self.last_activity = time.time()
+
+    def _interpret_cue(self, text, online):
+        names = ", ".join(NAMES[t] for t in online)
+        prompt = (f"A grown-up wants the toys to react to this moment. Do NOT repeat it word for word and do NOT say who "
+                  f"said it. Write exactly one short line (under 16 words) for each of: {names}. Each toy reacts in "
+                  f"character, warmly, as if it simply noticed. Do not quiz the child, do not invent details beyond the "
+                  f"moment, nothing scary.\nMoment: {clean(text)[:200]}\nFormat: <TOY NAME>: <line>")
+        try:
+            out = self.llm.complete(prompt, system=system_prompt())
+        except Exception:  # noqa: BLE001
+            log.warning("cue interpretation failed")
+            return None
+        _, got = parse(out, default=online[0], online=online)
+        lines = []
+        for toy, line in got:
+            lines.append((toy, scripted.SAFE_DEFLECT[toy] if scripted.leaks_note(line) else line))
+        return lines or None
 
     # ---------- loop ----------
     def _loop(self):
@@ -303,6 +497,7 @@ class Director:
         if utt and utt.arbitrated is not None:
             trace.mark("arbitrate_done_ms", utt.arbitrated)
         trace.mark("turn_started_ms")
+        gen = self._gen
         self.last_latency, self.last_lines = 0., []
         tmp_files = []
         filler = None
@@ -322,7 +517,10 @@ class Director:
                     and (config.VISION_MODE == "always" or (config.VISION_MODE == "sage" and toy == "sage"))):
                 image = self._tmp(v.jpeg, ".jpg")
                 tmp_files.append(image)
-            here = ", ".join(NAMES[t] for t in online)
+            exclude = set(event.get("exclude", ())) if isinstance(event, dict) else set()
+            speakers = [t for t in online if t not in exclude] or online
+            event_text = event["text"] if isinstance(event, dict) else event
+            here = ", ".join(NAMES[t] for t in speakers)
             prompt = f"[TOYS HERE] {here} (only these toys may speak)\n[SCENE] {scene}\n"
             wav = None
             said = ""
@@ -344,17 +542,36 @@ class Director:
                     self.last_heard = said
                     prompt += f'The child said: "{said}"\nReply.'
             else:
-                prompt += f"[EVENT] {event}"
+                prompt += f"[EVENT] {event_text}"
             log.info("→ gemma: %s", prompt.replace("\n", " | "))
+            notes = self.parent.notes_block() if self.parent else ""   # added AFTER the log line: parent notes are never logged
+            if notes != self._notes_sent:
+                # the notes changed (another child, an item deleted, notes paused, locked): the toys' conversation still holds
+                # the old ones, so start it afresh. Deleting a note must really stop the toys using it.
+                reset = getattr(self.llm, "reset_conversation", None)
+                if reset and (self._notes_sent or notes):
+                    reset()
+                self._notes_sent = notes
+            if notes:
+                prompt = notes + "\n" + prompt
 
             def dispatched(who, text):
                 self.last_lines.append((who, text))
                 self.last_latency = trace.snapshot()["milestones_ms"]["first_audio_post_ms"] / 1000
 
             pipeline = SpeechPipeline(self.hub, self.voices, trace, dispatched,
-                                      before_play=filler.join if filler else None)
+                                      before_play=filler.join if filler else None,
+                                      cancelled=lambda: self._gen != gen, gate=self._wait_cue)
+            deflected = []
 
             def line_ready(who, text):
+                if self._gen != gen:
+                    return
+                if scripted.leaks_note(text):   # a toy must never reveal that a parent wrote anything: play something safe, once
+                    if deflected:
+                        return
+                    deflected.append(who)
+                    text = scripted.SAFE_DEFLECT[who]
                 trace.mark("first_line_ready_ms")
                 pipeline.submit(who, text)
 
@@ -362,13 +579,15 @@ class Director:
                 if text and text != "-":
                     self.last_heard = text
 
-            parser = ReplyLines(online, line_ready, heard)
+            parser = ReplyLines(speakers, line_ready, heard)
             kwargs = dict(wav=wav if self.llm.hears_audio else None, image=image)
             stream = getattr(self.llm, "stream", None)
             with trace.span("llm_ms"):
                 chunks = stream(prompt, **kwargs) if stream else iter([self.llm.ask(prompt, **kwargs)])
                 try:
                     for delta in chunks:
+                        if self._gen != gen:
+                            break
                         if delta:
                             trace.mark("first_model_text_ms")
                             parser.feed(delta)

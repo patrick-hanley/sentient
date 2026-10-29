@@ -101,6 +101,11 @@ class LiteRTBackend:
             max_output_tokens=120))
         self.turns = 0
 
+    def reset_conversation(self):
+        """Forget the conversation (the toys' memory of parent notes included) and start a fresh one."""
+        with self._lock:
+            self.new_conversation()
+
     WARM = "[SCENE] Nothing is happening.\n[EVENT] The toys wait quietly. Reply with exactly one line: HEARD: -"
 
     def warm(self):
@@ -163,6 +168,38 @@ class LiteRTBackend:
     def ask(self, text: str, wav: str | None = None, image: str | None = None) -> str:
         return "".join(self.stream(text, wav=wav, image=image))
 
+    def complete(self, prompt: str, system: str, image: str | None = None, max_tokens: int = 200) -> str:
+        """One-off, stateless call for the parent board (parse a note, read a worksheet, interpret a cue). It runs in
+        its own throwaway conversation, so nothing a parent wrote ever enters the toys' conversation memory. The
+        toys' conversation is closed for the duration and re-warmed in the background afterwards."""
+        with self._lock:
+            old, self.conv = self.conv, None
+            if old is not None and hasattr(old, "__exit__"):
+                try:
+                    old.__exit__(None, None, None)
+                except Exception:  # noqa: BLE001
+                    pass
+            tmp = None
+            try:
+                tmp = _enter(self.engine.create_conversation(
+                    messages=[self.lm.Message.system(system)],
+                    thinking_config=self.lm.ThinkingConfig(enable_thinking=False),
+                    max_output_tokens=max_tokens))
+                parts = []
+                if image and getattr(self.lm.Content, "ImageFile", None):
+                    parts.append(self.lm.Content.ImageFile(absolute_path=image))
+                parts.append(prompt)
+                msg = self.lm.Contents.of(*parts) if len(parts) > 1 else prompt
+                send = getattr(tmp, "send_message_async", None)
+                return "".join(_text(c) for c in (send(msg) if send else (tmp.send_message(msg),)))
+            finally:
+                if tmp is not None and hasattr(tmp, "__exit__"):
+                    try:
+                        tmp.__exit__(None, None, None)
+                    except Exception:  # noqa: BLE001
+                        pass
+                threading.Thread(target=self.warm, daemon=True, name="llm-warm").start()   # fresh toy conversation
+
 
 class LlamaCppBackend:
     hears_audio = False
@@ -177,6 +214,9 @@ class LlamaCppBackend:
 
     def __init__(self, system: str):
         self.system, self.history = system, []
+
+    def reset_conversation(self):
+        self.history = []
         self.http = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         self.server = None
         if not self._healthy():

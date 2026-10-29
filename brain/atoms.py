@@ -55,6 +55,7 @@ class Atom:
     sync_rtt: float = 9.9
     sync_sent: dict = field(default_factory=dict)
     hport: int = 0                              # test rigs only: HTTP port of a virtual Atom (real ones use 80)
+    local_until: float = 0.0                    # the toy is playing one of its own flash clips until then (mics stay off)
 
     @property
     def base(self) -> str:
@@ -66,6 +67,9 @@ class Atom:
 
 class AtomHub:
     monitor = None   # brain.spectrum.Monitor, set by main
+    on_imu = None    # Director sets this: called (toy, event) for 'IMU <event>' from firmware 3.5+
+    talking = None   # class defaults so a hub built without __init__ (test doubles) still works
+    mute_until = 0.0
     """Tracks Atoms, feeds mic frames to `on_audio(toy, pcm)`, plays speech back.
 
     Mics are globally muted while any toy talks (+ MIC_TAIL_S) so toys never
@@ -103,6 +107,26 @@ class AtomHub:
             if len(a.sync_sent) > 32:
                 a.sync_sent.clear()
 
+    def calibrate(self, toy: str) -> bool:
+        """Ask a toy to learn its upright pose from the next 2 s of stillness (firmware 3.5+)."""
+        a = self.atoms.get(toy)
+        if not a:
+            return False
+        self.sock.sendto(b"CALIB", (a.ip, self.udp_port_of(a) if a.hport else config.ATOM_PORT))
+        return True
+
+    def play_local(self, toy: str, name: str) -> bool:
+        """Ask a toy to play one of its own flash clips (blocking until it ends). Used to test IMU sounds from the dashboard."""
+        a = self.atoms.get(toy)
+        if not a:
+            return False
+        dur = self._send(toy, f"http://{a.base}/playclip?name={name}", None, a.clips.get(name, 4.0), "clip " + name)
+        return dur is not None
+
+    def stop_all(self) -> None:
+        for toy in list(self.atoms):
+            self.stop(toy)
+
     def stop(self, toy: str) -> None:
         """Barge-in: cut the toy's playback at once (firmware 3.3+)."""
         a = self.atoms.get(toy)
@@ -138,7 +162,8 @@ class AtomHub:
         return [t for t in config.TOY_ORDER if t in self.atoms and now - self.atoms[t].last_seen < 10]
 
     def muted(self) -> bool:
-        return self.force_mute or time.time() < self.mute_until
+        now = time.time()
+        return self.force_mute or now < self.mute_until or any(now < a.local_until for a in self.atoms.values())
 
     # ---------- receive ----------
     def _rx(self):
@@ -201,9 +226,21 @@ class AtomHub:
                     rtt = time.monotonic() - sent
                     if rtt < a.sync_rtt:   # NTP-style: the sample with the shortest round trip is the least skewed
                         a.sync_rtt, a.clock_off = rtt, int(parts[2]) / 1e6 - (sent + rtt / 2)
+            elif data[:3] == b"IMU":
+                a = self.by_addr.get((ip, port)) or self.by_ip.get(ip)
+                parts = data.decode(errors="replace").split()
+                if a and len(parts) == 2:
+                    if parts[1] in ("calibrated", "provisional"):
+                        a.flags["imu"] = "2" if parts[1] == "calibrated" else "1"
+                    elif self.on_imu:
+                        self.on_imu(a.toy, parts[1])
             elif data[:7] == b"PLAYING" or data[:6] == b"PLAYED":
                 a = self.by_addr.get((ip, port)) or self.by_ip.get(ip)
                 parts = data.split()
+                if a and self.talking is None:   # the toy is playing one of its own flash clips (IMU snore, yell...): mics stay off for it
+                    # per toy and bounded (a lost PLAYED packet must not mute the house for a minute); a brain play finishing
+                    # elsewhere cannot clobber it because muted() reads it separately from mute_until
+                    a.local_until = time.time() + (12.0 if parts[0] == b"PLAYING" else config.MIC_TAIL_S)
                 if a and self.on_playback:
                     when = time.monotonic()                       # arrival time: the fallback without a clock offset
                     if a.clock_off is not None and len(parts) == 2:

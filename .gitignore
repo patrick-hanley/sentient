@@ -27,3 +27,6 @@ deck/img/first_frame_palm.jpg
 
 # virtual-Atom run logs
 runs/
+
+# Design zips dropped in the repo folder (the content lives in docs/design/)
+/*.zip

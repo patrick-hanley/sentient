@@ -12,6 +12,9 @@
  *           button click with no brain reachable plays the "hello" clip
  *   volume: POST /volume?v=0..255 sets the speaker volume (0 = silent), saved in NVS across reboots
  *           button click / hold -> "BTN click" / "BTN hold" over UDP
+ * IMU:    BMI270 motion events (imu_events.h) -> "IMU <sleep|woken|tossed|shaken|rocked|dropped|spun|upside_down>" over UDP,
+ *         and the toy plays its own flash clip "imu_<event>" at once (snore loops softly while it lies still).
+ *         Brain "CALIB" -> learn the upright pose (2 s still); saved in NVS "imu". HELLO carries imu=0|1|2 (none|provisional|calibrated).
  * The brain tells toys apart by MAC address, so all three Atoms run this
  * exact binary.
  *
@@ -44,8 +47,10 @@
 #include <esp_timer.h>
 #include <Update.h>
 #include <LittleFS.h>
+#include <atomic>
 #include <vector>
 #include "img_converters.h"
+#include "imu_events.h"
 
 struct Reg { uint8_t addr, reg, val; };   // I2C register (defined early: Arduino auto-prototypes use it)
 
@@ -54,7 +59,7 @@ struct WifiCred { const char* ssid; const char* pass; int channel = 0; };  // ch
 #include "secrets.h"
 static constexpr uint16_t BRAIN_PORT = 5005;
 static constexpr uint16_t ATOM_PORT  = 5006;
-static constexpr const char* FW_VERSION = "toy-client-3.4";
+static constexpr const char* FW_VERSION = "toy-client-3.5";
 
 // ---------- GC0308 camera pins — AtomS3R-CAM ----------
 #define CAM_SIOD   12
@@ -87,7 +92,10 @@ static int16_t*        play_buf     = nullptr;
 static volatile size_t play_len     = 0;      // samples
 static volatile bool   play_pending = false;
 static volatile bool   playing      = false;
-static volatile bool   rx_busy      = false;  // /play upload in progress: stop mic UDP so it doesn't eat airtime
+static std::atomic<bool> rx_busy{false};          // /play upload in progress: stop mic UDP so it doesn't eat airtime
+static std::atomic<bool> local_claim{false};      // the IMU task is filling play_buf with one of the toy's own clips
+static volatile bool   imu_snoring  = false;      // the clip now playing is a soft snore (the brain's speech may cut it)
+static volatile bool   imu_stop_req = false;      // httpd asks the loop task to stop that snore
 static volatile uint32_t play_rate  = SAMPLE_RATE;
 
 static WiFiUDP udp;
@@ -100,6 +108,7 @@ static char      mac_str[18];
 static bool cam_ok = false;
 static int  cam_port = -1;
 static Preferences prefs;
+static int imu_state();   // defined with the IMU code below (status_handler comes first)
 
 // ---------- camera ----------
 static bool init_camera_on(int port) {
@@ -293,10 +302,21 @@ static esp_err_t play_and_reply(httpd_req_t* req, size_t got, uint32_t rate) {
 
 // Blocking by design: waits for any line already playing, plays this one, and
 // replies only when the speaker is done — the brain unmutes mics on our reply.
-static esp_err_t play_handler(httpd_req_t* req) {
+// Claims play_buf for an upload: waits for playback to finish, then takes rx_busy while the loop task's own-clip claim
+// (local_claim) is clear. Both sides use seq_cst atomics, so exactly one of them can write the buffer.
+static void take_buf() {
   uint32_t t0 = millis();
-  while ((play_pending || playing) && millis() - t0 < 30000) delay(10);
-  rx_busy = true;
+  if (imu_snoring) imu_stop_req = true;   // a snore must not hold up the brain's speech
+  for (;;) {
+    while ((play_pending || playing || local_claim.load()) && millis() - t0 < 30000) delay(10);
+    rx_busy.store(true);
+    if (!local_claim.load() || millis() - t0 >= 30000) return;
+    rx_busy.store(false);                 // the loop task grabbed it in the same instant: wait again
+  }
+}
+
+static esp_err_t play_handler(httpd_req_t* req) {
+  take_buf();
   const bool ulaw = query_is(req, "fmt", "ulaw");
   const uint32_t rate = query_int(req, "rate", SAMPLE_RATE);
   const size_t bps = ulaw ? 1 : 2;                       // bytes per sample on the wire
@@ -358,9 +378,7 @@ static esp_err_t clip_play_handler(httpd_req_t* req) {
     httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "name");
     return ESP_FAIL;
   }
-  uint32_t t0 = millis();
-  while ((play_pending || playing) && millis() - t0 < 30000) delay(10);
-  rx_busy = true;
+  take_buf();
   size_t got = load_clip(name);
   if (!got) { rx_busy = false; httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "no such clip"); return ESP_FAIL; }
   return play_and_reply(req, got, SAMPLE_RATE);
@@ -414,12 +432,12 @@ static esp_err_t clip_clear_handler(httpd_req_t* req) {
 }
 
 static esp_err_t status_handler(httpd_req_t* req) {
-  char js[320];
+  char js[352];
   snprintf(js, sizeof(js),
            "{\"mac\":\"%s\",\"fw\":\"%s\",\"cam\":%d,\"cam_port\":%d,\"mic\":%d,\"spk\":%d,\"playing\":%d,\"rssi\":%d,"
-           "\"spk_fix\":%u,\"spk_fail\":%u,\"mic_fix\":%u,\"mic_fail\":%u,\"amp\":%d,\"clips\":%d,\"vol\":%u}",
+           "\"spk_fix\":%u,\"spk_fail\":%u,\"mic_fix\":%u,\"mic_fail\":%u,\"amp\":%d,\"clips\":%d,\"vol\":%u,\"imu\":%d}",
            mac_str, FW_VERSION, cam_ok, cam_port, M5.Mic.isEnabled(), M5.Speaker.isEnabled(),
-           (int)(playing || play_pending), WiFi.RSSI(), spk_fix, spk_fail, mic_fix, mic_fail, has_amp_expander, clip_count(), spk_volume);
+           (int)(playing || play_pending), WiFi.RSSI(), spk_fix, spk_fail, mic_fix, mic_fail, has_amp_expander, clip_count(), spk_volume, imu_state());
   httpd_resp_set_type(req, "application/json");
   return httpd_resp_send(req, js, strlen(js));
 }
@@ -548,14 +566,107 @@ static void send_text(const IPAddress& ip, const char* s) {
   udp.endPacket();
 }
 
+// ---------- IMU: motion events (imu_events.h) ----------
+// The Atom's orientation inside each plush is unknown, so "upright" is learned per toy (2 s of stillness) and kept in NVS.
+// With nothing saved the first still 2 s after boot is used provisionally (HELLO imu=1) until a parent presses Calibrate.
+static imu::Detector detector;
+static bool     imu_ok = false, imu_confirmed = false, imu_cal_request = false;
+static bool     imu_sleeping = false, imu_soft = false;
+static char     imu_pending[32] = {0};   // a clip waiting for the speaker to be free (the event's own yell, or the wake-up)
+static uint32_t imu_pending_ms = 0;
+static uint32_t imu_last_ms = 0, imu_next_snore = 0;
+
+static void imu_save_cal(bool confirmed) {
+  Preferences p;
+  p.begin("imu", false);
+  imu::Vec u = detector.upright();
+  p.putFloat("ux", u.x); p.putFloat("uy", u.y); p.putFloat("uz", u.z);
+  p.putBool("ok", confirmed);
+  p.end();
+}
+
+static void imu_load_cal() {
+  Preferences p;
+  p.begin("imu", true);
+  imu::Vec u{p.getFloat("ux", 0), p.getFloat("uy", 0), p.getFloat("uz", 0)};
+  imu_confirmed = p.getBool("ok", false);
+  p.end();
+  if (u.len() > 0.5f) detector.setUpright(u);
+}
+
+// Plays /clips/<name> from flash on this toy, never over the brain's speech. Returns false if it could not start.
+static bool local_clip(const char* name, bool soft) {
+  if (playing || play_pending || rx_busy.load() || !fs_ok) return false;
+  local_claim.store(true);
+  if (rx_busy.load()) { local_claim.store(false); return false; }   // an upload got there first
+  size_t got = load_clip(name);
+  if (!got) { local_claim.store(false); return false; }
+  play_len = got; play_rate = SAMPLE_RATE; imu_soft = soft;
+  std::atomic_thread_fence(std::memory_order_seq_cst);
+  play_pending = true;                 // from here play_pending/playing guard the buffer
+  local_claim.store(false);
+  return true;
+}
+
+static int imu_state() { return !imu_ok ? 0 : (detector.calibrated() && imu_confirmed ? 2 : 1); }
+
+static void imu_event(imu::Event e) {
+  const char* n = imu::name(e);
+  Serial.printf("IMU event: %s\n", n);
+  char m[32];
+  snprintf(m, sizeof(m), "IMU %s", n);
+  if (brain_known) send_text(brain_ip, m);
+  char clip[32];
+  snprintf(clip, sizeof(clip), "imu_%s", n);
+  switch (e) {
+    case imu::SLEEP: imu_sleeping = true; imu_next_snore = millis(); break;   // loop() plays the snore, softly, until upright
+    case imu::WOKEN:
+      imu_sleeping = false;
+      strlcpy(imu_pending, "imu_woken", sizeof(imu_pending)); imu_pending_ms = millis();
+      if (playing && imu_snoring) M5.Speaker.stop();   // the snore stops the moment the toy is upright (never the brain's speech)
+      break;
+    case imu::ROCKED:
+      if (!local_clip(clip, true)) { strlcpy(imu_pending, clip, sizeof(imu_pending)); imu_pending_ms = millis(); }
+      break;
+    default:
+      if (playing && imu_snoring) M5.Speaker.stop();   // a toss while asleep: the yell wins over the snore
+      if (!local_clip(clip, false)) { strlcpy(imu_pending, clip, sizeof(imu_pending)); imu_pending_ms = millis(); }
+      break;
+  }
+}
+
+static void imu_poll() {
+  if (!imu_ok) return;
+  uint32_t now = millis();
+  if (now - imu_last_ms < 20) return;   // 50 Hz
+  imu_last_ms = now;
+  float ax, ay, az, gx, gy, gz;
+  if (!M5.Imu.getAccel(&ax, &ay, &az) || !M5.Imu.getGyro(&gx, &gy, &gz)) return;
+  imu::Vec a{ax, ay, az}, g{gx, gy, gz};
+  if (imu_cal_request || !detector.calibrated()) {
+    if (detector.calibrate(now, a, g)) {
+      bool parent = imu_cal_request;
+      imu_confirmed = parent;
+      imu_cal_request = false;
+      imu_sleeping = false; imu_pending[0] = 0;   // the detector forgot its state: so does the toy
+      imu_save_cal(parent);
+      Serial.printf("IMU upright learned (%s)\n", parent ? "parent" : "provisional");
+      if (brain_known) send_text(brain_ip, parent ? "IMU calibrated" : "IMU provisional");
+    }
+    return;
+  }
+  imu::Event e = detector.update(now, a, g);
+  if (e != imu::NONE) imu_event(e);
+}
+
 static void service_udp() {
   uint32_t now = millis();
   if (now - last_hello > 3000) {
     last_hello = now;
-    char h[192];
-    snprintf(h, sizeof(h), "HELLO %s cam=%d mic=%d spk=%d fw=%s sfix=%u sfail=%u mfix=%u mfail=%u clips=%d vol=%u",
+    char h[224];
+    snprintf(h, sizeof(h), "HELLO %s cam=%d mic=%d spk=%d fw=%s sfix=%u sfail=%u mfix=%u mfail=%u clips=%d vol=%u imu=%d",
              mac_str, cam_ok, M5.Mic.isEnabled(), M5.Speaker.isEnabled(), FW_VERSION,
-             spk_fix, spk_fail, mic_fix, mic_fail, clip_count(), spk_volume);
+             spk_fix, spk_fail, mic_fix, mic_fail, clip_count(), spk_volume, imu_state());
     send_text(IPAddress(255, 255, 255, 255), h);
     if (brain_known) send_text(brain_ip, h);
   }
@@ -573,6 +684,9 @@ static void service_udp() {
       udp.beginPacket(udp.remoteIP(), udp.remotePort());   // reply to whoever asked (the brain's socket)
       udp.write((const uint8_t*)r, strlen(r));
       udp.endPacket();
+    } else if (strncmp(buf, "CALIB", 5) == 0) {
+      imu_cal_request = true;   // learn "upright" from the next 2 s of stillness (stand the toy up first)
+      imu_sleeping = false;
     } else if (strncmp(buf, "STOP", 4) == 0) {
       M5.Speaker.stop();   // do_playback's wait loop then ends and the mic comes back
     } else if (strncmp(buf, "ACK", 3) == 0) {
@@ -594,13 +708,21 @@ static void do_playback() {
   playing = true;
   play_pending = false;
   spk_on();
+  if (imu_soft) M5.Speaker.setVolume((uint8_t)(spk_volume * 55 / 100));   // snore / lullaby hum: quiet
+  imu_snoring = imu_soft && imu_sleeping;
   M5.Speaker.playRaw(play_buf, play_len, play_rate, false, 1, 0);
   char t[40];
   if (brain_known) {   // first sample is being clocked out now: the brain turns this into a latency mark
     snprintf(t, sizeof(t), "PLAYING %lld", (long long)esp_timer_get_time());
     send_text(brain_ip, t);
   }
-  while (M5.Speaker.isPlaying()) { M5.delay(1); service_udp(); }
+  while (M5.Speaker.isPlaying()) {
+    M5.delay(1); service_udp(); imu_poll();
+    if (imu_stop_req) { imu_stop_req = false; if (imu_snoring) M5.Speaker.stop(); }
+  }
+  imu_snoring = false;
+  if (imu_soft) { M5.Speaker.setVolume(spk_volume); imu_soft = false; }
+  if (imu_sleeping) imu_next_snore = millis() + 1800;   // a breath between snores
   mic_on();
   playing = false;
   if (brain_known) {
@@ -688,6 +810,9 @@ void setup() {
   }
   M5.Speaker.setVolume(spk_volume);
   Serial.printf("Speaker volume %u/255%s\n", spk_volume, spk_volume ? "" : " (muted)");
+  imu_ok = M5.Imu.isEnabled();
+  if (imu_ok) imu_load_cal();
+  Serial.printf("IMU: %s, upright %s\n", imu_ok ? "enabled" : "NOT FOUND", imu_state() == 2 ? "calibrated" : (imu_state() == 1 ? "provisional" : "n/a"));
 
   if (!cam_first) {
     cam_ok = init_camera_on(0) || init_camera_on(1);
@@ -740,6 +865,15 @@ void loop() {
   M5.update();
   if (WiFi.status() != WL_CONNECTED) { Serial.println("WiFi dropped"); connect_wifi(); }
   service_udp();
+  imu_poll();
+  if (imu_pending[0] && !playing && !play_pending && !rx_busy.load()) {
+    char c[32];
+    strlcpy(c, imu_pending, sizeof(c));
+    imu_pending[0] = 0;
+    if (millis() - imu_pending_ms < 4000) local_clip(c, false);   // a yell that is seconds late is worse than none
+  } else if (imu_sleeping && !playing && !play_pending && !rx_busy.load() && millis() >= imu_next_snore) {
+    if (!local_clip("imu_sleep", true)) imu_next_snore = millis() + 2000;
+  }
 
   if (ota_reboot) { delay(500); ESP.restart(); }
   if (play_pending) do_playback();
