@@ -28,9 +28,40 @@ def _apply_gain(pcm: bytes, gain: float) -> bytes:
     return x.astype("<i2").tobytes()
 
 
+def _lowpass_fir(x: np.ndarray, fs: float, cutoff: float = 7200.0, taps: int = 101) -> np.ndarray:
+    """Windowed-sinc FIR lowpass, numpy only. Same length out as in.
+
+    Cutoff sits below the 8 kHz Nyquist of the 16 kHz Atom rate, so
+    energy above it cannot fold back down when downsampling.
+    Cost at 22050 Hz: ~2.2M multiply-adds per second of speech.
+    """
+    if cutoff >= fs / 2 or len(x) < taps:
+        return x
+    m = (taps - 1) // 2
+    n = np.arange(taps) - m
+    h = 2 * cutoff / fs * np.sinc(2 * cutoff * n / fs)
+    h *= np.hamming(taps)
+    h /= h.sum()
+    return np.convolve(x, h, mode="same")
+
+
+def _soft_limit(x: np.ndarray, knee: float = 0.95) -> np.ndarray:
+    """Soft limiter on float audio in [-1, 1] full scale.
+
+    y = x / (1 + (|x|/knee)**8)**(1/8): ~transparent at 0.5 (y=0.499),
+    bends a 1.0 peak to 0.89 instead of flat-topping it at 1.0.
+    """
+    return x / (1.0 + (np.abs(x) / knee) ** 8) ** (1.0 / 8.0)
+
+
 def _resample(x: np.ndarray, src: float, dst: float) -> np.ndarray:
     if abs(src - dst) < 1:
         return x
+    if dst < src:
+        # Anti-alias FIRST: without this, Piper energy at 8-11 kHz
+        # folds back into the audible band on the way to 16 kHz.
+        # Cutoff = 90% of the destination Nyquist.
+        x = _lowpass_fir(x, src, cutoff=0.9 * dst / 2)
     n = int(round(len(x) * dst / src))
     return np.interp(np.linspace(0, len(x) - 1, n), np.arange(len(x)), x)
 
@@ -266,7 +297,8 @@ class Voices:
         audio = np.concatenate([c.audio_int16_array for c in chunks]).astype(np.float32)
         # pitch trick: synthesized slower by `pitch`, then played back `pitch`x faster.
         audio = _resample(audio, sr * t["pitch"], config.SAMPLE_RATE)
-        return np.clip(audio, -32768, 32767).astype("<i2").tobytes()
+        # Soft-limit in float before int16, instead of a hard clip at +-32767.
+        return (_soft_limit(audio / 32768.0) * 32768.0).astype("<i2").tobytes()
 
     def prerender(self, lines: list[tuple[str, str]], *, polite: bool = False) -> None:
         """Render fixed lines once (cached on disk). `polite` waits for live speech and turns."""
