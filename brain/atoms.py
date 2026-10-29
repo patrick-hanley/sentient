@@ -269,6 +269,7 @@ class AtomHub:
             with self._http.open(urllib.request.Request(f"http://{a.base}/clipclear", data=b"", method="POST"), timeout=30) as r:
                 r.read()
             a.clips = {}
+            a.fs = (a.fs[0], 0)   # flash is empty now: don't keep judging 'storage full' by the old figure
         except (urllib.error.URLError, OSError, TimeoutError) as e:
             log.warning("clip clear on %s failed: %s", toy, e)
 

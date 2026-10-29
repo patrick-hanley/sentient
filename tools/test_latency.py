@@ -722,5 +722,41 @@ class DashboardPageTests(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
 
 
+class DspTests(unittest.TestCase):
+    def test_resample_removes_alias_and_keeps_the_passband(self):
+        from brain import dsp
+        def tone(f, sr):
+            return (np.sin(2 * np.pi * f * np.arange(sr) / sr) * 16000).astype(np.float32)
+        def level(y, f):
+            w = np.hanning(len(y)); k = int(round(f * len(y) / 16000))
+            return 20 * np.log10(np.abs(np.fft.rfft(y * w))[k - 2:k + 3].max() + 1e-9)
+        ref = level(dsp.resample(tone(1000, 22050), 22050, 16000), 1000)
+        self.assertLess(level(dsp.resample(tone(10000, 22050), 22050, 16000), 6000) - ref, -70)   # would fold to 6 kHz
+        self.assertGreater(level(dsp.resample(tone(4000, 22050), 22050, 16000), 4000) - ref, -0.5)  # linear interpolation lost 0.9
+        self.assertEqual(len(dsp.resample(tone(1000, 24000), 24000, 16000)), 16000)
+
+    def test_trim_keeps_speech_and_cuts_silent_edges(self):
+        from brain import dsp
+        x = np.zeros(16000 * 3, np.float32)
+        x[16000:32000] = (np.sin(2 * np.pi * 300 * np.arange(16000) / 16000) * 8000).astype(np.float32)
+        y = dsp.trim(x)
+        self.assertLess(abs(len(y) / 16000 - (1.0 + 0.03 + 0.12)), 0.03)
+        self.assertGreater(np.abs(y).max(), 7000)
+        self.assertEqual(len(dsp.trim(np.zeros(16000, np.float32))), 16000)   # silence is left alone
+
+    def test_finish_is_safe_and_clip_ids_change_with_the_processing_version(self):
+        from brain import dsp
+        pcm = (np.sin(2 * np.pi * 440 * np.arange(8000) / 16000) * 30000).astype("<i2").tobytes()
+        out = np.frombuffer(dsp.finish(pcm, "dyno"), "<i2")
+        self.assertLess(np.abs(out).max(), 32768)
+        self.assertEqual(dsp.finish(b"", "dyno"), b"")
+        v = object.__new__(__import__("brain.tts", fromlist=["Voices"]).Voices)
+        v._kokoro, v._kokoro_model = None, None
+        v.sounds = types.SimpleNamespace(affects=lambda text: False)
+        a = v.clip_id("dyno", "Hi")
+        with patch.object(dsp, "VERSION", dsp.VERSION + 1):
+            self.assertNotEqual(a, v.clip_id("dyno", "Hi"))   # stored clips must be re-rendered when processing changes
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

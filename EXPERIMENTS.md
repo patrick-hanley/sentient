@@ -77,6 +77,24 @@ Change (Patrick): `_resample()` low-passes at 90% of the target Nyquist (7.2 kHz
 
 New brain features from this: `GET /spectrum` (band levels per mic, numbers only), a "Sound spectrum" dashboard panel, and `GET /tap.wav?toy=&sec=` (RAM only, only with `SENTIENT_DEBUG_RECORD=1`). `tools/clip_spectrum.py` is Patrick's standalone clip analyser from `piper-filter.zip`.
 
+## More sound-quality work (Oct 28-29): `brain/dsp.py`
+Measured by spectrogram, Mac first and then through the Atoms (`tools/chain_ab.py`, `atom_ab_pi.py`, `atom_sweep.py`; data in `data/audio_ab2/`).
+
+| Idea | Result | Shipped |
+|---|---|---|
+| Better resampler (Kaiser-sinc low-pass + cubic interpolation, `dsp.resample`) | Flat to -0.2 dB at 4 kHz (linear interpolation lost -0.9) and <-90 dB aliasing; 13 ms per 5 s of speech. A full sinc interpolator is flatter at 6 kHz but 30x slower on the Pi. On the Atoms 4-7.2 kHz is +0.7 to +1.9 dB. | yes |
+| Trim the neural voices' silent head/tail | Kitten Jasper lead-in 450 -> 30 ms, tail 230 -> 120 ms; Bella 650/470 -> 30/120 ms. 0.5-1.0 s shorter per Kitten line, also less dead air between toys. | yes |
+| Single soft limiter at the end (Piper's own limiter removed to avoid stacking) | Piper peaks 32.6k -> 27.5k, no near-full-scale samples. | yes |
+| Speaker EQ from a measured sweep (each Atom's speaker played a log sweep, the other mics recorded, speaker and mic terms separated by least squares) | The speakers lose 25-35 dB below 500 Hz. With boosts of +5/+10/+6 dB the heard response improved only +1-2 dB at 500-800 Hz (Dyno, Penny) and nothing on Sage, for hundreds of near-full-scale samples. Doubling the drive level raised the heard level only 6-9 dB instead of 11.5 dB, so the Atom chain compresses (speaker amp or mic path) and boosts mostly do not reach the room. | **off** (`SENTIENT_DSP_EQ=1` enables; curves in `brain/speaker_eq.json`, raw in `data/audio_ab2/speaker_response_measured.json`) |
+| Loudness match across voices | Approved mix is already within ~3 dB, and normalising would have changed the levels Patrick approved (Sage Piper gain 0.4). | no (`SENTIENT_DSP_LEVEL=-22` enables) |
+| 16-bit PCM instead of mu-law | mu-law SNR 37 dB (noise -53 dBFS, below the mics' own floor). PCM doubles the upload (131 vs 65 KB): overhead 0.22-0.66 s vs 0.17-0.50 s. Not worth it. | no |
+| Pitch trick (resampling) | Not in use: all three live voices run pitch 1.0. | n/a |
+| Firmware playback audit | `M5.Speaker.playRaw` mono at 16 kHz, volume from NVS. Nothing wrong found; M5Unified upsamples internally. Untested: the codec's own ALC/limiter, a suspect for the compression above. | n/a |
+
+Sage's speaker was silent for a while (no sound on the other mics) until the user reseated it; measured properly afterwards. Its response is weaker at 4-5 kHz than Dyno's and Penny's.
+
+**Clip refresh:** clip ids now include `dsp.fingerprint()` (processing version), so any change to this chain makes the brain clear and re-store every Atom's clips on the next start. Done Oct 29 for all three toys (dyno 37, sage 36, penny 38 clips). Also fixed a bug found on the way: after clearing an Atom's flash the brain still believed it was nearly full and stopped after the first clip (`clear_clips` now resets the used-space figure).
+
 ## Handoff dead air between toys
 About 1.2 s average, up to ~2.3 s: Gemma writing line N+1 and Kokoro rendering it while line N plays. Needs faster TTS.
 

@@ -10,7 +10,7 @@ import urllib.request
 
 import numpy as np
 
-from . import config
+from . import config, dsp
 
 log = logging.getLogger("tts")
 KITTEN_URL = "http://127.0.0.1:8099/tts"   # tools/kitten_server.py, a Python 3.12 sidecar
@@ -57,6 +57,8 @@ def _soft_limit(x: np.ndarray, knee: float = 0.95) -> np.ndarray:
 def _resample(x: np.ndarray, src: float, dst: float) -> np.ndarray:
     if abs(src - dst) < 1:
         return x
+    if dsp.ENABLED:
+        return dsp.resample(x, src, dst)
     if dst < src:
         # Anti-alias FIRST: without this, Piper energy at 8-11 kHz
         # folds back into the audible band on the way to 16 kHz.
@@ -117,7 +119,7 @@ class Voices:
                 self._live += 1
             try:
                 start = time.time()
-                pcm = self._render_with_sfx(t, text, kokoro)
+                pcm = dsp.finish(self._render_with_sfx(t, text, kokoro), toy)
                 pcm = _apply_gain(pcm, (t.get("gain") or 1.0))
                 self.last[toy] = f"{len(pcm) / 2 / config.SAMPLE_RATE:.1f} s of speech in {time.time() - start:.1f} s"
             finally:
@@ -155,6 +157,8 @@ class Voices:
                 **{f: t.get(f) for f in ("kokoro", "kspeed", "kpitch", "voice", "speaker", "length", "pitch")}}
         if t.get("kitten"):   # only part of the key when used, so existing clips stay valid
             spec["kt"] = t["kitten"]
+        if dsp.ENABLED:   # processing changed (resampler, trim, speaker EQ): clips on the Atoms must be re-rendered
+            spec["dsp"] = dsp.fingerprint() + f".{toy}"
         if (t.get("gain") or 1.0) != 1.0:   # only part of the key when changed, so existing clips stay valid
             spec["g"] = t["gain"]
         if self.sounds.affects(text):    # lines with sound effects (and "Rawr!") render differently now
@@ -180,7 +184,7 @@ class Voices:
             self.apply(toy, engine, voice, speed, pitch, volume, speaker, persist=False)
             t = config.TOYS[toy]
             kokoro = self._kokoro is not None and bool(t.get("kokoro"))
-            with_sfx = self._render_with_sfx(t, text, kokoro)
+            with_sfx = dsp.finish(self._render_with_sfx(t, text, kokoro), toy)
             return _apply_gain(with_sfx, t.get("gain") or 1.0)
         finally:
             config.TOYS[toy].clear()
@@ -297,6 +301,8 @@ class Voices:
         audio = np.concatenate([c.audio_int16_array for c in chunks]).astype(np.float32)
         # pitch trick: synthesized slower by `pitch`, then played back `pitch`x faster.
         audio = _resample(audio, sr * t["pitch"], config.SAMPLE_RATE)
+        if dsp.ENABLED:   # dsp.finish() soft-limits once, at the end of render()
+            return np.clip(audio, -32768, 32767).astype("<i2").tobytes()
         # Soft-limit in float before int16, instead of a hard clip at +-32767.
         return (_soft_limit(audio / 32768.0) * 32768.0).astype("<i2").tobytes()
 
