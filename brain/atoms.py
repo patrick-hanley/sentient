@@ -65,6 +65,7 @@ class Atom:
 
 
 class AtomHub:
+    monitor = None   # brain.spectrum.Monitor, set by main
     """Tracks Atoms, feeds mic frames to `on_audio(toy, pcm)`, plays speech back.
 
     Mics are globally muted while any toy talks (+ MIC_TAIL_S) so toys never
@@ -167,6 +168,8 @@ class AtomHub:
                         a.lost += gap
                 a.last_seq = seq
                 a.rms = 0.8 * a.rms + 0.2 * float(np.sqrt(np.mean(pcm.astype(np.float32) ** 2)))
+                if self.monitor is not None:   # before the mute gate: we want to hear our own toys too
+                    self.monitor.add(a.toy, pcm)
                 if not self.muted():
                     self.on_audio(a.toy, pcm)
             elif data.startswith(b"HELLO"):

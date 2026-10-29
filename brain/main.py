@@ -22,7 +22,9 @@ from .atoms import AtomHub
 from .director import Director, system_prompt
 from .llm import make_backend
 from .perception import Perceiver, Recognizer
+from .spectrum import Monitor
 from .tts import KITTEN_VOICES, Voices
+from . import debugrec
 from .vad import Segmenter
 from . import canned
 
@@ -38,6 +40,7 @@ button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}<
 <h2>Sentient toys &mdash; Gemma 4 on-device brain <small id=be></small></h2>
 <div class=row id=toys></div>
 <p><b>Heard:</b> <span id=heard></span><br><b>Said:</b> <span id=said></span> <small id=lat></small></p>
+<details ontoggle="if(this.open)specLoop()"><summary>Sound spectrum (mics, dB re full scale)</summary><pre id=spec></pre></details>
 <details><summary>Latency stages (milliseconds)</summary><pre id=stages></pre></details>
 <details ontoggle="if(this.open)loadWf()"><summary>Latency waterfall (last turns, p50/p95)</summary><button onclick="loadWf()">Refresh</button><pre id=wfsum></pre><div id=wf></div></details>
 <button id=muteall onclick="post('muteall')">Mute all toys</button><button onclick="post('mute')">Mute mics</button>
@@ -102,6 +105,11 @@ async function loadSfx(){const s=await (await fetch('/sfx')).json();const groups
  document.getElementById('sfx').innerHTML=Object.entries(groups).map(([g,label])=>`<div><span class=dim>${label}:</span> `+
   Object.entries(s).filter(([n,v])=>(v.set||'story')==g).map(([n,v])=>`<button title="${v.desc}${v.owner?' ('+v.owner+')':''}" onclick="playLine(sfxt.value,'{${n}}')">${n.replace('_',' ')}</button>`).join(' ')+'</div>').join('');}
 const WF=[["utterance_ready_ms","#8b8fb0"],["turn_started_ms","#6a6"],["first_model_text_ms","#c9a"],["first_line_ready_ms","#fc6"],["first_pcm_ready_ms","#6cf"],["first_audio_post_ms","#f66"],["atom_reply_sample_ms","#fff"]];
+let specT=null;
+async function specLoop(){if(specT)return;const tick=async()=>{const o=document.querySelector('#spec').closest('details');if(!o.open){specT=null;return;}
+ try{const d=await (await fetch('/spectrum')).json();const bands=Object.keys(Object.values(d).find(x=>Object.keys(x).length)||{});
+ spec.textContent=('band Hz'.padEnd(11)+T.map(t=>t.padStart(8)).join(''))+'\\n'+bands.map(b=>b.padEnd(11)+T.map(t=>(d[t][b]===undefined?'-':d[t][b].toFixed(0)).padStart(8)).join('')).join('\\n');}catch(e){}
+ specT=setTimeout(tick,1000);};tick();}
 async function loadWf(){const d=await (await fetch('/latency')).json();
  wfsum.textContent=Object.entries(d.summary).map(([k,v])=>`${k.padEnd(28)} n=${v.n} p50=${v.p50} p95=${v.p95}`).join('\\n');
  const ts=d.turns.slice(-20).reverse(),mx=Math.max(1000,...ts.map(t=>Math.max(...Object.values(t.milestones_ms||{0:0}))));
@@ -146,6 +154,19 @@ def make_handler(hub, eyes, director, rec, voices):
                 return self._send(200, json.dumps({"kokoro": voices.kokoro_voices(), "piper": voices.piper_voices(), "kitten": KITTEN_VOICES,
                                                    "toys": {t: voices.settings(t) for t in config.TOY_ORDER}}),
                                   "application/json")
+            if u.path == "/spectrum":   # band levels (dB re full scale) of each mic's last second: numbers only
+                mon = hub.monitor
+                return self._send(200, json.dumps({t: (mon.latest(t) if mon else {}) for t in config.TOY_ORDER}), "application/json")
+            if u.path == "/tap.wav":   # last seconds of one mic, RAM only, and only with SENTIENT_DEBUG_RECORD=1
+                q = dict(urllib.parse.parse_qsl(u.query))
+                if not debugrec.enabled() or not hub.monitor or q.get("toy") not in config.TOYS:
+                    return self._send(403, "audio tap is off (set SENTIENT_DEBUG_RECORD=1)")
+                import io, wave
+                buf = io.BytesIO()
+                with wave.open(buf, "wb") as w:
+                    w.setnchannels(1); w.setsampwidth(2); w.setframerate(config.SAMPLE_RATE)
+                    w.writeframes(hub.monitor.tap(q["toy"], float(q.get("sec", 5))))
+                return self._send(200, buf.getvalue(), "audio/wav")
             if u.path == "/latency":
                 return self._send(200, json.dumps(director.turn_log.summary()), "application/json")
             if u.path == "/state":
@@ -336,6 +357,7 @@ def main():
     director = None
     hub = AtomHub(on_audio=lambda toy, pcm: segs[toy].feed(pcm) if toy in segs else None,
                   on_button=lambda toy, kind: director.on_button(toy, kind))
+    hub.monitor = Monitor()
     rec = Recognizer()
     eyes = Perceiver(hub, rec)
     director = Director(hub, voices, eyes, llm, segs)
