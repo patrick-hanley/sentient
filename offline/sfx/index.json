@@ -490,5 +490,41 @@
     "author": "Scottrex05",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/Scottrex05/sounds/593487/"
+  },
+  "snore_big": {
+    "desc": "Dyno's snore (asleep)",
+    "toy": "dyno",
+    "set": "character",
+    "seconds": 3.2,
+    "query": "snoring",
+    "freesound_id": "760036",
+    "title": "SNORE-03_44100",
+    "author": "stevielematt",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/stevielematt/sounds/760036/"
+  },
+  "snore_cat": {
+    "desc": "Sage's snore (asleep)",
+    "toy": "sage",
+    "set": "character",
+    "seconds": 3.2,
+    "query": "cat snoring",
+    "freesound_id": "196255",
+    "title": "Snoring Cat.wav",
+    "author": "lolamadeus",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/lolamadeus/sounds/196255/"
+  },
+  "snore_dog": {
+    "desc": "Penny's snore (asleep)",
+    "toy": "penny",
+    "set": "character",
+    "seconds": 3.2,
+    "query": "dog snoring",
+    "freesound_id": "346319",
+    "title": "dog snoring",
+    "author": "nielstii",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/nielstii/sounds/346319/"
   }
 }

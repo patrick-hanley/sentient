@@ -59,7 +59,7 @@ struct WifiCred { const char* ssid; const char* pass; int channel = 0; };  // ch
 #include "secrets.h"
 static constexpr uint16_t BRAIN_PORT = 5005;
 static constexpr uint16_t ATOM_PORT  = 5006;
-static constexpr const char* FW_VERSION = "toy-client-3.5";
+static constexpr const char* FW_VERSION = "toy-client-3.6";
 
 // ---------- GC0308 camera pins — AtomS3R-CAM ----------
 #define CAM_SIOD   12
@@ -575,6 +575,7 @@ static bool     imu_sleeping = false, imu_soft = false;
 static char     imu_pending[32] = {0};   // a clip waiting for the speaker to be free (the event's own yell, or the wake-up)
 static uint32_t imu_pending_ms = 0;
 static uint32_t imu_last_ms = 0, imu_next_snore = 0;
+static uint8_t  imu_snores_left = 0;   // breaths before the sleeping toy goes quiet (random per sleep)
 
 static void imu_save_cal(bool confirmed) {
   Preferences p;
@@ -619,7 +620,7 @@ static void imu_event(imu::Event e) {
   char clip[32];
   snprintf(clip, sizeof(clip), "imu_%s", n);
   switch (e) {
-    case imu::SLEEP: imu_sleeping = true; imu_next_snore = millis(); break;   // loop() plays the snore, softly, until upright
+    case imu::SLEEP: imu_sleeping = true; imu_next_snore = millis(); imu_snores_left = 6 + esp_random() % 10; break;   // loop() plays the snore, softly, until upright
     case imu::WOKEN:
       imu_sleeping = false;
       strlcpy(imu_pending, "imu_woken", sizeof(imu_pending)); imu_pending_ms = millis();
@@ -871,8 +872,8 @@ void loop() {
     strlcpy(c, imu_pending, sizeof(c));
     imu_pending[0] = 0;
     if (millis() - imu_pending_ms < 4000) local_clip(c, false);   // a yell that is seconds late is worse than none
-  } else if (imu_sleeping && !playing && !play_pending && !rx_busy.load() && millis() >= imu_next_snore) {
-    if (!local_clip("imu_sleep", true)) imu_next_snore = millis() + 2000;
+  } else if (imu_sleeping && imu_snores_left && !playing && !play_pending && !rx_busy.load() && millis() >= imu_next_snore) {
+    if (local_clip("imu_sleep", true)) imu_snores_left--; else imu_next_snore = millis() + 2000;
   }
 
   if (ota_reboot) { delay(500); ESP.restart(); }

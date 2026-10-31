@@ -169,6 +169,7 @@ FACE_MATCH = 0.40            # SFace cosine; OpenCV suggests 0.363
 PET_MATCH = 0.60
 GREET_COOLDOWN_S = 120
 IDLE_BANTER_S = 45           # 0 disables idle toy-to-toy chatter
+QUIET_AFTER_S = (180, 600)   # no child contact (speech, tap, motion, someone seen) for a random time in this range: the toys go silent
 
 # ---- LLM ----
 VISION_MODE = os.environ.get("SENTIENT_VISION", "sage")   # sage | always | never

@@ -200,6 +200,8 @@ class Director:
         self.utter_q: queue.Queue = queue.Queue()
         self.events: queue.Queue = queue.Queue()
         self.last_activity = time.time()
+        self.last_child = time.time()   # last contact from a child (speech, tap, motion, someone seen); not the toys' own chatter
+        self._quiet_s = random.uniform(*config.QUIET_AFTER_S)
         self.paused = False
         self.idle_on = config.IDLE_BANTER_S > 0
         self.busy = False
@@ -242,11 +244,22 @@ class Director:
         self.sampler.start()
         threading.Thread(target=self._loop, daemon=True, name="director").start()
 
+    def child_contact(self):
+        """Any sign of a child resets the clock, with a new random length so the toys do not go quiet on a fixed beat."""
+        self.last_child = time.time()
+        self._quiet_s = random.uniform(*config.QUIET_AFTER_S)
+
+    def is_quiet(self) -> bool:
+        """True once nobody has interacted for a while: the toys stop idle chatter (and, by the same clock, any sound)."""
+        return time.time() - self.last_child > self._quiet_s
+
     # ---------- inputs ----------
     def on_seen(self, toy, thing):
+        self.child_contact()
         self.events.put(f"{NAMES[toy]} just noticed {thing.label}. {NAMES[toy]} greets them warmly by name in one short line.")
 
     def on_button(self, toy, kind):
+        self.child_contact()
         if kind == "hold":
             threading.Thread(target=self.run_canned, daemon=True).start()
         else:
@@ -301,6 +314,8 @@ class Director:
         toys react once, in character, from cached lines (no Gemma wait). Dropped, not queued, when the floor is busy."""
         if event not in scripted.IMU_EVENTS or toy not in config.TOYS:
             return
+        if event != "sleep":   # laying a toy down is going to bed, not play
+            self.child_contact()
         now = time.time()
         st = self.imu.setdefault(toy, {"asleep": False, "since": 0.0, "commented": set(), "last": {}})
         if st["asleep"] and now - st["since"] > 1800:
@@ -366,6 +381,7 @@ class Director:
         """The parent's 'Say it now'. The parent supplies the meaning, the toys supply the reaction: a known cue plays fixed
         in-character lines at once, anything else is interpreted by Gemma. Ephemeral: nothing is stored or logged
         (not even the text), and nothing is queued for later if no toy is online."""
+        self.child_contact()
         online = self.hub.online()
         if not online:
             return {"ok": False, "reason": "No toy is online right now."}
@@ -450,6 +466,7 @@ class Director:
                 continue
             u = arbitrate(u, self.utter_q, expected_toys=self.hub.online())
             u.arbitrated = time.monotonic()
+            self.child_contact()
             log.info("utterance: %s %.1fs rms=%.0f", u.toy, len(u.pcm) / config.SAMPLE_RATE, u.rms)
             self._turn(utt=u)
 
@@ -460,7 +477,8 @@ class Director:
             ev = self.events.get_nowait()
         except queue.Empty:
             ev = None
-            if self.idle_on and time.time() - self.last_activity > config.IDLE_BANTER_S and len(self.hub.online()) >= 2:
+            if (self.idle_on and not self.is_quiet() and time.time() - self.last_activity > config.IDLE_BANTER_S
+                    and len(self.hub.online()) >= 2):
                 ev = self._idle_event()
         if ev:
             self._turn(event=ev)

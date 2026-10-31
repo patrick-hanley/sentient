@@ -15,8 +15,7 @@ import re
 IMU_EVENTS = ("sleep", "woken", "tossed", "shaken", "rocked", "dropped", "spun", "upside_down")
 
 IMU_LOCAL = {
-    "sleep": {"dyno": "{dino_growl} Zzz... rawr, zzz... zzz...", "sage": "Mmm, zzz... mmm, zzz...",
-              "penny": "{penguin_honk} Honk, zzz... honk, zzz..."},
+    "sleep": {"dyno": "{snore_big}", "sage": "{snore_cat}", "penny": "{snore_dog}"},   # recorded snores (CC0), never spoken "zzz"
     "woken": {"dyno": "Mmm... rawr! Did I nap?", "sage": "Oh... was I dreaming about books?",
               "penny": "Honk! I'm awake! What did I miss?"},
     "tossed": {"dyno": "Wheee! Again! Again! Rawr!", "sage": "Whoa! That was higher than my bookshelf!",

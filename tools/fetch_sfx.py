@@ -61,6 +61,9 @@ SOUNDS = {
     "clock":       ("clock ticking", 2.0, None, "clock ticking"),
     "school_bell": ("school bell ring", 2.0, None, "school bell"),
     "applause":    ("kids cheering applause", 2.0, None, "cheering"),
+    "snore_big":   ("snoring", 3.2, "dyno", "Dyno's snore (asleep)"),
+    "snore_cat":   ("cat snoring", 3.2, "sage", "Sage's snore (asleep)"),
+    "snore_dog":   ("dog snoring", 3.2, "penny", "Penny's snore (asleep)"),
 }
 # Halloween set (kid-friendly spooky). Stored on the toys last: they stream if flash is full.
 HALLOWEEN = {
@@ -131,7 +134,7 @@ def main():
         if name in index and (OUT / f"{name}.wav").exists() and not a.force:
             continue
         try:
-            results = [r for r in search(query) if 0.3 <= r["duration"] <= 15]
+            results = [r for r in search(query) if 0.3 <= r["duration"] <= 16]
         except Exception as e:  # noqa: BLE001
             print(f"{name:12} search failed: {e}")
             continue
