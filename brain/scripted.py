@@ -16,18 +16,18 @@ IMU_EVENTS = ("sleep", "woken", "tossed", "shaken", "rocked", "dropped", "spun",
 
 IMU_LOCAL = {
     "sleep": {"dyno": "{snore_big}", "sage": "{snore_cat}", "penny": "{snore_dog}"},   # recorded snores (CC0), never spoken "zzz"
-    "woken": {"dyno": "Mmm... rawr! Did I nap?", "sage": "Oh... was I dreaming about books?",
+    "woken": {"dyno": "Rawr! Did I nap?", "sage": "Oh... was I dreaming about books?",
               "penny": "Honk! I'm awake! What did I miss?"},
     "tossed": {"dyno": "Wheee! Again! Again! Rawr!", "sage": "Whoa! That was higher than my bookshelf!",
                "penny": "Wheee, honk! I can fly! Almost!"},
     "shaken": {"dyno": "Whoa, oh, oh! I'm all wobbly!", "sage": "Whoa, whoa! My pages are all mixed up!",
                "penny": "Hee hee hee, I'm all wiggly!"},
-    "rocked": {"dyno": "Hmm, hmm, rawr...", "sage": "La la, la la...", "penny": "Honk... la la..."},
+    "rocked": {"dyno": "Rock, rock, rawr...", "sage": "Rock, rock, rock...", "penny": "Honk... rock, rock..."},
     "dropped": {"dyno": "Oof! Rawr... I'm okay!", "sage": "Oh! I tumbled! My pages are fine.",
                 "penny": "Whoa, honk! I fell over!"},
     "spun": {"dyno": "Whoa! The room is spinning! Rawr!", "sage": "Everything is going round and round...",
              "penny": "Wheee! I'm a spinning top! Honk!"},
-    "upside_down": {"dyno": "Whoa! The world is upside down!", "sage": "Hmm, everything looks different from here.",
+    "upside_down": {"dyno": "Whoa! The world is upside down!", "sage": "Everything looks different from here.",
                     "penny": "Hee hee! The ceiling is the floor!"},
 }
 
@@ -58,7 +58,7 @@ IMU_FRIENDS = {
     "rocked": {
         "dyno": ["Rock-a-bye, friend. Shhh.", "Sway, sway. Nice and slow. Rawr."],
         "sage": ["That's a nice, slow rock. Like a story boat.", "Slow and gentle. That is lovely."],
-        "penny": ["Sway, sway... I'm getting sleepy just watching!", "Ooh, rock-a-bye! Hee hee."]},
+        "penny": ["Sway, sway... I'm getting sleepy just watching!", "Oh, rock-a-bye! Hee hee."]},
     "dropped": {
         "dyno": ["You okay, friend? That was a big tumble!", "Oh no! Are you okay, {name}?"],
         "sage": ["Are you hurt? Let's check. Paws, ears, tail, all there?", "Oh dear. Let's check that everything is okay."],
@@ -69,7 +69,7 @@ IMU_FRIENDS = {
         "penny": ["I want a turn! Spin me next!", "Wheee! Spin spin spin! Honk!"]},
     "upside_down": {
         "dyno": ["You're upside down! That's a funny view!", "Rawr! {name} is upside down!"],
-        "sage": ["Careful. Upside-down toys sometimes bonk.", "Hmm, a new way to look at things."],
+        "sage": ["Careful. Upside-down toys sometimes bonk.", "A new way to look at things."],
         "penny": ["Flip! Flip! Do it again!", "Hee hee! {name} is topsy turvy!"]},
 }
 
@@ -88,7 +88,7 @@ CUES = {
     "bedtime": {"label": "Bedtime", "lines": {
         "dyno": ["Yawn... rawr. Sleepy time already?", "Rawr... my eyes are getting heavy."],
         "sage": ["Time for one last story, then sleep.", "Sleepy time. A cozy story, then goodnight."],
-        "penny": ["Pajamas on! Hee hee, I am ready!", "Brrr, cozy blankets! I am ready for bed!"]}},
+        "penny": ["Pajamas on! Hee hee, I am ready!", "Cozy blankets! I am ready for bed!"]}},
     "bath": {"label": "Bath", "lines": {
         "dyno": ["Splash time! Rawr!", "Rawr! Time to splash!"],
         "sage": ["Bath time. Let us be nice and clean.", "A warm bath sounds lovely."],
@@ -112,7 +112,7 @@ CUES = {
     "story": {"label": "Story time", "lines": {
         "dyno": ["Story time! Rawr, I love stories!", "A story! Rawr, yes please!"],
         "sage": ["Let us pick a good book.", "Story time. I love a good book."],
-        "penny": ["Ooh! A story! Tell me, tell me!", "Story time! Hee hee, I am so excited!"]}},
+        "penny": ["Oh! A story! Tell me, tell me!", "Story time! Hee hee, I am so excited!"]}},
     "cleanup": {"label": "Clean up", "lines": {
         "dyno": ["Clean up! Let us tidy like a parade!", "Tidy time! Rawr, march and tidy!"],
         "sage": ["Everything has a home. Let us put it back.", "Let us tidy up, one thing at a time."],
@@ -159,7 +159,7 @@ LEAK_PATTERNS = [
 ]
 _LEAK = [re.compile(p, re.I) for p in LEAK_PATTERNS]
 SAFE_DEFLECT = {"dyno": "Let's pick a game instead! Rawr!", "sage": "Let us pick a game instead.",
-                "penny": "Ooh, let's play a game instead! Hee hee!"}
+                "penny": "Oh, let's play a game instead! Hee hee!"}
 
 
 def leaks_note(text: str) -> bool:

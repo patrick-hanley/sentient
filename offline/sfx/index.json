@@ -526,5 +526,41 @@
     "author": "nielstii",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/nielstii/sounds/346319/"
+  },
+  "yawn": {
+    "desc": "a big yawn",
+    "toy": null,
+    "set": "story",
+    "seconds": 2.2,
+    "query": "yawn",
+    "freesound_id": "151239",
+    "title": "Yawn 2",
+    "author": "OwlStorm",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/OwlStorm/sounds/151239/"
+  },
+  "giggle": {
+    "desc": "a giggle",
+    "toy": null,
+    "set": "story",
+    "seconds": 1.8,
+    "query": "child giggle",
+    "freesound_id": "365632",
+    "title": "Boy or Young Child Laughing",
+    "author": "OBXJohn",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/OBXJohn/sounds/365632/"
+  },
+  "sigh": {
+    "desc": "a sigh",
+    "toy": null,
+    "set": "story",
+    "seconds": 1.8,
+    "query": "sighing",
+    "freesound_id": "399642",
+    "title": "Sigh #1.MP3",
+    "author": "SoundsForHim",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/SoundsForHim/sounds/399642/"
   }
 }

@@ -16,7 +16,7 @@ import threading
 import time
 import urllib.request
 
-from . import config
+from . import config, nonspeech
 
 log = logging.getLogger("llm")
 
@@ -256,10 +256,10 @@ class LlamaCppBackend:
             segs, _ = self.fw.transcribe(wav, language="en", beam_size=1, vad_filter=True,
                                          condition_on_previous_text=False)
             # drop segments Whisper itself thinks are not speech / is guessing at
-            return " ".join(s.text for s in segs if s.no_speech_prob < 0.6 and s.avg_logprob > -1.0).strip()
+            return nonspeech.clean(" ".join(s.text for s in segs if s.no_speech_prob < 0.6 and s.avg_logprob > -1.0).strip())
         out = subprocess.run([self.whisper, "-m", str(config.WHISPER_MODEL), "-f", wav, "-nt", "-np", "-l", "en"],
                              capture_output=True, text=True, timeout=60).stdout
-        return " ".join(out.split()).strip()
+        return nonspeech.clean(" ".join(out.split()).strip())
 
     def stream(self, text: str, wav: str | None = None, image: str | None = None):
         content = text

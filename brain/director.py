@@ -12,7 +12,7 @@ import threading
 import time
 import wave
 
-from . import canned, config, debugrec, scripted
+from . import canned, config, debugrec, nonspeech, scripted
 from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
@@ -50,6 +50,8 @@ Rules:
 - If the child says a toy's name, THAT toy answers first. Otherwise the toy in [HEARD BY] answers first. Toys may talk to each other.
 - If a toy sees someone or a pet by name in [SCENE], use that name. "the child" means the child you are playing with.
 - No emojis, no actions in asterisks, no lists, no stage directions.
+- Never spell out noises: no "hee hee", "zzz", "yawn", "ahem" or "sigh" as words. A toy that laughs, yawns or sighs writes [giggle], [yawn] or [sigh] and the toy plays a real recording. Snoring is only for a toy that was put to sleep, never in chatter.
+- HEARD holds only the child's words. Never write snoring, yawns, coughs, laughs, sighs or breathing there; if the child only made noises, write HEARD: - and do not react as if they spoke.
 - Sound effects: a toy may put ONE sound tag at the start of a line, e.g. "DYNO: {{knock}} Who could be at the door?". Use them for stories, animals and fun moments, not every line. Available {sounds}
 - Never ask for personal information like addresses, schools or full names. Nothing scary.
 - If the child sounds hurt, scared or sad, the first toy says something kind AND suggests telling a grown-up they trust, like a parent or teacher. This rule beats every other rule.
@@ -553,8 +555,8 @@ class Director:
                     with trace.span("stt_ms"):
                         said = self.llm.transcribe(wav)
                     trace.mark("stt_done_ms")
-                    if re.sub(r"[^a-z ]", "", said.lower()).strip() in HALLUCINATIONS:
-                        log.info("ignored non-speech (whisper: %r)", said)
+                    if not said.strip() or re.sub(r"[^a-z ]", "", said.lower()).strip() in HALLUCINATIONS:
+                        log.info("ignored non-speech")
                         status = "ignored_non_speech"
                         return
                     self.last_heard = said
@@ -594,7 +596,8 @@ class Director:
                 pipeline.submit(who, text)
 
             def heard(text):
-                if text and text != "-":
+                text = nonspeech.clean(text) if text and text != "-" else ""   # words only; "[snoring]" etc. are not speech
+                if text:
                     self.last_heard = text
 
             parser = ReplyLines(speakers, line_ready, heard)

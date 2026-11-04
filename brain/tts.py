@@ -119,7 +119,7 @@ class Voices:
                 self._live += 1
             try:
                 start = time.time()
-                pcm = dsp.finish(self._render_with_sfx(t, text, kokoro), toy)
+                pcm = dsp.finish(self._render_with_sfx(t, text, kokoro, toy), toy)
                 pcm = _apply_gain(pcm, (t.get("gain") or 1.0))
                 self.last[toy] = f"{len(pcm) / 2 / config.SAMPLE_RATE:.1f} s of speech in {time.time() - start:.1f} s"
             finally:
@@ -132,7 +132,7 @@ class Voices:
             self._cache[key] = pcm
         return pcm
 
-    def _render_with_sfx(self, t: dict, text: str, kokoro: bool) -> bytes:
+    def _render_with_sfx(self, t: dict, text: str, kokoro: bool, toy: str | None = None) -> bytes:
         """Speech with sound effects mixed in: '{knock} Who is it?' -> knock, short gap, speech."""
         if t.get("kitten") and self._kitten_up():
             speak = lambda x: self._render_kitten(t, x)
@@ -141,7 +141,7 @@ class Voices:
         if not self.sounds.affects(text):
             return speak(text)
         parts = []
-        for kind, value in self.sounds.segments(text):
+        for kind, value in self.sounds.segments(text, toy):
             if kind == "sfx":
                 gain = 1.0 / max((t.get("gain") or 1.0), 1e-3)   # sounds keep their level; volume applies after
                 parts.append(_apply_gain(self.sounds.pcm[value], gain))
@@ -184,7 +184,7 @@ class Voices:
             self.apply(toy, engine, voice, speed, pitch, volume, speaker, persist=False)
             t = config.TOYS[toy]
             kokoro = self._kokoro is not None and bool(t.get("kokoro"))
-            with_sfx = dsp.finish(self._render_with_sfx(t, text, kokoro), toy)
+            with_sfx = dsp.finish(self._render_with_sfx(t, text, kokoro, toy), toy)
             return _apply_gain(with_sfx, t.get("gain") or 1.0)
         finally:
             config.TOYS[toy].clear()

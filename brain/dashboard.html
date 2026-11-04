@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Sentient toys</title>
+<style>
+:root{
+  --bg:#0e1014; --panel:#161a21; --panel-2:#1d222b; --line:#2b313c; --line-2:#3a4252;
+  --text:#e8eaf0; --dim:#9aa3b5; --accent:#6aaeff; --accent-ink:#06121f;
+  --ok:#52c48f; --warn:#f2b84b; --bad:#ff7070; --talk:#f2b84b;
+  --dyno:#6fcf97; --sage:#c19bf7; --penny:#6cc4f0;
+  --r:8px; --gap:12px; --ctl:36px;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
+::selection{background:var(--accent);color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+a{color:var(--accent)}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+h1{font-size:20px}
+h2{font-size:15px;margin:22px 0 8px}
+.dim{color:var(--dim)}
+.mono{font-family:var(--mono);font-size:12px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* controls */
+button,select,input{font:inherit;color:inherit}
+button{min-height:var(--ctl);padding:0 12px;background:var(--panel-2);border:1px solid var(--line-2);border-radius:6px;cursor:pointer;transition:background .12s,border-color .12s}
+button:hover{background:#262c37;border-color:#4a5468}
+button:active{background:#2d3441}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button.primary:hover{background:#86bdff}
+button.danger{border-color:#7a3a3a;color:#ffb0b0}
+button[aria-pressed=true].tog{background:#2a1c1c;border-color:#7a3a3a;color:#ffc2c2}
+button[aria-pressed=false].tog{background:#17261f;border-color:#2f6a4e;color:#a9e8c9}
+select,input[type=text],input[type=number]{min-height:var(--ctl);padding:0 8px;background:#10131a;border:1px solid var(--line-2);border-radius:6px}
+input[type=range]{accent-color:var(--accent);height:var(--ctl);margin:0;flex:1;min-width:80px}
+input::placeholder{color:#7f889b}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:5;background:rgba(14,16,20,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1400px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border:1px solid var(--line-2);border-radius:99px;font-size:12px;color:var(--dim);white-space:nowrap}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--dim);display:inline-block}
+.chip.ok i{background:var(--ok)} .chip.warn i{background:var(--warn)} .chip.bad i{background:var(--bad)}
+.chip.bad{color:#ffc2c2;border-color:#7a3a3a}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+#conn{display:none;background:#2a1c1c;border-bottom:1px solid #7a3a3a;color:#ffd0d0;padding:8px 16px;text-align:center}
+#conn.on{display:block}
+
+main{max-width:1400px;margin:0 auto;padding:6px 16px 48px}
+
+/* toys */
+.toys{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:var(--gap);margin-top:14px}
+.toy{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:10px}
+.toy.talk{border-color:var(--talk);box-shadow:0 0 0 1px var(--talk)}
+.toy.off{opacity:.7}
+.toy-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.toy-h h2{font-size:16px;letter-spacing:.02em;margin:0}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.toy-h .ip{margin-left:auto}
+.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--talk);color:#241800;font-weight:650}
+.cam{position:relative;aspect-ratio:4/3;max-height:240px;width:100%;background:#000;border-radius:6px;overflow:hidden}
+.cam img{width:100%;height:100%;object-fit:cover;display:block}
+.cam .nocam{position:absolute;inset:0;display:grid;place-items:center;color:var(--dim);font-size:13px}
+.lvl{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.12)}
+.lvl div{height:100%;background:var(--ok);width:0;transition:width .15s}
+.view{margin:0;min-height:2.9em}
+.row{display:flex;align-items:center;gap:8px}
+.row output{min-width:64px;text-align:right;color:var(--dim)}
+.row output.muted{color:var(--bad);font-weight:600}
+.health{font-size:12px;color:var(--dim)}
+.health.warn{color:var(--warn)} .health.bad{color:var(--bad)}
+
+details{border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+details>summary{cursor:pointer;padding:9px 12px;font-weight:600;list-style:none;display:flex;align-items:center;gap:8px;min-height:var(--ctl)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"";width:7px;height:7px;border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);transform:rotate(-45deg);transition:transform .15s;flex:none}
+details[open]>summary::before{transform:rotate(45deg)}
+details>.body{padding:4px 12px 12px;border-top:1px solid var(--line)}
+.toy details{background:var(--panel-2)}
+.stack{display:grid;gap:8px;margin-top:14px}
+
+/* voice form */
+.vform{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding-top:10px}
+.vform label{display:grid;gap:3px;font-size:12px;color:var(--dim)}
+.vform label .row{color:var(--text)}
+.vform .full{grid-column:1/-1}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* conversation */
+.convo{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-top:14px;display:grid;gap:8px}
+.convo dt{font-size:12px;color:var(--dim);margin-bottom:2px}
+.convo dd{margin:0;overflow-wrap:anywhere}
+.said-l{display:block;margin:2px 0}
+.sfxtag{display:inline-block;padding:0 7px;border:1px solid var(--line-2);border-radius:4px;font-size:12px;color:var(--accent);background:#10151d;margin-right:4px}
+
+/* tools */
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:var(--gap);margin-top:14px}
+.tool{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.tool h2{font-size:13px;margin:0 0 8px}
+.cols h2,#imu h2{font-size:14px;margin:0 0 4px}
+.tool .row{flex-wrap:wrap}
+.tool .grow{flex:1 1 160px}
+.msg{min-height:1.3em;font-size:12px;color:var(--dim);margin-top:6px}
+
+/* chips of sounds / lines */
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.pills button{min-height:32px;padding:0 10px;font-size:13px}
+.group-l{font-size:12px;color:var(--dim);margin-top:8px}
+.lines{display:grid;gap:4px}
+.lines button{text-align:left;font-size:13px;height:auto;padding:6px 10px;line-height:1.35}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:var(--gap)}
+pre{margin:0;font:12px/1.5 var(--mono);white-space:pre-wrap;overflow-x:auto;color:var(--text)}
+.wf-row{font-size:12px;white-space:nowrap;margin:3px 0}
+.wf-bar{display:flex;height:10px;background:#0c0e12;border-radius:2px;overflow:hidden}
+.wf-bar span{display:block;height:100%}
+.legend{font-size:12px;color:var(--dim);margin-top:8px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
+
+@media (pointer:coarse),(max-width:640px){
+  :root{--ctl:44px}
+  .pills button{min-height:40px}
+  .top-in,main{padding-left:12px;padding-right:12px}
+  .ctrls{margin-left:0;width:100%}
+  .ctrls button{flex:1 1 30%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="conn" role="status">Brain not reachable. Retrying&hellip;</div>
+<header class="top"><div class="top-in">
+  <div class="brand"><h1>Sentient toys</h1>
+    <div class="chips" id="chips" aria-label="Brain status"></div></div>
+  <div class="ctrls" role="group" aria-label="Global controls">
+    <button class="tog" id="muteall" type="button" aria-pressed="false" title="Mute or unmute every toy's speaker">Speakers on</button>
+    <button class="tog" id="mutemic" type="button" aria-pressed="false" title="Mute or unmute the brain's microphones">Mics live</button>
+    <button class="tog" id="idle" type="button" aria-pressed="false" title="Turn toy-to-toy chatter on or off">Idle chatter on</button>
+  </div>
+</div></header>
+
+<main>
+<section class="toys" id="toys" aria-label="Toys"></section>
+
+<dl class="convo" aria-live="polite">
+  <div><dt>Heard</dt><dd id="heard">&nbsp;</dd></div>
+  <div><dt>Said</dt><dd id="said">&nbsp;</dd></div>
+  <div class="dim" id="lat"></div>
+</dl>
+
+<section class="tools" aria-label="Quick actions">
+  <form class="tool" id="sayform">
+    <h2>Make a toy say something</h2>
+    <div class="row">
+      <label class="sr" for="st">Toy</label><select id="st"></select>
+      <label class="sr" for="sx">Text</label><input type="text" id="sx" class="grow" placeholder="Type a line to speak" autocomplete="off">
+      <button class="primary" type="submit">Speak</button>
+    </div>
+    <div class="msg" id="saymsg" aria-live="polite"></div>
+  </form>
+  <form class="tool" id="enrollform">
+    <h2>Enroll a face or pet from a camera</h2>
+    <div class="row">
+      <label class="sr" for="nm">Name</label><input type="text" id="nm" class="grow" placeholder="Name" autocomplete="off">
+      <label class="sr" for="et">Camera</label><select id="et"></select>
+      <label class="row"><input type="checkbox" id="pet"> pet</label>
+      <button type="submit">Enroll</button>
+    </div>
+    <div class="msg" id="enrollmsg" aria-live="polite"></div>
+  </form>
+</section>
+
+<div class="stack">
+  <details id="d-sfx"><summary>Sound effects</summary><div class="body">
+    <div class="row" style="padding-top:10px"><label for="sfxt" class="dim">Play on</label><select id="sfxt"></select>
+      <span class="dim">CC0 from freesound.org. Gemma can use most of them in a line, as {knock}.</span></div>
+    <div id="sfx"></div></div></details>
+  <details id="d-canned"><summary>Canned lines <span class="dim" style="font-weight:400">stored on each toy, play instantly</span></summary><div class="body"><div id="canned"></div></div></details>
+  <details id="d-imu" ontoggle="if(this.open)imuDraw()"><summary>Motion sounds (IMU)</summary><div class="body">
+    <p class="dim">Needs firmware 3.5+. Calibrate with the toy standing upright and still for 2 seconds. Test plays the toy's own clip and the friends' reaction.</p>
+    <div id="imu"></div></div></details>
+  <details id="d-diag" ontoggle="if(this.open){specLoop();loadWf()}"><summary>Diagnostics</summary><div class="body">
+    <h2 style="margin:10px 0 4px">Microphone spectrum <span class="dim" style="font-weight:400">dB re full scale</span></h2><pre id="spec" class="dim">Open to start.</pre>
+    <h2 style="margin:14px 0 4px">Last turn, in milliseconds</h2><pre id="stages"></pre>
+    <h2 style="margin:14px 0 4px">Latency, last 20 turns <button type="button" id="wfr" style="margin-left:8px;min-height:28px">Refresh</button></h2>
+    <pre id="wfsum"></pre><div id="wf"></div>
+  </div></details>
+</div>
+</main>
+
+<script>
+const T=["dyno","sage","penny"];
+const COLOR={dyno:"var(--dyno)",sage:"var(--sage)",penny:"var(--penny)"};
+const NL=String.fromCharCode(10);
+const $=id=>document.getElementById(id);
+function el(tag,attrs,...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs||{})){if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k.startsWith('on'))e[k]=v;else if(v===true)e.setAttribute(k,'');else if(v!==false&&v!=null)e.setAttribute(k,v)}for(const c of kids.flat())if(c!=null)e.append(c.nodeType?c:document.createTextNode(c));return e}
+function post(p){return fetch('/'+p,{method:'POST'})}
+let msgT={};
+function note(id,text,ms=5000){const e=$(id);e.textContent=text;clearTimeout(msgT[id]);if(ms)msgT[id]=setTimeout(()=>e.textContent='',ms)}
+
+/* ---------- toy cards ---------- */
+const frameBusy={};
+$('toys').append(...T.map(t=>el('article',{class:'toy off',id:'b_'+t,'aria-label':t},
+  el('div',{class:'toy-h'},el('span',{class:'dot',style:'background:'+COLOR[t]}),el('h2',{text:t.toUpperCase()}),el('span',{class:'badge',id:'talk_'+t,hidden:true,text:'speaking'}),el('span',{class:'dim mono ip',id:'s_'+t,text:'offline'})),
+  el('div',{class:'cam'},el('img',{id:'i_'+t,alt:t+' camera view',hidden:true}),el('div',{class:'nocam',id:'nc_'+t,text:'No camera'}),el('div',{class:'lvl','aria-hidden':'true'},el('div',{id:'l_'+t}))),
+  el('p',{class:'view',id:'v_'+t}),
+  el('div',{class:'row'},el('label',{class:'dim',for:'hv_'+t,text:'Volume'}),
+    el('input',{type:'range',id:'hv_'+t,min:0,max:255,step:5,onchange:function(){setVol(t,this.value)}}),
+    el('output',{id:'hvv_'+t,for:'hv_'+t}),
+    el('button',{type:'button',id:'hm_'+t,onclick:()=>setVol(t,0),text:'Mute'})),
+  el('div',{class:'health',id:'hl_'+t}),
+  el('details',{id:'vd_'+t},el('summary',{id:'vc_'+t,text:'Voice'}),el('div',{class:'body',id:'vs_'+t,text:'Loading voices…'}))
+)));
+$('st').append(...T.map(t=>el('option',{value:t,text:t})));
+$('et').append(...T.map(t=>el('option',{value:t,text:t,selected:t==='sage'})));
+$('sfxt').append(...T.map(t=>el('option',{value:t,text:t})));
+
+/* ---------- state polling ---------- */
+let busy=false,fails=0,lastS=null;
+function chip(text,cls){return el('span',{class:'chip '+(cls||'')},el('i'),text)}
+function renderSaid(lines){const out=[];for(const[who,text]of lines){const row=el('span',{class:'said-l'},el('b',{text:who[0].toUpperCase()+who.slice(1).toLowerCase()+': '}));
+  String(text).split(/(\{[a-z_0-9]+\})/).forEach(p=>{const m=/^\{([a-z_0-9]+)\}$/.exec(p);if(m)row.append(el('span',{class:'sfxtag',text:m[1].replace(/_/g,' ')}));else if(p)row.append(p)});out.push(row)}
+  const d=$('said');d.textContent='';d.append(...(out.length?out:[' ']))}
+function health(t,h){const e=$('hl_'+t);if(!h||!h.fw){e.textContent='';e.className='health';return}
+  const fail=(+h.sfail||+h.mfail),fix=(+h.sfix||+h.mfix);e.className='health'+(fail?' bad':fix?' warn':'');
+  e.textContent=`${h.fw} · ${h.clips} clips · speaker repairs ${h.sfix||0}${+h.sfail?` (${h.sfail} failed)`:''} · mic repairs ${h.mfix||0}${+h.mfail?` (${h.mfail} failed)`:''}`}
+function renderState(s){
+  const online=T.filter(t=>s.toys[t].online);
+  const chips=[chip(s.backend||'brain',''),chip(s.device||'device',''),chip(s.latency_profile||'profile',''),chip(online.length+' of '+T.length+' toys online',online.length===T.length?'ok':(online.length?'warn':'bad'))];
+  if(s.paused)chips.push(chip('canned scene playing','warn'));
+  $('chips').replaceChildren(...chips);
+  for(const t of T){const x=s.toys[t],b=$('b_'+t);
+    b.className='toy'+(x.online?'':' off')+(s.talking===t?' talk':'');$('talk_'+t).hidden=s.talking!==t;
+    $('s_'+t).textContent=x.online?(x.ip+(x.cam?'':' · no camera')):'offline';
+    $('l_'+t).style.width=Math.min(100,x.level/30)+'%';$('v_'+t).textContent=x.view||'';
+    health(t,x.health||{});
+    $('hv_'+t).disabled=!x.online;$('hm_'+t).disabled=!x.online;
+    const hv=$('hv_'+t),v=(x.health||{}).vol,e=$('hvv_'+t);
+    if(v!==undefined&&v!==null&&document.activeElement!==hv){hv.value=v;e.textContent=+v===0?'Muted':v+' / 255';e.className=+v===0?'muted':''}
+    const vc=x.voice||{};$('vc_'+t).textContent=vc.engine?`Voice: ${vc.label} (${vc.engine}${vc.quant?' '+vc.quant:''})`:'Voice';
+    if(x.online&&x.cam&&!document.hidden&&!frameBusy[t]){frameBusy[t]=true;const im=$('i_'+t);
+      im.onload=()=>{frameBusy[t]=false;im.hidden=false;$('nc_'+t).hidden=true};
+      im.onerror=()=>{frameBusy[t]=false;im.hidden=true;$('nc_'+t).hidden=false};
+      im.src='/frame/'+t+'.jpg?'+Date.now()}
+    if(!x.online||!x.cam){$('i_'+t).hidden=true;$('nc_'+t).hidden=false;$('nc_'+t).textContent=x.online?'No camera':'Offline'}}
+  $('heard').textContent=s.heard||' ';renderSaid(s.said||[]);
+  $('lat').textContent=s.latency?('Reply upload after '+s.latency.toFixed(2)+' s; speaker onset unmeasured'):'';
+  $('stages').textContent=JSON.stringify(s.latency_breakdown,null,2);
+  const anyOn=T.some(t=>s.toys[t].online&&+((s.toys[t].health||{}).vol??200)>0);
+  const ma=$('muteall');ma.textContent=anyOn?'Speakers on':'Speakers muted';ma.setAttribute('aria-pressed',String(!anyOn));
+  const mm=$('mutemic');mm.textContent=s.muted?'Mics muted':'Mics live';mm.setAttribute('aria-pressed',String(!!s.muted));
+  const id=$('idle');id.textContent=s.idle?'Idle chatter on':'Idle chatter off';id.setAttribute('aria-pressed',String(!s.idle));
+}
+async function tick(){
+  if(busy)return;busy=true;
+  try{
+    const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),4000);
+    const r=await fetch('/state',{signal:ctl.signal});clearTimeout(to);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    lastS=await r.json();fails=0;$('conn').classList.remove('on');renderState(lastS);
+  }catch(e){fails++;if(fails>=2){$('conn').textContent='Brain not reachable ('+(e.name==='AbortError'?'timed out':e.message)+'). Retrying…';$('conn').classList.add('on')}}
+  finally{busy=false;setTimeout(tick,document.hidden?3000:(fails?2000:800))}
+}
+$('muteall').onclick=()=>post('muteall').then(tick);
+$('mutemic').onclick=()=>post('mute').then(tick);
+$('idle').onclick=()=>post('idle').then(tick);
+function setVol(t,v){post(`speaker?toy=${t}&vol=${v}`);const e=$('hvv_'+t);e.textContent=+v===0?'Muted':v+' / 255';e.className=+v===0?'muted':'';$('hv_'+t).value=v}
+
+$('sayform').onsubmit=async ev=>{ev.preventDefault();const text=$('sx').value.trim();if(!text)return note('saymsg','Type something first.');
+  const r=await fetch(`/say?toy=${$('st').value}&text=${encodeURIComponent(text)}`,{method:'POST'});
+  note('saymsg',r.ok?'Sent.':'Failed: '+await r.text());if(r.ok)$('sx').value=''};
+$('enrollform').onsubmit=async ev=>{ev.preventDefault();if(!$('nm').value.trim())return note('enrollmsg','Enter a name first.');
+  const r=await fetch(`/enroll?toy=${$('et').value}&name=${encodeURIComponent($('nm').value)}&pet=${$('pet').checked?1:0}`,{method:'POST'});
+  note('enrollmsg',await r.text(),8000)};
+
+/* ---------- voices ---------- */
+let VO={};
+async function loadVoices(){try{VO=await (await fetch('/voices')).json();for(const t of T)renderVS(t,VO.toys[t])}catch(e){setTimeout(loadVoices,3000)}}
+function slider(t,k,label,lo,hi,v){const out=el('output',{id:k+'v_'+t,text:v});
+  return el('label',{},label,el('div',{class:'row'},el('input',{type:'range',id:k+'_'+t,min:lo,max:hi,step:0.05,value:v,oninput:function(){out.textContent=this.value}}),out))}
+function fillVoices(t,engine,sel){const s=$('vo_'+t);s.replaceChildren(...(VO[engine]||[]).map(v=>el('option',{value:v,text:v,selected:v===sel})))}
+function renderVS(t,s){
+  const eng=el('select',{id:'en_'+t,onchange:()=>{fillVoices(t,eng.value);$('spk_'+t).hidden=eng.value!=='piper'}},
+    el('option',{value:'kokoro',text:'Kokoro',selected:s.engine==='kokoro',disabled:!(VO.kokoro||[]).length}),
+    el('option',{value:'piper',text:'Piper',selected:s.engine==='piper'}),
+    el('option',{value:'kitten',text:'Kitten (fast)',selected:s.engine==='kitten'}));
+  const vo=el('select',{id:'vo_'+t});
+  const spk=el('label',{id:'spk_'+t,hidden:s.engine!=='piper'},'Speaker #',el('input',{type:'number',id:'sp_'+t,min:0,max:903,value:s.speaker??''}));
+  const form=el('div',{class:'vform'},el('label',{},'Engine',eng),el('label',{},'Voice',vo),
+    slider(t,'speed','Speed',0.6,1.6,s.speed),slider(t,'pitch','Pitch',0.7,1.6,s.pitch),slider(t,'volume','Voice gain',0.2,2.5,s.volume),spk,
+    el('div',{class:'actions full'},el('button',{type:'button',class:'primary',onclick:()=>applyV(t),text:'Apply'}),el('button',{type:'button',onclick:()=>testV(t),text:'Test'}),el('span',{class:'dim',id:'vm_'+t,'aria-live':'polite'})));
+  $('vs_'+t).replaceChildren(form);fillVoices(t,s.engine,s.voice)}
+function formQ(t){const g=k=>$(k+'_'+t).value;return `toy=${t}&engine=${g('en')}&voice=${encodeURIComponent(g('vo'))}&speed=${g('speed')}&pitch=${g('pitch')}&volume=${g('volume')}&speaker=${g('sp')}`}
+async function applyV(t){const r=await fetch('/voice?'+formQ(t),{method:'POST'});$('vm_'+t).textContent=r.ok?'Saved. Re-storing its clips in the new voice.':'Error: '+await r.text()}
+async function testV(t){const r=await fetch('/preview?'+formQ(t),{method:'POST'});$('vm_'+t).textContent=r.ok?'Preview '+(await r.text()):'Error: '+await r.text()}
+
+/* ---------- canned lines and sound effects ---------- */
+function playLine(t,x){return fetch(`/playline?toy=${t}&text=${encodeURIComponent(x)}`,{method:'POST'})}
+async function loadCanned(){try{const c=await (await fetch('/canned')).json();
+  const scenes=el('div',{class:'pills'},el('span',{class:'dim',style:'align-self:center',text:'Scenes'}),...c.scenes.map(s=>el('button',{type:'button',onclick:()=>post('canned?scene='+encodeURIComponent(s)),text:'Play '+s})));
+  const cols=el('div',{class:'cols'},...T.map(t=>el('div',{},el('h2',{text:t.toUpperCase(),style:'color:'+COLOR[t]}),
+    ...Object.entries(c.lines[t]).filter(([g,ls])=>ls.length).map(([g,ls])=>el('div',{},el('div',{class:'group-l',text:g}),el('div',{class:'lines'},...ls.map(x=>el('button',{type:'button',onclick:()=>playLine(t,x),text:x}))))))));
+  $('canned').replaceChildren(scenes,cols)}catch(e){setTimeout(loadCanned,3000)}}
+async function loadSfx(){try{const s=await (await fetch('/sfx')).json();const groups={character:'Character',story:'Story',halloween:'Halloween'};
+  $('sfx').replaceChildren(...Object.entries(groups).flatMap(([g,label])=>{const items=Object.entries(s).filter(([n,v])=>(v.set||'story')===g);
+    return items.length?[el('div',{class:'group-l',text:label}),el('div',{class:'pills'},...items.map(([n,v])=>el('button',{type:'button',title:v.desc+(v.owner?' ('+v.owner+')':''),onclick:()=>playLine($('sfxt').value,'{'+n+'}'),text:n.replace(/_/g,' ')})))]:[]}))}catch(e){setTimeout(loadSfx,3000)}}
+
+/* ---------- motion (IMU) ---------- */
+const IMUEV=["sleep","woken","tossed","shaken","rocked","dropped","spun","upside_down"];
+function imuDraw(){const w=$('imu');w.replaceChildren(...T.map(t=>{const cal=el('button',{type:'button',text:'Calibrate '+t});
+  cal.onclick=()=>fetch('/calibrate?toy='+t,{method:'POST'}).then(r=>r.text()).then(m=>{cal.textContent=m&&m.length<60?m:'Sent'});
+  return el('div',{style:'margin:8px 0'},el('h2',{text:t.toUpperCase(),style:'color:'+COLOR[t]+';margin-bottom:4px'}),el('div',{class:'pills'},cal,...IMUEV.map(e=>el('button',{type:'button',text:e.replace(/_/g,' '),onclick:()=>fetch('/imu?toy='+t+'&event='+e,{method:'POST'})}))))}))}
+
+/* ---------- diagnostics ---------- */
+const WF=[["utterance_ready_ms","#9aa3b5"],["turn_started_ms","#66bb77"],["first_model_text_ms","#cc99aa"],["first_line_ready_ms","#f2b84b"],["first_pcm_ready_ms","#6cc4f0"],["first_audio_post_ms","#ff7070"],["atom_reply_sample_ms","#ffffff"]];
+let specT=null;
+async function specLoop(){if(specT)return;const step=async()=>{if(!$('d-diag').open){specT=null;return}
+  try{const d=await (await fetch('/spectrum')).json();const bands=Object.keys(Object.values(d).find(x=>Object.keys(x).length)||{});
+    $('spec').textContent=['band Hz'.padEnd(11)+T.map(t=>t.padStart(8)).join(''),...bands.map(b=>b.padEnd(11)+T.map(t=>(d[t][b]===undefined?'-':d[t][b].toFixed(0)).padStart(8)).join(''))].join(NL)}catch(e){}
+  specT=setTimeout(step,1000)};step()}
+async function loadWf(){try{const d=await (await fetch('/latency')).json();
+  $('wfsum').textContent=Object.entries(d.summary).map(([k,v])=>`${k.padEnd(28)} n=${v.n} p50=${v.p50} p95=${v.p95}`).join(NL);
+  const ts=d.turns.slice(-20).reverse(),mx=Math.max(1000,...ts.map(t=>Math.max(...Object.values(t.milestones_ms||{0:0}))));
+  $('wf').replaceChildren(...ts.map(t=>{const m=t.milestones_ms||{};let prev=0;
+    const segs=WF.filter(([k])=>k in m).map(([k,c])=>{const w=Math.max(0,m[k]-prev)/mx*100;prev=Math.max(prev,m[k]);return el('span',{title:k+' '+m[k]+' ms',style:`width:${w}%;background:${c}`})});
+    return el('div',{class:'wf-row'},`#${t.turn_id} ${t.toy||'event'} ${t.status} ${m.first_audio_post_ms??'-'} ms`,el('div',{class:'wf-bar'},...segs))}),
+    el('div',{class:'legend'},...WF.map(([k,c])=>el('span',{},el('i',{style:'background:'+c}),k.replace('_ms','')))))}catch(e){}}
+$('wfr').onclick=loadWf;
+
+loadVoices();loadCanned();loadSfx();tick();
+</script>
+</body>
+</html>

@@ -39,9 +39,9 @@ SCENES = {"Meet the toys": _MEET, "Spelling bee": _SPELLING, "Planets": _PLANETS
 SCENE = _MEET   # default scene
 
 FILLERS = {
-    "dyno": ["Ooh!", "Hmm!", "Rawr!"],
-    "sage": ["Hmm, let me think.", "Mm-hmm."],
-    "penny": ["Hee hee!", "Ooh ooh!"],
+    "dyno": ["Good one!", "Let me think!", "Rawr!"],
+    "sage": ["Let me think.", "I hear you."],
+    "penny": ["Hee hee!", "Oh, nice!"],
 }
 
 

@@ -17,6 +17,7 @@ import threading
 import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from . import config
 from .atoms import AtomHub
@@ -32,104 +33,7 @@ from . import canned
 
 log = logging.getLogger("brain")
 
-PAGE = """<!doctype html><html><head><meta charset=utf-8><title>Sentient toys</title>
-<style>body{background:#111;color:#eee;font-family:system-ui;margin:16px}.row{display:flex;gap:16px}
-.toy{flex:1;background:#1c1c1c;padding:10px;border-radius:10px}.toy img{width:100%;border-radius:6px;background:#000}
-.bar{height:8px;background:#333;border-radius:4px}.vs{font-size:13px;line-height:1.9;border-top:1px solid #333;margin-top:6px;padding-top:6px}.vs label{display:inline-block;margin-right:8px}
-.vs input[type=range]{width:110px;vertical-align:middle}.line{font-size:13px;margin:2px 0;padding:4px 8px;display:block;text-align:left;width:100%}
-.voice{font-size:13px;line-height:1.5;color:#cfd2ee;border-top:1px solid #333;padding-top:6px}.dim{color:#8b8fb0}.bar>div{height:8px;background:#4c4;border-radius:4px}
-button{font-size:16px;margin:4px;padding:8px 14px}.talk{outline:3px solid #fc0}</style></head><body>
-<h2>Sentient toys &mdash; Gemma 4 on-device brain <small id=be></small></h2>
-<div class=row id=toys></div>
-<p><b>Heard:</b> <span id=heard></span><br><b>Said:</b> <span id=said></span> <small id=lat></small></p>
-<details ontoggle="if(this.open)specLoop()"><summary>Sound spectrum (mics, dB re full scale)</summary><pre id=spec></pre></details>
-<details ontoggle="if(this.open)imuDraw()"><summary>Motion sounds (IMU)</summary>
-<div class=dim>Needs firmware 3.5. <b>Calibrate</b> with the toy standing upright and still; <b>Test</b> plays the toy's own clip and the friends' reaction.</div>
-<div id=imu></div></details>
-<details><summary>Latency stages (milliseconds)</summary><pre id=stages></pre></details>
-<details ontoggle="if(this.open)loadWf()"><summary>Latency waterfall (last turns, p50/p95)</summary><button onclick="loadWf()">Refresh</button><pre id=wfsum></pre><div id=wf></div></details>
-<button id=muteall onclick="post('muteall')">Mute all toys</button><button onclick="post('mute')">Mute mics</button>
-<button onclick="post('idle')">Idle chatter</button>
-<span>Say: <select id=st><option>dyno<option>sage<option>penny</select><input id=sx size=30>
-<button onclick="fetch(`/say?toy=${st.value}&text=${encodeURIComponent(sx.value)}`,{method:'POST'})">Speak</button></span><br>
-<span>Enroll: <input id=nm placeholder=Name size=10><select id=et><option>dyno<option selected>sage<option>penny</select>
-<label><input type=checkbox id=pet>pet</label><button onclick="enroll()">Enroll from camera</button></span>
-<p id=flags></p>
-<h3>Sound effects <small class=dim>(CC0 from freesound.org &mdash; Gemma can use them too: {knock} …)</small></h3>
-<div>Play on <select id=sfxt><option>dyno<option>sage<option>penny</select> <span id=sfx></span></div>
-<h3>Canned lines <small class=dim>(stored on each toy &mdash; play instantly)</small></h3><div id=canned></div>
-<script>
-const T=["dyno","sage","penny"];
-document.getElementById('toys').innerHTML=T.map(t=>`<div class=toy id=b_${t}><h3>${t.toUpperCase()} <small id=s_${t}></small></h3>
-<img id=i_${t}><div class=bar><div id=l_${t} style="width:0"></div></div><p id=v_${t}></p>
-<p class=voice id=vc_${t}></p><p class=voice id=hl_${t}></p>
-<div class=vs><b>Speaker volume</b> <input type=range id=hv_${t} min=0 max=255 step=5 onchange="setVol('${t}',this.value)" style="width:150px;vertical-align:middle">
-<span id=hvv_${t}></span> <button onclick="setVol('${t}',0)">Mute</button></div><div class=vs id=vs_${t}></div></div>`).join('');
-function post(p){fetch('/'+p,{method:'POST'})}
-function enroll(){fetch(`/enroll?toy=${et.value}&name=${encodeURIComponent(nm.value)}&pet=${pet.checked?1:0}`,{method:'POST'}).then(r=>r.text()).then(alert)}
-async function tick(){const s=await (await fetch('/state')).json();be.textContent='('+s.backend+')';
-for(const t of T){const x=s.toys[t];document.getElementById('s_'+t).textContent=x.online?(x.ip+(x.cam?'':' no-cam')):'offline';
-document.getElementById('l_'+t).style.width=Math.min(100,x.level/30)+'%';document.getElementById('v_'+t).textContent=x.view;
-const h=x.health||{};const hc=(+h.sfail||+h.mfail)?'#f66':((+h.sfix||+h.mfix)?'#fc6':'#8b8fb0');
-document.getElementById('hl_'+t).innerHTML=h.fw?`<span style="color:${hc}">Speaker repairs ${h.sfix||0}${+h.sfail?` (failed ${h.sfail})`:''} · mic repairs ${h.mfix||0}${+h.mfail?` (failed ${h.mfail})`:''}</span> · ${h.clips} clips on toy · ${h.fw}`:'';
-{const hv=document.getElementById('hv_'+t),v=h.vol;if(v!==undefined&&v!==null&&document.activeElement!==hv){hv.value=v;
- const e=document.getElementById('hvv_'+t);e.textContent=(+v===0?'MUTED — raise to hear':v+'/255');e.style.color=(+v===0?'#f66':'');}}
-const vc=x.voice||{};document.getElementById('vc_'+t).innerHTML=vc.engine?`<b>Voice:</b> ${vc.label} <span class=dim>(${vc.engine} ${vc.quant||''}, ${vc.id})</span><br>speed ${vc.speed} · pitch ${vc.pitch}`+(vc.last?`<br><span class=dim>last line: ${vc.last}</span>`:''):'';
-document.getElementById('b_'+t).className='toy'+(s.talking==t?' talk':'');
-if(x.online)document.getElementById('i_'+t).src='/frame/'+t+'.jpg?'+Date.now()}
-heard.textContent=s.heard;said.textContent=s.said.map(l=>l[0].toUpperCase()+': '+l[1]).join('  /  ');
-document.getElementById('muteall').textContent=T.some(t=>s.toys[t].online&&+((s.toys[t].health||{}).vol??200)>0)?'Mute all toys':'Unmute all toys';
-lat.textContent=s.latency?('reply upload after '+s.latency.toFixed(2)+'s; speaker onset unmeasured'):'';
-stages.textContent=JSON.stringify(s.latency_breakdown,null,2);
-flags.textContent=`profile=${s.latency_profile} device=${s.device} muted=${s.muted} idle=${s.idle} canned/paused=${s.paused}`}
-let VO={};
-async function loadVoices(){VO=await (await fetch('/voices')).json();for(const t of T)renderVS(t,VO.toys[t]);}
-function slider(t,k,label,lo,hi,v){return `<label>${label} <input type=range id=${k}_${t} min=${lo} max=${hi} step=0.05 value=${v} oninput="document.getElementById('${k}v_${t}').textContent=this.value"> <span id=${k}v_${t}>${v}</span></label>`;}
-function renderVS(t,s){const opts=e=>(VO[e]||[]).map(v=>`<option ${v==s.voice?'selected':''}>${v}</option>`).join('');
- document.getElementById('vs_'+t).innerHTML=`<b>Voice settings</b><br>
- <label>Engine <select id=en_${t} onchange="engChange('${t}')"><option value=kokoro ${s.engine=='kokoro'?'selected':''} ${VO.kokoro.length?'':'disabled'}>Kokoro</option><option value=piper ${s.engine=='piper'?'selected':''}>Piper</option><option value=kitten ${s.engine=='kitten'?'selected':''}>Kitten (fast)</option></select></label>
- <label>Voice <select id=vo_${t}>${opts(s.engine)}</select></label><br>
- ${slider(t,'speed','Speed',0.6,1.6,s.speed)}${slider(t,'pitch','Pitch',0.7,1.6,s.pitch)}<br>${slider(t,'volume','Voice gain',0.2,2.5,s.volume)}
- <label id=spk_${t} style="display:${s.engine=='piper'?'inline-block':'none'}">Speaker # <input id=sp_${t} type=number min=0 max=903 value="${s.speaker??''}" style="width:60px"></label><br>
- <button onclick="applyV('${t}')">Apply</button><button onclick="testV('${t}')">Test</button> <span id=vm_${t} class=dim></span>`;}
-function engChange(t){const e=document.getElementById('en_'+t).value;document.getElementById('vo_'+t).innerHTML=(VO[e]||[]).map(v=>`<option>${v}</option>`).join('');document.getElementById('spk_'+t).style.display=e=='piper'?'inline-block':'none';}
-async function applyV(t){const r=await fetch('/voice?'+formQ(t),{method:'POST'});
- document.getElementById('vm_'+t).textContent=r.ok?'saved — re-storing its clips in the new voice':('error: '+await r.text());}
-function formQ(t){const g=k=>document.getElementById(k+'_'+t).value;
- return `toy=${t}&engine=${g('en')}&voice=${encodeURIComponent(g('vo'))}&speed=${g('speed')}&pitch=${g('pitch')}&volume=${g('volume')}&speaker=${g('sp')}`;}
-async function testV(t){const r=await fetch('/preview?'+formQ(t),{method:'POST'});   // plays the slider values, unsaved
- document.getElementById('vm_'+t).textContent=r.ok?('preview '+(await r.text())):('error: '+await r.text());}
-async function loadCanned(){const c=await (await fetch('/canned')).json();
- let h='<b>Scenes:</b> '+c.scenes.map(s=>`<button onclick="post('canned?scene=${encodeURIComponent(s)}')">&#9654; ${s}</button>`).join('');
- h+='<div class=row>'+T.map(t=>`<div class=toy><b>${t.toUpperCase()}</b>`+Object.entries(c.lines[t]).filter(([g,ls])=>ls.length).map(([g,ls])=>
-   `<div class=dim>${g}</div>`+ls.map(x=>`<button class=line data-x="${x.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" onclick="playLine('${t}',this.dataset.x)">${x}</button>`).join('')).join('')+'</div>').join('')+'</div>';
- document.getElementById('canned').innerHTML=h;}
-function playLine(t,x){fetch(`/playline?toy=${t}&text=${encodeURIComponent(x)}`,{method:'POST'});}
-function setVol(t,v){fetch(`/speaker?toy=${t}&vol=${v}`,{method:'POST'});document.getElementById('hvv_'+t).textContent=(+v===0?'muted':v+'/255');}
-async function loadSfx(){const s=await (await fetch('/sfx')).json();const groups={character:'Character',story:'Story',halloween:'Halloween'};
- document.getElementById('sfx').innerHTML=Object.entries(groups).map(([g,label])=>`<div><span class=dim>${label}:</span> `+
-  Object.entries(s).filter(([n,v])=>(v.set||'story')==g).map(([n,v])=>`<button title="${v.desc}${v.owner?' ('+v.owner+')':''}" onclick="playLine(sfxt.value,'{${n}}')">${n.replace('_',' ')}</button>`).join(' ')+'</div>').join('');}
-const WF=[["utterance_ready_ms","#8b8fb0"],["turn_started_ms","#6a6"],["first_model_text_ms","#c9a"],["first_line_ready_ms","#fc6"],["first_pcm_ready_ms","#6cf"],["first_audio_post_ms","#f66"],["atom_reply_sample_ms","#fff"]];
-let specT=null;
-async function specLoop(){if(specT)return;const tick=async()=>{const o=document.querySelector('#spec').closest('details');if(!o.open){specT=null;return;}
- try{const d=await (await fetch('/spectrum')).json();const bands=Object.keys(Object.values(d).find(x=>Object.keys(x).length)||{});
- spec.textContent=('band Hz'.padEnd(11)+T.map(t=>t.padStart(8)).join(''))+'\\n'+bands.map(b=>b.padEnd(11)+T.map(t=>(d[t][b]===undefined?'-':d[t][b].toFixed(0)).padStart(8)).join('')).join('\\n');}catch(e){}
- specT=setTimeout(tick,1000);};tick();}
-const IMUEV=["sleep","woken","tossed","shaken","rocked","dropped","spun","upside_down"];
-function imuDraw(){const w=document.getElementById('imu');w.textContent='';T.forEach(t=>{const row=document.createElement('div');row.style.margin='6px 0';
- const cal=document.createElement('button');cal.textContent='Calibrate '+t;cal.onclick=()=>fetch('/calibrate?toy='+t,{method:'POST'}).then(r=>r.text()).then(m=>{cal.textContent=r_ok(m)});row.append(cal,' ');
- IMUEV.forEach(e=>{const b=document.createElement('button');b.textContent=e.replace('_',' ');b.onclick=()=>fetch('/imu?toy='+t+'&event='+e,{method:'POST'});row.append(b)});w.append(row)})}
-function r_ok(m){return m&&m.length<60?m:'sent'}
-async function loadWf(){const d=await (await fetch('/latency')).json();
- wfsum.textContent=Object.entries(d.summary).map(([k,v])=>`${k.padEnd(28)} n=${v.n} p50=${v.p50} p95=${v.p95}`).join('\\n');
- const ts=d.turns.slice(-20).reverse(),mx=Math.max(1000,...ts.map(t=>Math.max(...Object.values(t.milestones_ms||{0:0}))));
- wf.innerHTML=ts.map(t=>{const m=t.milestones_ms||{};let prev=0;
-  const segs=WF.filter(([k])=>k in m).map(([k,c])=>{const w=Math.max(0,m[k]-prev)/mx*100;prev=Math.max(prev,m[k]);return `<span title="${k} ${m[k]}ms" style="display:inline-block;height:12px;width:${w}%;background:${c}"></span>`}).join('');
-  return `<div style="font-size:12px;white-space:nowrap">#${t.turn_id} ${t.toy||'event'} ${t.status} ${m.first_audio_post_ms??'-'}ms<div>${segs}</div></div>`}).join('')+
-  '<div class=dim style="font-size:12px">'+WF.map(([k,c])=>`<span style="color:${c}">&#9632;</span> ${k.replace('_ms','')}`).join(' ')+'</div>';}
-loadVoices();loadCanned();loadSfx();
-setInterval(tick,700);tick();
-</script></body></html>"""
+PAGE = (Path(__file__).with_name("dashboard.html")).read_text(encoding="utf-8")   # the operator dashboard on :8080
 
 
 def make_handler(hub, eyes, director, rec, voices):
@@ -183,7 +87,7 @@ def make_handler(hub, eyes, director, rec, voices):
                 online = hub.online()
                 st = {"backend": director.llm.name, "muted": hub.force_mute, "idle": director.idle_on,
                       "paused": director.paused, "talking": hub.talking, "heard": director.last_heard,
-                      "said": director.last_lines, "latency": director.last_latency,
+                      "said": [(w, voices.sounds.display(t)) for w, t in director.last_lines], "latency": director.last_latency,
                       "latency_breakdown": director.latency_state(), "latency_profile": config.LATENCY_PROFILE,
                       "device": getattr(director.llm, "device", "server-configured"), "toys": {}}
                 for t in config.TOY_ORDER:

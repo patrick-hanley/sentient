@@ -343,7 +343,7 @@ class PipelineTests(unittest.TestCase):
         hub.atoms = {"sage": types.SimpleNamespace(clips={"c-hmm": 1.0})}
         hub.play_line = Mock(side_effect=lambda toy, text, voices: hub.played.append(("bridge", toy, text)))
         voices = FakeVoices()
-        voices.clip_id = lambda toy, text: "c-hmm" if text == "Mm-hmm." else "other"
+        voices.clip_id = lambda toy, text: "c-hmm" if text == "I hear you." else "other"
         slow = threading.Event()
         voices.render = lambda toy, text: (slow.wait(2), b"\0\0" * 320)[1]
         pipeline = SpeechPipeline(hub, voices, TurnTrace())
@@ -352,7 +352,7 @@ class PipelineTests(unittest.TestCase):
             time.sleep(.3)
             slow.set()
             pipeline.finish()
-        self.assertEqual(hub.played[0], ("bridge", "sage", "Mm-hmm."))   # only the clip stored on the Atom qualifies
+        self.assertEqual(hub.played[0], ("bridge", "sage", "I hear you."))   # only the clip stored on the Atom qualifies
         self.assertEqual(hub.played[1], "sage")
         self.assertIn("first_bridge_ms", pipeline.trace.snapshot()["milestones_ms"])
 
