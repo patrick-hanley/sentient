@@ -15,6 +15,8 @@ AtomS3R-CAM + Voice Base (x3, same firmware)        Brain (Jetson Orin Nano / Ra
  POST /play (16 kHz PCM) ◀───────────────────────── Piper TTS, one voice per toy
 ```
 
+Docs: [history](docs/history.md) · [Jetson setup](docs/jetson.md) · [benchmarks](docs/benchmarks.md) · [IMU sounds](docs/imu-sounds.md) · [Parent Board](docs/parent-board.md)
+
 ## Layout
 | Path | What |
 |---|---|

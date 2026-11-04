@@ -1,0 +1,41 @@
+== litert-gpu
+device: gpu
+0: first token 0.23s  first line 0.76s  total 2.45s  187 chars
+1: first token 0.23s  first line 0.76s  total 1.91s  150 chars
+2: first token 0.23s  first line 0.69s  total 2.41s  189 chars
+3: first token 0.23s  first line 0.69s  total 2.19s  162 chars
+4: first token 0.23s  first line 0.69s  total 2.18s  155 chars
+5: first token 0.24s  first line 0.77s  total 2.45s  187 chars
+6: first token 0.24s  first line 0.77s  total 1.92s  150 chars
+7: first token 0.24s  first line 0.70s  total 2.43s  189 chars
+8: first token 1.18s  first line 2.13s  total 3.91s  266 chars
+9: first token 0.23s  first line 0.83s  total 2.77s  213 chars
+MEDIAN first token 0.23  first line 0.76  total 2.41
+== litert-cpu
+device: cpu
+0: first token 1.14s  first line 2.72s  total 5.47s  212 chars
+1: first token 1.13s  first line 2.07s  total 4.02s  130 chars
+2: first token 1.13s  first line 2.07s  total 4.73s  172 chars
+3: first token 1.13s  first line 2.50s  total 5.74s  202 chars
+4: first token 1.13s  first line 2.57s  total 5.38s  186 chars
+5: first token 1.13s  first line 2.72s  total 5.47s  212 chars
+6: first token 1.13s  first line 2.07s  total 4.02s  130 chars
+7: first token 1.13s  first line 2.07s  total 4.74s  172 chars
+8: first token 11.58s  first line 12.88s  total 15.83s  199 chars
+9: first token 1.13s  first line 2.58s  total 5.60s  188 chars
+MEDIAN first token 1.13  first line 2.50  total 5.38
+== kokoro
+[0;93m2026-11-03 20:35:12.132197354 [W:onnxruntime:Default, device_discovery.cc:164 DiscoverDevicesForPlatform] GPU device discovery failed: device_discovery.cc:89 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
+Traceback (most recent call last):
+  File "/data/sentient/tools/tts_bench/bench_all.py", line 16, in <module>
+    from kokoro_onnx import Kokoro
+ModuleNotFoundError: No module named 'kokoro_onnx'
+== kitten
+-nano-0.8-fp32_Jasper        line2:  6.8s speech in  2.23s  x  3.0 realtime
+Generating audio for text: Warm up.
+Generating audio for text: Seven times eight is fifty-six!
+-nano-0.8-fp32_Bella         line0:  4.8s speech in  1.35s  x  3.5 realtime
+Generating audio for text: Seven times eight is fifty-six! That is like seven rows of eight penguins.
+-nano-0.8-fp32_Bella         line1: 10.5s speech in  2.97s  x  3.5 realtime
+Generating audio for text: Hmm, that is a great question. Let us think about how plants grow, shall we?
+-nano-0.8-fp32_Bella         line2:  9.5s speech in  2.89s  x  3.3 realtime
