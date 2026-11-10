@@ -283,18 +283,29 @@ def _run_once(sc: Scenario, stop_at_trigger: float | None = None) -> Result:
 
 # ------------------------------------------------------------------------------------------------------------- report
 def main():
-    print("ERLE (dB) once converged, echo + noise only, 4 s line, other 25 ms of clock jitter, 1% loss")
-    for name, kw in [("clean room", {}), ("long reverb rt60 0.5", dict(rt60=0.5)), ("drift 100 ppm", dict(ppm=100)),
-                     ("noisy (rms 200)", dict(noise_rms=200)), ("clipping speaker", dict(nonlinear=0.8)),
-                     ("sync error 40 ms", dict(sync_err_ms=40, pipe_ms=120))]:
-        r = run(Scenario(**kw), two_pass=False)
-        print(f"  {name:24s} ERLE 1.5-2.5 s: {r.erle_db(1.5, 2.5):5.1f}   3.5-4.5 s: {r.erle_db(3.5, 4.5):5.1f}   locked at "
-              f"{r.mgr.snapshot()['dyno->sage']['lag_ms']:.0f} ms")
-    print("barge-in, child 2 s long starting at 2.0 s over the toy:")
+    seeds = (1, 2, 3, 4)
+    print("ERLE (dB) while the toy talks and nobody else does, mean of 4 rooms/voices (jitter, 1% loss, noise rms 60 unless noted)")
+    print(f"  {'case':32s} {'1-2 s':>6s} {'2-3 s':>6s} {'3-4 s':>6s}")
+    cases = [("clean room", {}), ("long reverb rt60 0.5 s", dict(rt60=0.5)), ("clock drift 40 ppm (6 s line)", dict(ppm=40, line_s=6, dur=8)),
+             ("noisy room, rms 200", dict(noise_rms=200)), ("clipping speaker", dict(nonlinear=0.8)),
+             ("timestamp 40 ms off, 120 ms pipeline", dict(sync_err_ms=40, pipe_ms=120))]
+    for name, kw in cases:
+        rs = [run(Scenario(seed=sd, **kw), two_pass=False) for sd in seeds]
+        print(f"  {name:32s}" + "".join(f" {np.mean([r.erle_db(a, a + 1.0) for r in rs]):6.1f}" for a in (1.0, 2.0, 3.0)))
+    print("barge-in: child speaking 2 s over the toy, level relative to the toy's echo at the listening mic")
     for db in (6, 0, -6):
-        r = run(Scenario(child_at=2.0, child_over_echo=db))
-        lat = None if r.barge_t is None else r.barge_t - (r.sc.mic_epoch + 2.0)
-        print(f"  child {db:+d} dB vs echo: trigger {'none' if lat is None else f'{lat * 1000:.0f} ms after onset'}")
+        lat = []
+        for sd in range(1, 9):
+            r = run(Scenario(seed=sd, child_at=2.5, child_over_echo=db))
+            lat.append(None if r.barge_t is None else (r.barge_t - (r.sc.mic_epoch + 2.5)) * 1000)
+        hit = [x for x in lat if x is not None]
+        print(f"  child {db:+d} dB: cut in {len(hit)}/8 runs" + (f", median {np.median(hit):.0f} ms, worst {max(hit):.0f} ms after the first word" if hit else ""))
+    n = tot = 0
+    for kw in ({}, dict(rt60=0.5), dict(nonlinear=0.8), dict(ppm=30), dict(noise_rms=150)):
+        for sd in range(1, 9):
+            n += run(Scenario(seed=sd, **kw), two_pass=False).barge_t is not None
+            tot += 1
+    print(f"false barge-ins with no child at all: {n}/{tot} clips")
 
 
 if __name__ == "__main__":
