@@ -2,6 +2,9 @@
 """Run several goals in parallel, one git worktree + one Terminal tab + one Claude session each. You never type git.
 
   tools/goals.py start NAME "what to do"   # worktree + branch goal/NAME, links the ignored files, opens a Terminal tab
+  tools/goals.py peek NAME [LINES]         # what that goal's Claude session shows right now (tmux capture)
+  tools/goals.py send NAME "text"          # type into that goal's session and press Enter
+  tools/goals.py watch                     # open a Terminal window attached to the tmux session (ctrl-b n/p switches goals)
   tools/goals.py list                      # goals, branches, commits ahead of main, uncommitted files
   tools/goals.py merge NAME                # commit what is left, merge into main (stops on conflicts), remove the worktree
   tools/goals.py drop NAME                 # throw the goal away (asks nothing: only use it on purpose)
@@ -14,6 +17,9 @@ from pathlib import Path
 
 MAIN = Path(__file__).resolve().parent.parent
 WT = MAIN.parent / "sentient-goals"
+import shutil
+TMUX = shutil.which("tmux") or (str(Path.home() / ".local/bin/tmux") if (Path.home() / ".local/bin/tmux").exists() else None)
+SESSION = "goals"
 LINKS = ["offline", ".venv", "brain/data", "firmware/toy-client/secrets.h"]
 
 
@@ -43,10 +49,34 @@ def start(name, prompt):
              "Stay in this worktree. Commit your work to this branch as you go. Do not touch the Jetson or the toys unless the goal "
              "needs hardware and the user says it is your turn. Use subagents for independent subtasks. When done, report what you "
              "changed and which tests pass.")
-    cmd = f"cd '{path}' && claude {subprocess.list2cmdline([brief])!r}".replace('"', '\\"')
-    script = f'tell application "Terminal"\nactivate\ndo script "{cmd}"\nend tell'
-    subprocess.run(["osascript", "-e", script], check=True)
+    if TMUX:
+        briefs = Path("/tmp") / f"goal-{name}.txt"
+        briefs.write_text(brief)
+        run = f"cd '{path}' && claude \"$(cat {briefs})\""
+        if subprocess.run([TMUX, "has-session", "-t", SESSION], capture_output=True).returncode:
+            subprocess.run([TMUX, "new-session", "-d", "-s", SESSION, "-n", name, "-x", "200", "-y", "50", run], check=True)
+        else:
+            subprocess.run([TMUX, "new-window", "-t", SESSION, "-n", name, run], check=True)
+    else:
+        cmd = f"cd '{path}' && claude {subprocess.list2cmdline([brief])!r}".replace('"', '\\"')
+        subprocess.run(["osascript", "-e", f'tell application "Terminal"\nactivate\ndo script "{cmd}"\nend tell'], check=True)
     print(f"started {name}: {path}")
+
+
+def tm(*a):
+    return subprocess.run([TMUX, *a], capture_output=True, text=True)
+
+
+def peek(name, lines=40):
+    print(tm("capture-pane", "-p", "-t", f"{SESSION}:{name}", "-S", f"-{lines}").stdout.rstrip() or "(no such goal window)")
+
+
+def send(name, text):
+    tm("send-keys", "-t", f"{SESSION}:{name}", "-l", text); tm("send-keys", "-t", f"{SESSION}:{name}", "Enter")
+
+
+def watch():
+    subprocess.run(["osascript", "-e", f'tell application "Terminal"\nactivate\ndo script "{TMUX} attach -t {SESSION}"\nend tell'], check=True)
 
 
 def listing():
@@ -69,15 +99,19 @@ def merge(name):
     if r.returncode:
         subprocess.run(["git", "merge", "--abort"], cwd=MAIN)
         sys.exit("merge conflict, nothing changed:\n" + r.stdout[-800:])
+    if TMUX:
+        tm("kill-window", "-t", f"{SESSION}:{name}")
     git("worktree", "remove", "--force", str(path)); git("branch", "-d", f"goal/{name}")
     print(f"merged goal/{name} into main and removed its worktree")
 
 
 def drop(name):
+    if TMUX:
+        tm("kill-window", "-t", f"{SESSION}:{name}")
     git("worktree", "remove", "--force", str(WT / name)); git("branch", "-D", f"goal/{name}")
     print("dropped", name)
 
 
 if __name__ == "__main__":
     a = sys.argv[1:]
-    {"start": lambda: start(a[1], a[2]), "list": listing, "merge": lambda: merge(a[1]), "drop": lambda: drop(a[1])}.get(a[0] if a else "", lambda: print(__doc__))()
+    {"start": lambda: start(a[1], a[2]), "list": listing, "merge": lambda: merge(a[1]), "drop": lambda: drop(a[1]), "peek": lambda: peek(a[1], *(a[2:3] or [40])), "send": lambda: send(a[1], a[2]), "watch": watch}.get(a[0] if a else "", lambda: print(__doc__))()
