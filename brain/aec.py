@@ -219,7 +219,7 @@ class Listener:
             self.n = 0
         else:
             gap = (seq - self.last_seq) & 0xFFFF
-            if gap == 0 or gap > 0x8000:                 # duplicate or reordered: ignore
+            if gap == 0 or gap > 0x8000:                 # duplicate or reordered (a late packet): ignore
                 return None, 0
             if gap > 50:                                 # resync (reboot, /play upload): start over
                 self.n, self.off, self.c = 0, collections.deque(maxlen=400), None
@@ -266,13 +266,16 @@ class Pair:
         self.dt_hang = 0
         self.dt_run = 0
         self.py_hold = 0.0
+        self.lag0: int | None = None         # where the echo sits against the placed reference when the filter was last good
         self.run = self.voiced = 0
         self.run_start = None
         self.res_ring: collections.deque = collections.deque(maxlen=40)   # (n, residual int16) for the true start
         self.x_ring: collections.deque = collections.deque(maxlen=30)     # reference blocks, for the mismatch check
+        self.d_ring: collections.deque = collections.deque(maxlen=30)     # mic blocks, same
         self.audible = 0                     # blocks of this clip with audible echo, while placing
         self.eps = 0.0                       # relative clock rate error (samples per sample) of the talker's speaker vs this mic
         self.anchor: dict[int, tuple] = {}   # id(clip) -> (n, extra delay at n)
+        self.sum_d = self.sum_e = 0.0         # echo-audible power in / out while no child was detected: the clip's ERLE
         self.snap = None                     # (n, filter frequency response) at the start of the current drift measurement
         self.stats = dict(erle_db=0.0, locks=0, places=0, mismatch=0, barges=0, lag_ms=0.0)
 
@@ -282,7 +285,7 @@ class Pair:
 
     def relock(self, why: str, forget: bool = False):
         log.debug("aec %s->%s: relock (%s)", self.talker, self.l.toy, why)
-        self.state, self.s0, self.next_n, self.anchor, self.snap = "search", {}, None, {}, None
+        self.state, self.s0, self.next_n, self.anchor, self.snap, self.lag0 = "search", {}, None, {}, None, None
         self.mdf.reset()
         self.qn, self.qd = 1.0, 1.0
         self.dt_hang, self.dt_run, self.run, self.voiced, self.audible = 0, 0, 0, 0, 0
@@ -434,6 +437,7 @@ class AecManager:
         e16 = np.clip(e, -32768, 32767).astype("<i2")
         pair.res_ring.append((ns, e16))
         pair.x_ring.append(x)
+        pair.d_ring.append(d)
         out.pcm, out.cancelling = e16, pair.q < 0.6
         if config.BARGE_IN and out.cancelling:
             frames = self._barge_check(pair, e16, dt, ns)
@@ -531,13 +535,21 @@ class AecManager:
             pair.qn = 0.95 * pair.qn + max(pe - n2, 0.0)       # ~0.4 s memory, loud blocks count most
             pair.qd = 0.95 * pair.qd + py
             pair.stats["erle_db"] = 10 * np.log10(max(float(np.mean(d * d)), 1e-3) / max(pe, 1e-3))
+            pair.sum_d += float(np.mean(d * d))
+            pair.sum_e += pe
         if not frozen and not echo_audible and px < 1.0:
             lst.noise2 = 0.98 * lst.noise2 + 0.02 * min(pe, 1.5 * n2)
-        if pair.dt_run == 25 and self._echo_like(pair):    # half a second of loud residual that still follows the toy: path changed
-            pair.stats["mismatch"] += 1
-            pair.qn, pair.dt_hang, pair.dt_run = pair.qd, 0, 0   # learn again (and stop trusting the residual) instead of freezing for good
-            if pair.stats["mismatch"] % 3 == 0:
-                pair.relock("echo path keeps changing", forget=True)
+        if pair.dt_run == 12 and self._realign(pair, 12):   # loud residual that the barge detector did not take for speech
+            return e, False
+        if pair.dt_run == 25:                              # half a second of loud residual that was never speech to the VAD:
+            pair.qn, pair.dt_hang, pair.dt_run = pair.qd, 0, 0   # stop trusting the filter and learn again instead of freezing for good
+            pair.stats["relearn"] = pair.stats.get("relearn", 0) + 1
+        if not pair.dt_hang and echo_audible and pair.q < 0.3 and px > 1.0 and (pair.d_ring and len(pair.d_ring) >= 29):
+            if pair.lag0 is None or pair.stats.get("n", 0) % 25 == 0:
+                got = self._peak_lag(pair)
+                if got and (pair.lag0 is None or abs(got[0] - pair.lag0) <= 2):
+                    pair.lag0 = got[0]
+            pair.stats["n"] = pair.stats.get("n", 0) + 1
         return e, dt
 
     def _barge_check(self, pair: Pair, e16: np.ndarray, dt: bool, ns: int):
@@ -551,9 +563,7 @@ class AecManager:
         else:
             pair.run = pair.voiced = 0
         if pair.run * 20 >= config.AEC_BARGE_MS and pair.voiced * 2 >= pair.run:
-            if self._echo_like(pair):
-                pair.stats["mismatch"] += 1
-                pair.qn, pair.dt_hang, pair.dt_run, pair.run, pair.voiced = pair.qd, 0, 0, 0, 0
+            if self._realign(pair, pair.run + 2):   # the toy was nudged, not the child talking: re-centre the filter, no cut
                 return None
             pair.stats["barges"] += 1
             start = pair.run_start - config.AEC_PREROLL_FRAMES * B
@@ -562,20 +572,55 @@ class AecManager:
             return frames
         return None
 
-    def echo_corr(self, pair: Pair) -> float:
-        """PHAT correlation peak between the last 0.4 s of residual and the reference (0 = unrelated, 1 = a delayed copy)."""
-        n = 20
-        if len(pair.res_ring) < n or len(pair.x_ring) < n:
-            return 0.0
-        e = np.concatenate([f.astype(np.float32) for _, f in list(pair.res_ring)[-n:]])
+    def _peak_lag(self, pair: Pair, n: int = 8):
+        """GCC-PHAT lag of the echo in the last n mic blocks against the placed reference, (samples, score) or None."""
+        if len(pair.d_ring) < n:
+            return None
+        d = np.concatenate(list(pair.d_ring)[-n:])
         x = np.concatenate(list(pair.x_ring)[-n:])
-        if rms(x) < 30:
-            return 0.0
-        _, peak, _ = gcc_phat(e, x, -80, pair.mdf.P * B, band=(300.0, 3400.0))
-        return peak
+        if rms(x) < 100 or rms(d) < 30:
+            return None
+        lag, _, score = gcc_phat(d, x, 0, pair.mdf.P * B // 2, band=(300.0, 3400.0))
+        return (lag, score) if score >= 4.0 else None
 
-    def _echo_like(self, pair: Pair) -> bool:
-        return self.echo_corr(pair) > config.AEC_ECHO_CORR
+    def _replay(self, pair: Pair, w: np.ndarray, n: int) -> float:
+        """Residual power of the last n blocks if filter taps w had been used (no adaptation; older blocks warm the history)."""
+        m = MDF(pair.mdf.P, pair.mdf.mu)
+        m.set_taps(w)
+        X, D = list(pair.x_ring), list(pair.d_ring)
+        tot = 0.0
+        for i, (x, d) in enumerate(zip(X, D)):
+            e, _ = m.step(x, d, 0.0)
+            if i >= len(X) - n:
+                tot += float(np.sum(e * e))
+        return tot
+
+    def _realign(self, pair: Pair, n: int = 8) -> bool:
+        """A loud residual just began. If the echo itself has moved (the toy was nudged: its delay changed) the filter's main
+        tap is in the wrong place and the residual is the toy, not the child. A candidate shift comes from GCC-PHAT; it is
+        accepted only if replaying the last blocks through the shifted filter removes most of the residual (a child cannot be
+        removed by shifting). True if the filter was shifted, which cancels the barge-in."""
+        if pair.lag0 is None or len(pair.d_ring) < n + 4:
+            return False
+        got = self._peak_lag(pair, n)
+        if got is None:
+            return False
+        delta = got[0] - pair.lag0
+        if abs(delta) < 3:
+            return False
+        w = pair.mdf.taps()
+        w2 = np.zeros_like(w)
+        if delta > 0:
+            w2[delta:] = w[:-delta]
+        else:
+            w2[:delta] = w[-delta:]
+        if self._replay(pair, w2, n) > 0.5 * self._replay(pair, w, n):
+            return False
+        pair.mdf.set_taps(w2)
+        pair.lag0 = got[0]
+        pair.qn, pair.dt_hang, pair.dt_run, pair.run, pair.voiced = pair.qd, 0, 0, 0, 0   # untrusted until it has re-converged
+        pair.stats["mismatch"] += 1
+        return True
 
     def _track(self, pair: Pair, clip: Clip, ns: int):
         """Drift. While the filter is converged its frequency response is sampled; the phase change between two samples
@@ -615,6 +660,20 @@ class AecManager:
         return [c for cl in self.clips.values() for c in cl if id(c) in pair.s0]
 
     # ---- reporting
+    def finish(self, talker: str) -> list[str]:
+        """The talker has finished (or was cut): one summary line per listener, numbers only, then reset the counters."""
+        out = []
+        with self.lock:
+            for toy, l in self.listeners.items():
+                p = l.pairs.get(talker)
+                if p is None or p.sum_d <= 0:
+                    continue
+                out.append(f"aec {talker}->{toy}: ERLE {10 * np.log10(p.sum_d / max(p.sum_e, 1e-3)):.1f} dB over the clip, lag "
+                           f"{p.stats['lag_ms']:.0f} ms, residual/echo q={p.q:.3f}, drift {p.eps * 1e6:+.0f} ppm, "
+                           f"barges {p.stats['barges']}, echo-path resets {p.stats['mismatch']}")
+                p.sum_d = p.sum_e = 0.0
+        return out
+
     def snapshot(self) -> dict:
         with self.lock:
             return {f"{p.talker}->{toy}": dict(state=p.state, q=round(p.q, 3), **{k: (round(float(v), 1) if isinstance(v, float) else v) for k, v in p.stats.items()})

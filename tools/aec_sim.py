@@ -126,6 +126,8 @@ class Scenario:
     seq0: int = 65000                     # tests wraparound
     stop_after: float | None = None       # (internal) true time the talker's speaker is cut by a STOP
     clip: np.ndarray | None = None        # use this int16 line instead of synthesising one
+    room_shift_ms: float | None = None    # ...if set, the new path is the old one delayed by this much (a toy slid along the table)
+    room_change_at: float | None = None   # the toy is moved / a door closes: the echo path switches to a different RIR here
     more_lines: tuple = ()                # extra (t_play, seconds) clips from the same toy, back to back (warm starts)
     child_clip: np.ndarray | None = None
     manager: object = None                # reuse an AecManager (warm start across clips)
@@ -192,6 +194,13 @@ def _make(sc: Scenario):
     k = min(len(ref), len(spk) - s0)
     h = room_rir(sc.seed + 100, sc.rt60, sc.delay_ms / 1000)
     echo = signal.fftconvolve(spk, h)[: n + FS]
+    if sc.room_change_at is not None:
+        h2 = room_rir(sc.seed + 300, sc.rt60, sc.delay_ms / 1000 + 0.006, direct=0.9)
+        if sc.room_shift_ms is not None:
+            h2 = np.concatenate([np.zeros(int(sc.room_shift_ms * FS / 1000)), h])[: len(h)]
+        echo2 = signal.fftconvolve(spk, h2)[: n + FS]
+        w = np.clip((np.arange(n + FS) / FS - sc.room_change_at) / 0.05, 0, 1)
+        echo = echo * (1 - w) + echo2 * w
     echo = resample_drift(echo, sc.ppm, n)
     act = echo[np.abs(echo) > 1e-3] if np.any(np.abs(echo) > 1e-3) else np.ones(1)
     gain = sc.echo_rms / (np.sqrt(np.mean(echo[s0:s0 + k] ** 2)) + 1e-9) if k else 1.0
@@ -268,8 +277,7 @@ def _run_once(sc: Scenario, stop_at_trigger: float | None = None) -> Result:
         out[k], canc[k] = o.pcm, o.cancelling
         if o.barge is not None and res.barge_t is None:
             res.barge_t, res.barge_frame, res.barge_frames = t, k, o.barge
-            if stop_at_trigger is None:
-                mgr.stopped("dyno", t)
+            mgr.stopped("dyno", t)                                   # what the hub does: STOP goes out, the reference is cut
     return res
 
 

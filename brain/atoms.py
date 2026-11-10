@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from . import config
+from .aec import AecManager, wire_to_ref
 from .barge import BargeDetector
 from .floor import FloorControl
 
@@ -71,6 +72,7 @@ class AtomHub:
     on_imu = None    # Director sets this: called (toy, event) for 'IMU <event>' from firmware 3.5+
     play_id, on_barge, _barged, _barge_toy, _barge_frames = 0, None, False, None, []
     talking = None   # class defaults so a hub built without __init__ (test doubles) still works
+    aec = None       # brain.aec.AecManager: other toys' mics hear the talker, the brain subtracts it (docs/aec.md)
     mute_until = 0.0
     """Tracks Atoms, feeds mic frames to `on_audio(toy, pcm)`, plays speech back.
 
@@ -92,6 +94,7 @@ class AtomHub:
         self.talking: str | None = None
         self.play_id = 0
         self.barge = BargeDetector()
+        self.aec = AecManager() if config.AEC else None
         self.on_barge = None          # main wires the director: barge_in(toy)
         self._barged = False
         self._barge_toy, self._barge_frames = None, []
@@ -139,6 +142,8 @@ class AtomHub:
         a = self.atoms.get(toy)
         if a:
             self.sock.sendto(b"STOP", (a.ip, self.udp_port_of(a) if a.hport else config.ATOM_PORT))
+            if self.aec is not None:
+                self.aec.stopped(toy, time.monotonic())   # the reference stops where the speaker does
 
     def udp_port_of(self, a: Atom) -> int:
         return next((addr[1] for addr, x in self.by_addr.items() if x is a), config.ATOM_PORT)
@@ -168,9 +173,15 @@ class AtomHub:
         now = time.time()
         return [t for t in config.TOY_ORDER if t in self.atoms and now - self.atoms[t].last_seen < 10]
 
-    def _barge(self, toy: str, frames) -> None:
-        log.info("barge-in: %s heard the child over %s (loudness %.1fx the leakage): cutting the toy", toy, self.talking, self.barge.max_ratio)
-        self._barged, self._barge_toy, self._barge_frames = True, toy, frames
+    def _barge(self, toy: str, frames, cancelled: bool = False) -> None:
+        if cancelled:   # echo-cancelled residual from the child's true start (brain/aec.py)
+            log.info("barge-in: %s heard the child over %s through the echo canceller: cutting the toy", toy, self.talking)
+        else:
+            log.info("barge-in: %s heard the child over %s (loudness %.1fx the leakage): cutting the toy", toy, self.talking, self.barge.max_ratio)
+        self._barged, self._barge_toy, self._barge_frames = True, toy, [] if cancelled else frames
+        if cancelled:   # the speaker's mics are still gated until its /play returns: hand the child's words on now, in order
+            for f in frames:
+                self.on_audio(toy, f)
         self.floor.human_start()
         try:
             self.on_barge(toy)
@@ -211,17 +222,29 @@ class AtomHub:
                 a.rms = 0.8 * a.rms + 0.2 * float(np.sqrt(np.mean(pcm.astype(np.float32) ** 2)))
                 if self.monitor is not None:   # before the mute gate: we want to hear our own toys too
                     self.monitor.add(a.toy, pcm)
-                if not self.muted():
+                out = None
+                if self.aec is not None:   # while a toy talks: the residual (its voice subtracted); else the frame as it came
+                    try:
+                        out = self.aec.feed(a.toy, pcm, seq, time.monotonic())
+                    except Exception:  # noqa: BLE001 — a canceller bug must never silence the ears
+                        log.exception("echo canceller failed; falling back to the loudness barge-in detector")
+                        self.aec = None
+                clean = out.pcm if out is not None and out.cancelling else pcm
+                if not self.muted() or (self._barged and a.toy == self._barge_toy):   # after a barge the child's mic is live at once
                     if self._barge_frames and a.toy == self._barge_toy:   # the start of the interrupting speech, kept in RAM
                         frames, self._barge_frames = self._barge_frames, []
                         for f in frames[:-1]:
                             self.on_audio(a.toy, f)
-                    self.on_audio(a.toy, pcm)
+                    self.on_audio(a.toy, clean)
                 elif (config.BARGE_IN and self.on_barge and self.talking and a.toy != self.talking
                       and not self.force_mute and not self._barged):
-                    frames = self.barge.feed(a.toy, pcm, self.play_id)
-                    if frames:
-                        self._barge(a.toy, frames)
+                    if out is not None and out.cancelling:
+                        if out.barge:
+                            self._barge(a.toy, out.barge, cancelled=True)
+                    else:   # no usable echo model yet for this pair (first ~0.5 s of a clip, no clock sync): loudness-ratio fallback
+                        frames = self.barge.feed(a.toy, pcm, self.play_id)
+                        if frames:
+                            self._barge(a.toy, frames)
             elif data.startswith(b"HELLO"):
                 parts = data.decode(errors="replace").split()
                 mac = parts[1]
@@ -270,6 +293,8 @@ class AtomHub:
                     when = time.monotonic()                       # arrival time: the fallback without a clock offset
                     if a.clock_off is not None and len(parts) == 2:
                         when = int(parts[1]) / 1e6 - a.clock_off   # the Atom's own timestamp, in brain time
+                    if self.aec is not None and self.talking == a.toy:   # the brain's own clip: where it sits on the listeners' timelines
+                        (self.aec.playing if parts[0] == b"PLAYING" else self.aec.played)(a.toy, when)
                     self.on_playback(a.toy, parts[0].decode(), when)
             elif data.startswith(b"BTN"):
                 a = self.by_addr.get((ip, port)) or self.by_ip.get(ip)
@@ -363,13 +388,16 @@ class AtomHub:
         a = self.atoms.get(toy)
         name = voices.clip_id(toy, text)
         if a and name in a.clips:
-            dur = self._send(toy, f"http://{a.base}/playclip?name={name}", None, a.clips[name], "clip " + name, **kw)
+            ref = None
+            if self.aec is not None and (pcm := voices.cached(toy, text)):   # the clip's sound, as the Atom's flash holds it (mu-law)
+                ref = wire_to_ref(ulaw_encode(np.frombuffer(pcm, "<i2")))
+            dur = self._send(toy, f"http://{a.base}/playclip?name={name}", None, a.clips[name], "clip " + name, ref=ref, **kw)
             if dur is not None:
                 return dur
             a.clips.pop(name, None)   # missing on the Atom after all: fall back
         return self.play(toy, voices.render(toy, text, persist=True), **kw)
 
-    def _send(self, toy, url, body, dur, what, *, on_dispatch=None, raise_on_error=False):
+    def _send(self, toy, url, body, dur, what, *, on_dispatch=None, raise_on_error=False, ref=None):
         """POST to the Atom and wait: it replies only after its speaker has finished, so the
         reply time is the true end of speech. Returns seconds, or None if a clip was missing."""
         with self._play_lock:
@@ -378,6 +406,8 @@ class AtomHub:
             self._barged = False
             self.floor.agent_start(toy)
             self.mute_until = max(self.mute_until, time.time() + dur + 2.0)
+            if ref is not None and self.aec is not None:   # what the speaker will play: the other toys' mics hear it
+                self.aec.begin(toy, ref, time.monotonic())
             try:
                 req = urllib.request.Request(url, data=body or b"", method="POST",
                                              headers={"Content-Type": "application/octet-stream"})
@@ -406,6 +436,9 @@ class AtomHub:
                     log.info("barge-in check: loudest other-mic moment was %.1fx the leakage (cut-in needs %.1fx)", self.barge.max_ratio, config.BARGE_RATIO)
                 self.talking = None
                 self.floor.agent_end(toy)
+                if self.aec is not None:
+                    for line in self.aec.finish(toy):
+                        log.info(line)
         return dur
 
     def play(self, toy: str, pcm: bytes, *, on_dispatch=None, raise_on_error=False) -> float:
@@ -418,6 +451,7 @@ class AtomHub:
                 raise RuntimeError(f"{toy} is offline or its audio is empty")
             return 0.0
         body, query = encode_for_atom(pcm)
+        ref = wire_to_ref(body, config.PLAY_CODEC if config.PLAY_CODEC == "ulaw" else "pcm", config.PLAY_RATE) if self.aec is not None else None
         self._send(toy, f"http://{a.base}/play?{query}", body, dur, f"{len(body) // 1024} KB {query}",
-                   on_dispatch=on_dispatch, raise_on_error=raise_on_error)
+                   on_dispatch=on_dispatch, raise_on_error=raise_on_error, ref=ref)
         return dur
