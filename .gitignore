@@ -30,3 +30,6 @@ runs/
 
 # Design zips dropped in the repo folder (the content lives in docs/design/)
 /*.zip
+
+# private reference material (clinical rubric etc.)
+docs/private/
