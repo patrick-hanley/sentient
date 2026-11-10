@@ -33,3 +33,7 @@ runs/
 
 # private reference material (clinical rubric etc.)
 docs/private/
+
+# symlinks into goal worktrees
+/.venv
+/brain/data
