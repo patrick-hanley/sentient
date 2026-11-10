@@ -980,7 +980,8 @@ class Parent:
             if not child:
                 return ""
             now = self.now()
-            live = [i for i in self.items.get(child["id"], []) if item_state(i, now) == "active" and i.get("source") != "child"]
+            live = [i for i in self.items.get(child["id"], []) if item_state(i, now) == "active" and i.get("source") != "child"
+                    and not str(i.get("detail") or "").startswith("curriculum:")]   # curriculum picks feed [GRADE TOPICS] instead (brain/curriculum_picks.py)
             live.sort(key=lambda i: PROMPT_ORDER.index(KIND_CATEGORY.get(i["kind"], "other")))   # long notes keep the important ones
             phrases, size = [], 0
             for i in live:

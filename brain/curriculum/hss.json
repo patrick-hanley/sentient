@@ -1,0 +1,1909 @@
+{
+ "subject": "hss",
+ "sources": [
+  "https://www.cde.ca.gov/be/st/ss/",
+  "https://www.cde.ca.gov/ci/hs/cf/"
+ ],
+ "verified": false,
+ "verification_note": "cde.ca.gov blocks automated fetches (web-firewall redirect), so these topics were written from knowledge of the California sequence and NOT checked against the page; the listed sources are where to verify them. Review in a browser before relying on it.",
+ "note": "Grade-by-grade History-Social Science topics, vocabulary and facts for K-8, following the California course sequence (K Learning and Working Now and Long Ago through 8 Growth and Conflict). Written from general knowledge of the framework because cde.ca.gov blocked automated fetches (web-firewall redirect), so the CDE source pages were NOT read and course titles/topics should be verified by a person. Grade 4 is kept brief; california.json covers deep California content. Standard codes omitted.",
+ "items": [
+  {
+   "id": "hss-0-rules-and-why-we-have-them",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Rules and why we have them",
+   "kind": "topic",
+   "summary": "Rules keep us safe and help us get along at home and school. Fair rules apply to everyone, and good helpers follow them.",
+   "tags": [
+    "rules",
+    "fair",
+    "school",
+    "safe"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-0-being-a-good-citizen",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Being a good citizen",
+   "kind": "topic",
+   "summary": "A good citizen is kind, tells the truth, shares, takes turns and takes care of things. We all belong to a group like a class or a family.",
+   "tags": [
+    "citizen",
+    "kind",
+    "share",
+    "turns"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-0-symbols-of-our-country",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Symbols of our country",
+   "kind": "topic",
+   "summary": "The American flag, the Pledge of Allegiance and the bald eagle are symbols of the United States. Symbols stand for ideas we share.",
+   "tags": [
+    "flag",
+    "pledge",
+    "eagle",
+    "symbol"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-0-where-am-i-near-and-far",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Where am I? Near and far",
+   "kind": "topic",
+   "summary": "A map is a picture of a place from above. Words like near, far, left, right, up and down tell us where things are.",
+   "tags": [
+    "map",
+    "near",
+    "far",
+    "left",
+    "right"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-0-maps-and-globes",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Maps and globes",
+   "kind": "topic",
+   "summary": "A globe is a round model of Earth, and a map is flat. Both show land and water and help us find places.",
+   "tags": [
+    "globe",
+    "map",
+    "land",
+    "water"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-0-jobs-people-do",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "Economics",
+   "title": "Jobs people do",
+   "kind": "topic",
+   "summary": "People work at jobs to earn money, and each job helps others. Doctors, farmers, teachers and builders all have important work.",
+   "tags": [
+    "jobs",
+    "work",
+    "helpers",
+    "money"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-0-wants-and-needs",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "Economics",
+   "title": "Wants and needs",
+   "kind": "topic",
+   "summary": "Needs are things we must have, like food, water and shelter. Wants are extras that are nice to have, like toys.",
+   "tags": [
+    "needs",
+    "wants",
+    "food",
+    "shelter"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-0-then-and-now",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Then and now",
+   "kind": "topic",
+   "summary": "Long ago, people lived and worked differently from today. We can compare then and now by looking at old and new tools, homes and clothes.",
+   "tags": [
+    "past",
+    "present",
+    "long ago",
+    "change"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-0-holidays-and-traditions",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Holidays and traditions",
+   "kind": "topic",
+   "summary": "Holidays and traditions help families and communities remember people and events. Different families celebrate in different ways.",
+   "tags": [
+    "holiday",
+    "tradition",
+    "family",
+    "celebrate"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-0-stories-of-great-americans",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Stories of great Americans",
+   "kind": "topic",
+   "summary": "We learn from stories of people like Washington, Lincoln and Martin Luther King Jr. who did brave and helpful things.",
+   "tags": [
+    "washington",
+    "lincoln",
+    "king",
+    "hero"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-0-time-words",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Time words",
+   "kind": "vocab",
+   "summary": "These words help us tell about time and order.",
+   "tags": [
+    "time",
+    "order",
+    "calendar"
+   ],
+   "difficulty": 1,
+   "words": [
+    "yesterday",
+    "today",
+    "tomorrow",
+    "before",
+    "after",
+    "past",
+    "present",
+    "future",
+    "long ago"
+   ]
+  },
+  {
+   "id": "hss-0-community-words",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Community words",
+   "kind": "vocab",
+   "summary": "These words help us talk about rules and living together.",
+   "tags": [
+    "community",
+    "rules",
+    "vocabulary"
+   ],
+   "difficulty": 1,
+   "words": [
+    "rule",
+    "citizen",
+    "community",
+    "leader",
+    "fair",
+    "safe",
+    "flag",
+    "helper"
+   ]
+  },
+  {
+   "id": "hss-0-map-words",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Map words",
+   "kind": "vocab",
+   "summary": "These words help us read maps and talk about places.",
+   "tags": [
+    "map",
+    "places",
+    "vocabulary"
+   ],
+   "difficulty": 2,
+   "words": [
+    "map",
+    "globe",
+    "land",
+    "water",
+    "near",
+    "far",
+    "north",
+    "south",
+    "above",
+    "below"
+   ]
+  },
+  {
+   "id": "hss-0-fun-fact-old-and-new-tools",
+   "grade": 0,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Fun fact: old and new tools",
+   "kind": "fact",
+   "summary": "Long ago, people washed clothes by hand and wrote with pens made from feathers. Today we have washing machines and computers.",
+   "tags": [
+    "tools",
+    "long ago",
+    "fact"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-1-rules-and-laws",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Rules and laws",
+   "kind": "topic",
+   "summary": "Rules and laws keep people safe and settle problems fairly. Leaders and citizens each have jobs to help make and follow them.",
+   "tags": [
+    "rules",
+    "laws",
+    "leader",
+    "fair"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-1-rights-and-responsibilities",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Rights and responsibilities",
+   "kind": "topic",
+   "summary": "Citizens have rights, like speaking up, and responsibilities, like helping others and following laws.",
+   "tags": [
+    "rights",
+    "responsibility",
+    "citizen",
+    "vote"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-1-symbols-and-landmarks",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Symbols and landmarks",
+   "kind": "topic",
+   "summary": "The flag, the Statue of Liberty and the Liberty Bell stand for ideas like freedom. Landmarks are well-known places that tell about our history.",
+   "tags": [
+    "flag",
+    "statue of liberty",
+    "liberty bell",
+    "landmark"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-1-maps-globes-and-directions",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Maps, globes and directions",
+   "kind": "topic",
+   "summary": "Maps use symbols and a key. The directions north, south, east and west help us find places on a map or globe.",
+   "tags": [
+    "map",
+    "key",
+    "compass",
+    "directions"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-1-where-we-live",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Where we live",
+   "kind": "topic",
+   "summary": "Our address tells where we live, in a neighborhood, city, state and country. Land and weather affect how people live.",
+   "tags": [
+    "address",
+    "city",
+    "state",
+    "country"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-1-places-around-the-world",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Places around the world",
+   "kind": "topic",
+   "summary": "People live in many places around the world, such as mountains, deserts and cities. Their homes, clothes and food fit the place.",
+   "tags": [
+    "world",
+    "culture",
+    "places",
+    "homes"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-1-goods-and-services",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "Economics",
+   "title": "Goods and services",
+   "kind": "topic",
+   "summary": "Goods are things people make or grow, and services are jobs people do for others. People trade money for both.",
+   "tags": [
+    "goods",
+    "services",
+    "buy",
+    "sell"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-1-producers-and-consumers",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "Economics",
+   "title": "Producers and consumers",
+   "kind": "topic",
+   "summary": "Producers make goods or give services. Consumers buy and use them.",
+   "tags": [
+    "producer",
+    "consumer",
+    "money",
+    "trade"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-1-families-then-and-now",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Families then and now",
+   "kind": "topic",
+   "summary": "Families long ago did chores and played differently. Looking at photos, tools and stories shows how family life has changed.",
+   "tags": [
+    "family",
+    "past",
+    "change",
+    "photos"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-1-holidays-and-traditions",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Holidays and traditions",
+   "kind": "topic",
+   "summary": "Families celebrate traditions in many ways. Some holidays remember important people or events in our country's past.",
+   "tags": [
+    "holiday",
+    "tradition",
+    "culture",
+    "celebrate"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-1-everyday-life-in-the-past",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Everyday life in the past",
+   "kind": "topic",
+   "summary": "Long ago, people cooked, traveled and talked without cars, phones or computers. Inventions changed daily life.",
+   "tags": [
+    "inventions",
+    "transportation",
+    "past",
+    "communication"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-1-geography-words",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Geography words",
+   "kind": "vocab",
+   "summary": "Words for talking about places and maps.",
+   "tags": [
+    "geography",
+    "vocabulary",
+    "map"
+   ],
+   "difficulty": 1,
+   "words": [
+    "map",
+    "globe",
+    "compass",
+    "north",
+    "south",
+    "east",
+    "west",
+    "continent",
+    "ocean",
+    "country"
+   ]
+  },
+  {
+   "id": "hss-1-civics-words",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Civics words",
+   "kind": "vocab",
+   "summary": "Words about rules, leaders and being a citizen.",
+   "tags": [
+    "civics",
+    "vocabulary",
+    "citizen"
+   ],
+   "difficulty": 2,
+   "words": [
+    "citizen",
+    "law",
+    "rule",
+    "leader",
+    "vote",
+    "right",
+    "responsibility",
+    "freedom"
+   ]
+  },
+  {
+   "id": "hss-1-fun-fact-earning-and-saving",
+   "grade": 1,
+   "subject": "hss",
+   "strand": "Economics",
+   "title": "Fun fact: earning and saving",
+   "kind": "fact",
+   "summary": "People earn money by working. They can spend it on things they need, or save some for later.",
+   "tags": [
+    "money",
+    "save",
+    "earn",
+    "fact"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-2-rules-and-laws-fairness",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Rules and laws, fairness",
+   "kind": "topic",
+   "summary": "Communities make laws so people stay safe and are treated fairly. Leaders like mayors help carry them out.",
+   "tags": [
+    "laws",
+    "mayor",
+    "fair",
+    "community"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-2-government-and-leaders",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Government and leaders",
+   "kind": "topic",
+   "summary": "Governments make laws and provide services like schools, parks and fire stations. Citizens help by voting and being involved.",
+   "tags": [
+    "government",
+    "vote",
+    "services",
+    "citizen"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-2-local-geography",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Local geography",
+   "kind": "topic",
+   "summary": "Our community has land, water and built places. Maps of our town show streets, parks and landmarks.",
+   "tags": [
+    "map",
+    "town",
+    "landmark",
+    "community"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-2-where-people-came-from",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Where people came from",
+   "kind": "topic",
+   "summary": "People in our country came from many places around the world. They brought food, music, languages and traditions.",
+   "tags": [
+    "immigrants",
+    "culture",
+    "traditions",
+    "food"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-2-work-and-trade",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "Economics",
+   "title": "Work and trade",
+   "kind": "topic",
+   "summary": "People in different jobs depend on each other. We trade goods and services, and money makes trading easier.",
+   "tags": [
+    "jobs",
+    "trade",
+    "money",
+    "community"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-2-how-people-make-a-difference",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "History",
+   "title": "How people make a difference",
+   "kind": "topic",
+   "summary": "One person can help change a community by being brave, kind or creative. Leaders, inventors and helpers have all done this.",
+   "tags": [
+    "difference",
+    "hero",
+    "leader",
+    "helper"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-2-long-ago-people-and-heroes",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Long-ago people and heroes",
+   "kind": "topic",
+   "summary": "People like Martin Luther King Jr. and Sally Ride did brave and important things. We can learn from their stories.",
+   "tags": [
+    "king",
+    "sally ride",
+    "hero",
+    "history"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-2-immigrants-and-newcomers",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Immigrants and newcomers",
+   "kind": "topic",
+   "summary": "Immigrants are people who move to a new country. Many came to the United States to find safety, work or freedom.",
+   "tags": [
+    "immigrant",
+    "ellis island",
+    "family",
+    "move"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-2-past-present-and-future",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Past, present and future",
+   "kind": "topic",
+   "summary": "History is the story of what happened in the past. A timeline puts events in order.",
+   "tags": [
+    "timeline",
+    "past",
+    "present",
+    "future"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-2-cultures-and-traditions",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Cultures and traditions",
+   "kind": "topic",
+   "summary": "People in a community may speak different languages and celebrate different holidays. Sharing makes a community richer.",
+   "tags": [
+    "culture",
+    "tradition",
+    "language",
+    "holiday"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-2-historical-sources",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Historical sources",
+   "kind": "topic",
+   "summary": "We learn about the past from photos, letters, tools, maps and from asking older people about their lives.",
+   "tags": [
+    "sources",
+    "photos",
+    "interview",
+    "artifact"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-2-community-words",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Community words",
+   "kind": "vocab",
+   "summary": "Words about government and living together.",
+   "tags": [
+    "community",
+    "civics",
+    "vocabulary"
+   ],
+   "difficulty": 1,
+   "words": [
+    "mayor",
+    "law",
+    "government",
+    "vote",
+    "citizen",
+    "community",
+    "leader",
+    "election"
+   ]
+  },
+  {
+   "id": "hss-2-history-words",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "History",
+   "title": "History words",
+   "kind": "vocab",
+   "summary": "Words used to talk about the past.",
+   "tags": [
+    "history",
+    "vocabulary",
+    "past"
+   ],
+   "difficulty": 2,
+   "words": [
+    "past",
+    "timeline",
+    "immigrant",
+    "hero",
+    "tradition",
+    "culture",
+    "artifact",
+    "century",
+    "invention"
+   ]
+  },
+  {
+   "id": "hss-2-fun-fact-voting",
+   "grade": 2,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Fun fact: voting",
+   "kind": "fact",
+   "summary": "In a vote, people choose a leader or decide something together. Most adult citizens in the United States are allowed to vote.",
+   "tags": [
+    "vote",
+    "fact",
+    "election"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-3-our-local-community",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Our local community",
+   "kind": "topic",
+   "summary": "Our community has its own geography and history. We can study it with maps, photos and stories.",
+   "tags": [
+    "community",
+    "local",
+    "map",
+    "history"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-3-landmarks-and-regions",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Landmarks and regions",
+   "kind": "topic",
+   "summary": "Landmarks, rivers, mountains and cities help define a place. Regions are areas that share features such as climate.",
+   "tags": [
+    "landmark",
+    "region",
+    "river",
+    "mountain"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-3-native-peoples-of-the-local-region",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Native peoples of the local region",
+   "kind": "topic",
+   "summary": "Native American peoples were the first people in most communities. Many nations still live here, and their cultures are still strong.",
+   "tags": [
+    "native americans",
+    "first people",
+    "tribes",
+    "culture"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-3-explorers-and-settlers",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Explorers and settlers",
+   "kind": "topic",
+   "summary": "Explorers and settlers came from other places. They changed communities, and not everyone was treated fairly.",
+   "tags": [
+    "explorers",
+    "settlers",
+    "pioneers",
+    "change"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-3-how-communities-change",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "History",
+   "title": "How communities change",
+   "kind": "topic",
+   "summary": "Towns grow and change over time because of people, new inventions and the land. Some things stay the same.",
+   "tags": [
+    "continuity",
+    "change",
+    "growth",
+    "town"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-3-immigration-and-a-diverse-community",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Immigration and a diverse community",
+   "kind": "topic",
+   "summary": "People from many countries have helped build our communities. Their food, music, languages and customs are part of our local culture.",
+   "tags": [
+    "immigration",
+    "diversity",
+    "culture",
+    "community"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-3-local-government",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Local government",
+   "kind": "topic",
+   "summary": "City and county governments make rules, run services and are led by elected people such as mayors and council members.",
+   "tags": [
+    "mayor",
+    "council",
+    "government",
+    "services"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-3-constitution-and-citizens",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Constitution and citizens",
+   "kind": "topic",
+   "summary": "The Constitution is the plan for our government. Citizens have rights and also responsibilities, like obeying laws and voting.",
+   "tags": [
+    "constitution",
+    "rights",
+    "citizen",
+    "vote"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-3-symbols-of-freedom",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Symbols of freedom",
+   "kind": "topic",
+   "summary": "The flag, the Pledge, the Liberty Bell and the Statue of Liberty are national symbols of freedom.",
+   "tags": [
+    "flag",
+    "symbol",
+    "liberty",
+    "freedom"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-3-local-economy",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "Economics",
+   "title": "Local economy",
+   "kind": "topic",
+   "summary": "People in a community make and sell goods and services. Farms, shops and factories all play a part, and people trade across places.",
+   "tags": [
+    "economy",
+    "goods",
+    "services",
+    "trade"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-3-geography-words",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Geography words",
+   "kind": "vocab",
+   "summary": "Words about place and region.",
+   "tags": [
+    "geography",
+    "vocabulary",
+    "region"
+   ],
+   "difficulty": 1,
+   "words": [
+    "region",
+    "landmark",
+    "climate",
+    "valley",
+    "coast",
+    "resource",
+    "border",
+    "map key",
+    "continent"
+   ]
+  },
+  {
+   "id": "hss-3-civics-words",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Civics words",
+   "kind": "vocab",
+   "summary": "Words about government and citizens.",
+   "tags": [
+    "civics",
+    "vocabulary",
+    "government"
+   ],
+   "difficulty": 2,
+   "words": [
+    "constitution",
+    "law",
+    "mayor",
+    "council",
+    "citizen",
+    "right",
+    "vote",
+    "responsibility"
+   ]
+  },
+  {
+   "id": "hss-3-history-words",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "History",
+   "title": "History words",
+   "kind": "vocab",
+   "summary": "Words for change over time.",
+   "tags": [
+    "history",
+    "vocabulary",
+    "change"
+   ],
+   "difficulty": 2,
+   "words": [
+    "settler",
+    "explorer",
+    "pioneer",
+    "immigrant",
+    "tradition",
+    "native",
+    "trade",
+    "continuity",
+    "culture"
+   ]
+  },
+  {
+   "id": "hss-3-fun-fact-continuity-and-change",
+   "grade": 3,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Fun fact: continuity and change",
+   "kind": "fact",
+   "summary": "Some things in a town stay the same for hundreds of years, like a river or a festival. Other things, like buildings and jobs, change.",
+   "tags": [
+    "fact",
+    "change",
+    "continuity"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-4-california-geography",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "California",
+   "title": "California geography",
+   "kind": "topic",
+   "summary": "California has coasts, mountains, valleys and deserts. Where people live and work depends on these regions.",
+   "tags": [
+    "california",
+    "regions",
+    "coast",
+    "valley"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-4-california-native-peoples",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "California",
+   "title": "California Native peoples",
+   "kind": "topic",
+   "summary": "Many Native nations lived in California for thousands of years and still do. They used land and resources wisely.",
+   "tags": [
+    "native",
+    "california",
+    "tribes",
+    "first people"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-4-exploration-and-missions",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "California",
+   "title": "Exploration and missions",
+   "kind": "topic",
+   "summary": "Spanish explorers and missions changed life in California, especially for Native peoples. People today see this history from several points of view.",
+   "tags": [
+    "spanish",
+    "missions",
+    "explorers",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-4-ranchos-and-mexican-california",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "California",
+   "title": "Ranchos and Mexican California",
+   "kind": "topic",
+   "summary": "After Mexico became independent, large ranches called ranchos shaped California life. Cattle hides and tallow were traded.",
+   "tags": [
+    "rancho",
+    "mexico",
+    "cattle",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-4-the-gold-rush",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "California",
+   "title": "The Gold Rush",
+   "kind": "topic",
+   "summary": "Gold found in 1848 brought many people from across the world to California. The Gold Rush changed the land and the people living here.",
+   "tags": [
+    "gold rush",
+    "1848",
+    "miners",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-4-statehood",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "California",
+   "title": "Statehood",
+   "kind": "topic",
+   "summary": "California became a state in 1850. The state's growth brought new communities, laws and conflicts.",
+   "tags": [
+    "statehood",
+    "1850",
+    "california",
+    "growth"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-4-railroads-and-growth",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "California",
+   "title": "Railroads and growth",
+   "kind": "topic",
+   "summary": "The transcontinental railroad linked California to the east. Workers, including many Chinese immigrants, built it.",
+   "tags": [
+    "railroad",
+    "immigrants",
+    "growth",
+    "travel"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-4-water-farms-and-cities",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "California",
+   "title": "Water, farms and cities",
+   "kind": "topic",
+   "summary": "Farms, cities and industries grew as people built dams, canals and aqueducts to move water. California became a leader in farming and technology.",
+   "tags": [
+    "water",
+    "farming",
+    "cities",
+    "industry"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-4-california-government",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "California government",
+   "kind": "topic",
+   "summary": "California's government has three branches. The state capital is Sacramento, and the state constitution sets the rules.",
+   "tags": [
+    "government",
+    "sacramento",
+    "branches",
+    "state"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-4-california-s-economy-today",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "Economics",
+   "title": "California's economy today",
+   "kind": "topic",
+   "summary": "California's economy includes farming, entertainment, technology and trade. Ports and highways help move goods.",
+   "tags": [
+    "economy",
+    "technology",
+    "farming",
+    "trade"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-4-california-words",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "California words",
+   "kind": "vocab",
+   "summary": "Words for talking about California.",
+   "tags": [
+    "california",
+    "vocabulary",
+    "geography"
+   ],
+   "difficulty": 1,
+   "words": [
+    "coast",
+    "valley",
+    "desert",
+    "mountain",
+    "region",
+    "mission",
+    "rancho",
+    "immigrant",
+    "capital"
+   ]
+  },
+  {
+   "id": "hss-4-fun-fact-sacramento",
+   "grade": 4,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Fun fact: Sacramento",
+   "kind": "fact",
+   "summary": "Sacramento became California's capital in 1854. It sits where the American and Sacramento Rivers meet.",
+   "tags": [
+    "sacramento",
+    "capital",
+    "fact"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-5-geography-of-north-america",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Geography of North America",
+   "kind": "topic",
+   "summary": "North America has varied lands and waters. Mountains, rivers and climate shaped where early peoples lived.",
+   "tags": [
+    "geography",
+    "map",
+    "rivers",
+    "climate"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-5-early-native-american-nations",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Early Native American nations",
+   "kind": "topic",
+   "summary": "Native nations across North America had many ways of life based on their lands. Many nations still thrive today.",
+   "tags": [
+    "native americans",
+    "tribes",
+    "culture",
+    "first peoples"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-5-exploration-and-trade",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Exploration and trade",
+   "kind": "topic",
+   "summary": "European explorers sought new routes and riches. Contact changed life for Native peoples, including through trade and disease.",
+   "tags": [
+    "explorers",
+    "trade",
+    "europe",
+    "contact"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-5-the-thirteen-colonies",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "History",
+   "title": "The thirteen colonies",
+   "kind": "topic",
+   "summary": "Colonies grew along the Atlantic coast in New England, the Middle and the Southern regions. Each had its own economy and way of life.",
+   "tags": [
+    "colonies",
+    "new england",
+    "jamestown",
+    "plymouth"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-5-slavery-in-the-colonies",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Slavery in the colonies",
+   "kind": "topic",
+   "summary": "Enslaved Africans were forced to work in the colonies. Their labor and resistance are a central part of American history.",
+   "tags": [
+    "slavery",
+    "africa",
+    "colonies",
+    "resistance"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-5-causes-of-the-american-revolution",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Causes of the American Revolution",
+   "kind": "topic",
+   "summary": "Colonists were angry about taxes and about having no say in British rule. Protests like the Boston Tea Party led to war.",
+   "tags": [
+    "revolution",
+    "taxes",
+    "boston tea party",
+    "britain"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-5-the-declaration-of-independence",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "History",
+   "title": "The Declaration of Independence",
+   "kind": "topic",
+   "summary": "In 1776 the Declaration of Independence said people have rights, including life, liberty and the pursuit of happiness. Thomas Jefferson wrote most of it.",
+   "tags": [
+    "declaration",
+    "1776",
+    "jefferson",
+    "liberty"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-5-the-revolutionary-war",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "History",
+   "title": "The Revolutionary War",
+   "kind": "topic",
+   "summary": "The colonists fought Britain for independence, led by George Washington. They won, and the United States became a new country.",
+   "tags": [
+    "war",
+    "washington",
+    "independence",
+    "yorktown"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-5-the-constitution",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "The Constitution",
+   "kind": "topic",
+   "summary": "The Constitution set up our government with three branches and checks and balances. The Bill of Rights protects basic freedoms.",
+   "tags": [
+    "constitution",
+    "branches",
+    "bill of rights",
+    "checks"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-5-westward-expansion",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Westward expansion",
+   "kind": "topic",
+   "summary": "After the Revolution, settlers moved west. This growth affected Native peoples and led to new states.",
+   "tags": [
+    "westward",
+    "settlers",
+    "expansion",
+    "pioneers"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-5-regions-of-the-united-states",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Regions of the United States",
+   "kind": "topic",
+   "summary": "The United States has regions like the Northeast, South, Midwest and West. Land and climate shape each region's work and life.",
+   "tags": [
+    "regions",
+    "states",
+    "northeast",
+    "west"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-5-american-history-words",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "History",
+   "title": "American history words",
+   "kind": "vocab",
+   "summary": "Words about the colonies and the new nation.",
+   "tags": [
+    "history",
+    "vocabulary",
+    "revolution"
+   ],
+   "difficulty": 2,
+   "words": [
+    "colony",
+    "settler",
+    "revolution",
+    "independence",
+    "constitution",
+    "amendment",
+    "citizen",
+    "explorer",
+    "slavery",
+    "treaty"
+   ]
+  },
+  {
+   "id": "hss-5-civics-words",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "Civics",
+   "title": "Civics words",
+   "kind": "vocab",
+   "summary": "Words about government and citizens.",
+   "tags": [
+    "civics",
+    "vocabulary",
+    "government"
+   ],
+   "difficulty": 2,
+   "words": [
+    "legislature",
+    "branch",
+    "executive",
+    "judicial",
+    "veto",
+    "amendment",
+    "rights",
+    "vote"
+   ]
+  },
+  {
+   "id": "hss-5-fun-fact-declaration-date",
+   "grade": 5,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Fun fact: Declaration date",
+   "kind": "fact",
+   "summary": "The Declaration of Independence was adopted on July 4, 1776. We celebrate this day as Independence Day.",
+   "tags": [
+    "july 4",
+    "declaration",
+    "fact"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-6-early-humans-and-the-neolithic-revolutio",
+   "grade": 6,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Early humans and the Neolithic revolution",
+   "kind": "topic",
+   "summary": "Early people moved from hunting and gathering to farming. This led to villages, tools and eventually cities.",
+   "tags": [
+    "early humans",
+    "farming",
+    "tools",
+    "neolithic"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-6-mesopotamia-and-egypt",
+   "grade": 6,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Mesopotamia and Egypt",
+   "kind": "topic",
+   "summary": "Early civilizations grew along rivers like the Tigris, Euphrates and Nile. They developed writing, laws and cities.",
+   "tags": [
+    "mesopotamia",
+    "egypt",
+    "nile",
+    "writing"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-6-ancient-hebrews-and-kush",
+   "grade": 6,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Ancient Hebrews and Kush",
+   "kind": "topic",
+   "summary": "Ancient Hebrews formed a monotheistic religion that shaped later traditions. Kush was a powerful kingdom in Africa along the Nile.",
+   "tags": [
+    "hebrews",
+    "kush",
+    "religion",
+    "nile"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-6-ancient-india-and-china",
+   "grade": 6,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Ancient India and China",
+   "kind": "topic",
+   "summary": "India's early civilizations gave us ideas in religion and math. China's dynasties built cities, a Great Wall and an empire.",
+   "tags": [
+    "india",
+    "china",
+    "dynasty",
+    "great wall"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-6-ancient-greece",
+   "grade": 6,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Ancient Greece",
+   "kind": "topic",
+   "summary": "Greek city-states like Athens and Sparta had different ways of governing. Athens developed early democracy, and Greeks excelled in art, philosophy and science.",
+   "tags": [
+    "greece",
+    "athens",
+    "democracy",
+    "philosophy"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-6-ancient-rome",
+   "grade": 6,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Ancient Rome",
+   "kind": "topic",
+   "summary": "Rome grew from a city into a huge republic and then an empire. Its law, roads and engineering shaped the Western world.",
+   "tags": [
+    "rome",
+    "republic",
+    "empire",
+    "law"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-6-geography-of-the-ancient-world",
+   "grade": 6,
+   "subject": "hss",
+   "strand": "Geography",
+   "title": "Geography of the ancient world",
+   "kind": "topic",
+   "summary": "Rivers, seas and deserts influenced where ancient people lived and traded. Maps help us follow their movements.",
+   "tags": [
+    "geography",
+    "rivers",
+    "trade",
+    "map"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-6-ancient-world-words",
+   "grade": 6,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Ancient world words",
+   "kind": "vocab",
+   "summary": "Words about early civilizations.",
+   "tags": [
+    "ancient",
+    "vocabulary",
+    "civilization"
+   ],
+   "difficulty": 2,
+   "words": [
+    "civilization",
+    "empire",
+    "dynasty",
+    "democracy",
+    "republic",
+    "pharaoh",
+    "polytheism",
+    "philosophy",
+    "artifact"
+   ]
+  },
+  {
+   "id": "hss-6-fun-fact-alphabet-origins",
+   "grade": 6,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Fun fact: Alphabet origins",
+   "kind": "fact",
+   "summary": "Many writing systems began in the ancient world, and our alphabet traces back through Greece and Rome. Writing let people keep records and share ideas.",
+   "tags": [
+    "writing",
+    "alphabet",
+    "fact",
+    "ancient"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-7-the-fall-of-rome-and-early-middle-ages",
+   "grade": 7,
+   "subject": "hss",
+   "strand": "History",
+   "title": "The fall of Rome and early Middle Ages",
+   "kind": "topic",
+   "summary": "After Rome's empire in the west ended, Europe had smaller kingdoms. Christianity and the Byzantine Empire helped carry ideas forward.",
+   "tags": [
+    "rome",
+    "middle ages",
+    "byzantine",
+    "europe"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-7-islamic-civilization",
+   "grade": 7,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Islamic civilization",
+   "kind": "topic",
+   "summary": "Islam spread from Arabia and built a large civilization. Scholars made advances in science, medicine, math and art.",
+   "tags": [
+    "islam",
+    "science",
+    "trade",
+    "caliphate"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-7-medieval-africa-and-asia",
+   "grade": 7,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Medieval Africa and Asia",
+   "kind": "topic",
+   "summary": "West African kingdoms like Ghana, Mali and Songhai grew rich on trade. China, Japan and Korea had powerful states and fresh inventions.",
+   "tags": [
+    "africa",
+    "mali",
+    "china",
+    "japan"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-7-medieval-europe",
+   "grade": 7,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Medieval Europe",
+   "kind": "topic",
+   "summary": "In medieval Europe, kings, lords and peasants lived under feudalism. Churches, castles and towns shaped daily life.",
+   "tags": [
+    "feudalism",
+    "castle",
+    "knights",
+    "europe"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-7-americas-before-and-after-contact",
+   "grade": 7,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Americas before and after contact",
+   "kind": "topic",
+   "summary": "Mesoamerican and Andean peoples like the Maya, Aztec and Inca built large civilizations. European contact brought deep changes.",
+   "tags": [
+    "maya",
+    "aztec",
+    "inca",
+    "americas"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-7-renaissance-and-reformation",
+   "grade": 7,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Renaissance and Reformation",
+   "kind": "topic",
+   "summary": "The Renaissance brought new art and learning. The Reformation changed Christianity and Europe.",
+   "tags": [
+    "renaissance",
+    "reformation",
+    "art",
+    "printing press"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-7-age-of-exploration",
+   "grade": 7,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Age of Exploration",
+   "kind": "topic",
+   "summary": "European ships crossed oceans in search of trade, land and wealth. Exploration led to new contacts and conflicts.",
+   "tags": [
+    "exploration",
+    "ships",
+    "trade",
+    "columbus"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-7-medieval-and-early-modern-words",
+   "grade": 7,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Medieval and early modern words",
+   "kind": "vocab",
+   "summary": "Words about this era.",
+   "tags": [
+    "vocabulary",
+    "medieval",
+    "renaissance"
+   ],
+   "difficulty": 2,
+   "words": [
+    "feudalism",
+    "manor",
+    "caliph",
+    "trade route",
+    "guild",
+    "renaissance",
+    "reformation",
+    "exploration",
+    "empire"
+   ]
+  },
+  {
+   "id": "hss-7-fun-fact-printing-press",
+   "grade": 7,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Fun fact: Printing press",
+   "kind": "fact",
+   "summary": "In the 1400s, Johannes Gutenberg's printing press made books cheaper and helped ideas spread quickly across Europe.",
+   "tags": [
+    "printing press",
+    "gutenberg",
+    "fact"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-8-ideas-of-the-american-founding",
+   "grade": 8,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Ideas of the American founding",
+   "kind": "topic",
+   "summary": "The Revolution and the Constitution were built on ideas of liberty and self-government. Founders debated how much power each level of government should have.",
+   "tags": [
+    "founding",
+    "constitution",
+    "liberty",
+    "federalism"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "hss-8-growth-of-a-new-nation",
+   "grade": 8,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Growth of a new nation",
+   "kind": "topic",
+   "summary": "In the early republic, the nation grew with new states, roads and canals. Political parties and public debates took shape.",
+   "tags": [
+    "early republic",
+    "states",
+    "growth",
+    "parties"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-8-westward-expansion",
+   "grade": 8,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Westward expansion",
+   "kind": "topic",
+   "summary": "The country grew by purchase and war, such as the Louisiana Purchase. Native nations were forced from their lands, and settlers had hard journeys.",
+   "tags": [
+    "westward",
+    "louisiana purchase",
+    "native americans",
+    "pioneers"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-8-industrial-revolution-and-reform",
+   "grade": 8,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Industrial revolution and reform",
+   "kind": "topic",
+   "summary": "Factories and new machines changed work and cities. Reform movements worked for causes like women's rights and ending slavery.",
+   "tags": [
+    "industry",
+    "reform",
+    "factories",
+    "women's rights"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "hss-8-slavery-and-the-road-to-civil-war",
+   "grade": 8,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Slavery and the road to Civil War",
+   "kind": "topic",
+   "summary": "Slavery divided the nation. Disagreements over it, along with abolitionists' work, led to the Civil War.",
+   "tags": [
+    "slavery",
+    "abolition",
+    "civil war",
+    "division"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-8-the-civil-war",
+   "grade": 8,
+   "subject": "hss",
+   "strand": "History",
+   "title": "The Civil War",
+   "kind": "topic",
+   "summary": "From 1861 to 1865, the Union and Confederacy fought. The war ended slavery and tested the United States.",
+   "tags": [
+    "civil war",
+    "lincoln",
+    "union",
+    "slavery"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-8-reconstruction",
+   "grade": 8,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Reconstruction",
+   "kind": "topic",
+   "summary": "After the war, the country tried to rebuild and protect the rights of formerly enslaved people. Constitutional amendments made big changes, but many rights were later denied.",
+   "tags": [
+    "reconstruction",
+    "amendments",
+    "freedom",
+    "rights"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "hss-8-growth-and-conflict-words",
+   "grade": 8,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Growth and Conflict words",
+   "kind": "vocab",
+   "summary": "Words from this unit.",
+   "tags": [
+    "vocabulary",
+    "civil war",
+    "reform"
+   ],
+   "difficulty": 2,
+   "words": [
+    "abolition",
+    "reform",
+    "amendment",
+    "secession",
+    "reconstruction",
+    "industrialization",
+    "federalism",
+    "expansion",
+    "emancipation"
+   ]
+  },
+  {
+   "id": "hss-8-fun-fact-emancipation-proclamation",
+   "grade": 8,
+   "subject": "hss",
+   "strand": "History",
+   "title": "Fun fact: Emancipation Proclamation",
+   "kind": "fact",
+   "summary": "President Lincoln issued the Emancipation Proclamation in 1863. It declared people held as slaves in rebelling states to be free.",
+   "tags": [
+    "emancipation",
+    "lincoln",
+    "1863",
+    "fact"
+   ],
+   "difficulty": 2
+  }
+ ]
+}

@@ -12,7 +12,7 @@ import threading
 import time
 import wave
 
-from . import canned, config, debugrec, nonspeech, scripted
+from . import canned, config, curriculum, curriculum_picks, debugrec, nonspeech, scripted
 from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
@@ -213,6 +213,7 @@ class Director:
         self._turn_lock = threading.Lock()
         self._gen = 0                              # bumped by interrupt(): the running reply is dropped
         self.cue_hold = threading.Event()          # set while a parent cue speaks: the reply waits at its next line boundary
+        self._rotation = curriculum.Rotation()     # which grade topics were offered recently (rotates, no repeats)
         self.parent = None                         # brain.parent.Parent, set by main (profiles, cues; None = feature off)
         self._notes_sent = ""                       # the notes block the toys' conversation currently contains
         self.imu = {}                              # toy -> {"asleep", "commented", "last"}: per-episode memory, RAM only
@@ -498,15 +499,33 @@ class Director:
         if ev:
             self._turn(event=ev)
 
+    def _grade_topics(self) -> str:
+        """[GRADE TOPICS] for the bound child's grade (default grade when unknown); '' if the curriculum fails: it must never break a turn."""
+        try:
+            grade, boost, skip = curriculum_picks.context_for_bound_child(self.parent)
+            return curriculum.topics_block(grade, self._rotation, boost, skip)
+        except Exception:   # noqa: BLE001
+            log.exception("grade topics failed")
+            return ""
+
+    def _banter_seed(self) -> str:
+        """Idle banter draws its topic from the grade's curriculum; falls back to the fixed seeds if the data is missing."""
+        try:
+            grade, boost, skip = curriculum_picks.context_for_bound_child(self.parent)
+            seed = curriculum.banter_seed(grade, self._rotation, boost, skip)
+        except Exception:   # noqa: BLE001
+            seed = None
+        return seed or random.choice(config.BANTER_SEEDS)
+
     def _idle_event(self) -> str:
         online = self.hub.online()
         for t in online:
             v = self.eyes.views[t]
             seen = [x.label for x in v.things if x.kind == "toy"]
             if seen:
-                seed = random.choice(config.BANTER_SEEDS)
+                seed = self._banter_seed()
                 return f"{NAMES[t]} is looking at {seen[0]}. {NAMES[t]} asks {seen[0]} something about {seed}, who answers."
-        seed = random.choice(config.BANTER_SEEDS)
+        seed = self._banter_seed()
         order = ", ".join(NAMES[t] for t in plan_order(online))
         return (f"Nobody has talked for a while. The toys chat about {seed} to invite the child to play. "
                 f"[ORDER] {order}. One short line each, each reacting to the one before.")
@@ -586,8 +605,8 @@ class Director:
                 if reset and (self._notes_sent or notes):
                     reset()
                 self._notes_sent = notes
-            if notes:
-                prompt = notes + "\n" + prompt
+            topics = self._grade_topics()    # curriculum: a short rotating [GRADE TOPICS] block right after the notes; not logged, not a quiz
+            prompt = "".join(b + "\n" for b in (notes, topics) if b) + prompt
 
             def dispatched(who, text):
                 self.last_lines.append((who, text))
