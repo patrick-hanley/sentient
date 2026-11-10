@@ -132,6 +132,20 @@ BARGE_RATIO = float(os.environ.get("SENTIENT_BARGE_RATIO", "3.0"))   # voice mus
 BARGE_MIN_RMS = float(os.environ.get("SENTIENT_BARGE_MIN_RMS", "350"))
 BARGE_MS = 160               # ...for this long, in a row
 BARGE_WARMUP_MS = 300        # learn the leakage level first
+# Cross-toy echo cancellation (brain/aec.py, docs/aec.md): the listeners' mics keep working while a toy talks
+AEC = os.environ.get("SENTIENT_AEC", "1") != "0"             # off: the loudness-ratio detector above is the only barge-in
+AEC_PARTS = 8                # filter = 8 x 20 ms blocks = 160 ms of room echo
+AEC_MU = float(os.environ.get("SENTIENT_AEC_MU", "0.5"))
+AEC_SEARCH_S = 0.4           # seconds of the clip heard before the first GCC-PHAT lag search (warm starts skip it)
+AEC_PLACE_S = 0.3            # seconds of a later clip heard before its narrow re-alignment around the last lag
+AEC_MIN_SCORE_PLACE = 4.0
+AEC_MIN_SCORE = 6.0          # PHAT peak over the search range's other lags: weaker means no echo heard
+AEC_DT_RATIO = 2.0           # residual amplitude over the predicted leftover echo + noise that marks a second voice
+AEC_MIN_RMS = 250.0          # ...and it must be at least this loud (int16 RMS)
+AEC_BARGE_MS = 120           # ...for this long, mostly speech to webrtcvad, to cut the toy
+AEC_PREROLL_FRAMES = 15      # residual frames kept before the first loud one, so the first word is not lost
+AEC_ECHO_CORR = 0.25         # a loud residual still this correlated with the toy's clip is echo-path change, not the child
+AEC_STOP_LATENCY_S = 0.04    # STOP is sent -> speaker silent (the clip's reference is cut then)
 MIC_TAIL_S = 0.4             # mics stay muted this long after any toy stops talking
 ARBITRATE_S = 0.12           # upper bound; stop sooner when all online mics have reported
 
