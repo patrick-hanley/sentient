@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from . import config
+from .barge import BargeDetector
 from .floor import FloorControl
 
 log = logging.getLogger("atoms")
@@ -68,6 +69,7 @@ class Atom:
 class AtomHub:
     monitor = None   # brain.spectrum.Monitor, set by main
     on_imu = None    # Director sets this: called (toy, event) for 'IMU <event>' from firmware 3.5+
+    play_id, on_barge, _barged, _barge_toy, _barge_frames = 0, None, False, None, []
     talking = None   # class defaults so a hub built without __init__ (test doubles) still works
     mute_until = 0.0
     """Tracks Atoms, feeds mic frames to `on_audio(toy, pcm)`, plays speech back.
@@ -88,6 +90,11 @@ class AtomHub:
         self.mute_until = 0.0
         self.force_mute = False
         self.talking: str | None = None
+        self.play_id = 0
+        self.barge = BargeDetector()
+        self.on_barge = None          # main wires the director: barge_in(toy)
+        self._barged = False
+        self._barge_toy, self._barge_frames = None, []
         self._play_lock = threading.Lock()
         self.response_active = threading.Event()
         self._http = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -161,6 +168,15 @@ class AtomHub:
         now = time.time()
         return [t for t in config.TOY_ORDER if t in self.atoms and now - self.atoms[t].last_seen < 10]
 
+    def _barge(self, toy: str, frames) -> None:
+        log.info("barge-in: %s heard the child over %s (loudness %.1fx the leakage): cutting the toy", toy, self.talking, self.barge.max_ratio)
+        self._barged, self._barge_toy, self._barge_frames = True, toy, frames
+        self.floor.human_start()
+        try:
+            self.on_barge(toy)
+        except Exception:  # noqa: BLE001
+            log.exception("barge-in handler failed")
+
     def muted(self) -> bool:
         now = time.time()
         return self.force_mute or now < self.mute_until or any(now < a.local_until for a in self.atoms.values())
@@ -196,7 +212,16 @@ class AtomHub:
                 if self.monitor is not None:   # before the mute gate: we want to hear our own toys too
                     self.monitor.add(a.toy, pcm)
                 if not self.muted():
+                    if self._barge_frames and a.toy == self._barge_toy:   # the start of the interrupting speech, kept in RAM
+                        frames, self._barge_frames = self._barge_frames, []
+                        for f in frames[:-1]:
+                            self.on_audio(a.toy, f)
                     self.on_audio(a.toy, pcm)
+                elif (config.BARGE_IN and self.on_barge and self.talking and a.toy != self.talking
+                      and not self.force_mute and not self._barged):
+                    frames = self.barge.feed(a.toy, pcm, self.play_id)
+                    if frames:
+                        self._barge(a.toy, frames)
             elif data.startswith(b"HELLO"):
                 parts = data.decode(errors="replace").split()
                 mac = parts[1]
@@ -349,6 +374,8 @@ class AtomHub:
         reply time is the true end of speech. Returns seconds, or None if a clip was missing."""
         with self._play_lock:
             self.talking = toy
+            self.play_id += 1
+            self._barged = False
             self.floor.agent_start(toy)
             self.mute_until = max(self.mute_until, time.time() + dur + 2.0)
             try:
@@ -372,7 +399,11 @@ class AtomHub:
                 if raise_on_error:
                     raise
             finally:
-                self.mute_until = time.time() + config.MIC_TAIL_S
+                self.mute_until = time.time() if self._barged else time.time() + config.MIC_TAIL_S   # cut by the child: listen now
+                if self._barged:
+                    self.floor.human_end()
+                elif getattr(self, "barge", None) is not None and self.barge.max_ratio:
+                    log.info("barge-in check: loudest other-mic moment was %.1fx the leakage (cut-in needs %.1fx)", self.barge.max_ratio, config.BARGE_RATIO)
                 self.talking = None
                 self.floor.agent_end(toy)
         return dur

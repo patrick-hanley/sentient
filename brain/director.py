@@ -374,6 +374,11 @@ class Director:
         while self.cue_hold.is_set():
             time.sleep(0.05)
 
+    def barge_in(self, toy: str):
+        """The child started talking over a toy: stop every toy and drop the rest of the running reply."""
+        self.child_contact()
+        self.interrupt()
+
     def interrupt(self):
         """Parent's 'stop everything now': cut every toy's speech and drop the rest of the running reply."""
         self._gen += 1

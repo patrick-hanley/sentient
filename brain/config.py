@@ -127,6 +127,11 @@ START_FRAMES = 6             # voiced frames out of last 10 to open an utterance
 END_SILENCE_MS = 500
 MIN_SPEECH_MS = 500
 MAX_UTTER_MS = 8000
+BARGE_IN = os.environ.get("SENTIENT_BARGE_IN", "1") != "0"   # the child talks over a toy: cut it, listen
+BARGE_RATIO = float(os.environ.get("SENTIENT_BARGE_RATIO", "3.0"))   # voice must beat the toy's own leakage by this factor
+BARGE_MIN_RMS = float(os.environ.get("SENTIENT_BARGE_MIN_RMS", "350"))
+BARGE_MS = 160               # ...for this long, in a row
+BARGE_WARMUP_MS = 300        # learn the leakage level first
 MIC_TAIL_S = 0.4             # mics stay muted this long after any toy stops talking
 ARBITRATE_S = 0.12           # upper bound; stop sooner when all online mics have reported
 

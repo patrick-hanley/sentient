@@ -64,6 +64,7 @@ class Recognizer:
         self.face_rec = cv2.FaceRecognizerSF.create(str(config.SFACE), "")
         self.aruco = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50),
                                              cv2.aruco.DetectorParameters())
+        self.clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4, 4))
         self.obj = self.emb = None
         try:
             import mediapipe as mp
@@ -145,13 +146,26 @@ class Recognizer:
         name, s = max(((n, max(_cos(vec, f) for f in fs)) for n, fs in cands.items()), key=lambda x: x[1])
         return name if s >= config.PET_MATCH else None
 
+    def _tags(self, img):
+        """ArUco tags on the toys' chests. The toy cameras are small and often dim, so retry on a contrast-stretched copy."""
+        corners, ids, _ = self.aruco.detectMarkers(img)
+        if ids is not None and len(ids):
+            return corners, ids
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img
+        boosted = self.clahe.apply(gray)
+        corners, ids, _ = self.aruco.detectMarkers(boosted)
+        return (corners, ids) if ids is not None else ([], None)
+
     # ---------- full analysis ----------
     def analyze(self, img, own_toy: str | None = None) -> list[Thing]:
         things = []
         for box, feat, sc in self.faces(img):
             name, _ = self.who(feat)
-            things.append(Thing("person", name, box, sc) if name else Thing("child", "the child", box, sc))
-        corners, ids, _ = self.aruco.detectMarkers(img)
+            if name and name.strip().lower() in ("child", "the child"):
+                things.append(Thing("child", "the child", box, sc))       # only a face enrolled as "child" is the child
+            else:
+                things.append(Thing("person", name or "a person", box, sc))   # anyone else: by name, or just "a person"
+        corners, ids = self._tags(img)
         for c, i in zip(corners if ids is not None else [], ids.flatten() if ids is not None else []):
             toy = ARUCO_TO_TOY.get(int(i))
             if toy and toy != own_toy:

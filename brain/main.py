@@ -328,6 +328,7 @@ def main():
     eyes = Perceiver(hub, rec)
     director = Director(hub, voices, eyes, llm, segs)
     hub.on_imu = director.on_imu
+    hub.on_barge = director.barge_in
     for t in config.TOY_ORDER:
         segs[t] = Segmenter(t, director.utter_q)
     eyes.on_seen = director.on_seen
