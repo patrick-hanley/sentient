@@ -19,6 +19,7 @@ import urllib.parse
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from . import config, teach
 from . import parent as P
 from . import scripted
 
@@ -114,6 +115,15 @@ def make_handler(parent: P.Parent, director=None):
                         "gemma": bool(director and hasattr(director.llm, "complete"))})
                 if u.path == "/api/items":
                     return self._send(200, {"items": parent.view(q.get("child", ""))})
+                if u.path == "/api/teach/list":   # Teach the camera (brain/teach.py): names and counts, never vectors
+                    teacher = getattr(parent, "teacher", None)
+                    if not teacher:
+                        return self._send(200, {"entries": [], "toys": [], "ready": False})
+                    hub = director.hub if director else None
+                    online = set(hub.online()) if hub else set()
+                    return self._send(200, {"ready": True, "entries": teacher.store.list(), "toys": [
+                        {"id": k, "name": t["name"], "online": k in online, "cam": bool(hub and k in hub.atoms and hub.atoms[k].cam)}
+                        for k, t in config.TOYS.items()]})
                 if u.path in ("/api/photo/status", "/api/sort/status"):
                     return self._send(200, parent.jobs.get(q.get("job", ""), {"status": "unknown"}))
             except P.Locked:
@@ -137,6 +147,16 @@ def make_handler(parent: P.Parent, director=None):
                     job = parent.read_worksheet(q.get("child", ""), data, director.llm if director else None,
                                                 busy=lambda: bool(director and (director.busy or director.child_speaking())))
                     return self._send(200, {"job": job})
+                if u.path == "/api/teach/photo":   # one photo, embedded in RAM and dropped: only the vector is kept
+                    teacher = self._teacher()
+                    n = self._length(MAX_PHOTO)
+                    if not (self.headers.get("Content-Type") or "").startswith("image/"):
+                        return self._send(400, {"error": "bad photo"})
+                    img = teach.decode(self.rfile.read(n))
+                    if img is None:
+                        return self._send(400, {"error": "That photo could not be read (export it as JPEG)."})
+                    return self._send(200, teacher.enroll(q.get("kind", ""), q.get("name", ""), [img], q.get("consent") == "1",
+                                                          role=q.get("role"), child=q.get("child") or None))
                 b = self._json()
                 return self._post(u.path, b)
             except P.Locked:
@@ -153,7 +173,25 @@ def make_handler(parent: P.Parent, director=None):
                 log.exception("parent board request failed")
                 return self._send(500, {"error": "something went wrong"})
 
+        def _teacher(self):
+            teacher = getattr(parent, "teacher", None)
+            if not teacher:
+                raise RuntimeError("The camera cannot be taught on this brain.")
+            return teacher
+
         def _post(self, path, b):
+            if path == "/api/teach/capture":   # the parent pressed the button: that toy's camera is on for these few frames only
+                teacher = self._teacher()
+                kind = str(b.get("kind", ""))
+                name = str(b.get("name", ""))
+                if b.get("consent") is not True:   # before any camera is touched
+                    raise ValueError("A parent has to agree first (tick the consent box).")
+                imgs = teacher.capture(str(b.get("toy", "")), shots=6)
+                return self._send(200, teacher.enroll(kind, name, imgs, b.get("consent") is True,
+                                                      role=b.get("role"), child=b.get("child") or None))
+            if path == "/api/teach/delete":
+                self._teacher().store.delete(str(b.get("id", "")))
+                return self._send(200, {"ok": True})
             if path == "/api/setup":
                 tok = parent.setup(str(b.get("pin", "")), str(b.get("code", "")))
                 return self._send(200, {"ok": True}, cookie=self._cookie(tok))
@@ -167,6 +205,8 @@ def make_handler(parent: P.Parent, director=None):
                 return self._send(200, parent.add_child(str(b.get("name", ""))))
             if path == "/api/child/delete":
                 parent.delete_child(str(b.get("id", "")))
+                if getattr(parent, "teacher", None):
+                    parent.teacher.store.forget_child(str(b.get("id", "")))   # their enrolled face goes too
                 return self._send(200, {"ok": True})
             if path == "/api/sort":
                 text = str(b.get("text", ""))[:6000]

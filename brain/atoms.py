@@ -277,8 +277,9 @@ class AtomHub:
                     self.on_button(a.toy, data.decode().split()[-1])
 
     # ---------- HTTP ----------
-    def capture(self, toy: str, timeout: float = 3.0) -> bytes | None:
-        if config.PAUSE_CAPTURE_DURING_TURN and self.response_active.is_set():
+    def capture(self, toy: str, timeout: float = 3.0, force: bool = False) -> bytes | None:
+        # force=True: the child asked the toy to look (camera policy, brain/camera.py) or a parent is enrolling: allowed mid-turn
+        if config.PAUSE_CAPTURE_DURING_TURN and self.response_active.is_set() and not force:
             return None
         a = self.atoms.get(toy)
         if not a or not a.cam:

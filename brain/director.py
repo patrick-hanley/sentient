@@ -12,7 +12,7 @@ import threading
 import time
 import wave
 
-from . import canned, config, debugrec, nonspeech, scripted
+from . import camera, canned, config, debugrec, nonspeech, scripted
 from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
@@ -31,6 +31,7 @@ def system_prompt() -> str:
     topics = "\n".join(f"- {t}" for t in config.TOPICS)
     from .sfx import Sounds
     sounds = Sounds().prompt_list() or "none"
+    look_rule = "" if config.CAPTURE_CONTINUOUS else camera.PROMPT_RULE + "\n"   # camera policy: cameras off unless the child asks
     return f"""You are the voice director for three plush toy friends who play with {config.AUDIENCE}.
 The toys:
 {toys}
@@ -55,7 +56,7 @@ Rules:
 - Sound effects: a toy may put ONE sound tag at the start of a line, e.g. "DYNO: {{knock}} Who could be at the door?". Use them for stories, animals and fun moments, not every line. Available {sounds}
 - Never ask for personal information like addresses, schools or full names. Nothing scary.
 - If the child sounds hurt, scared or sad, the first toy says something kind AND suggests telling a grown-up they trust, like a parent or teacher. This rule beats every other rule.
-- The toys cannot move. They only know what is in [SCENE] and what the child says."""
+{look_rule}- The toys cannot move. They only know what is in [SCENE] and what the child says."""
 
 
 def clean(text: str) -> str:
@@ -577,6 +578,11 @@ class Director:
                     prompt += f'The child said: "{said}"\nReply.'
             else:
                 prompt += f"[EVENT] {event_text}"
+            # Camera policy (brain/camera.py). With a transcript (whisper path) the rules decide here, so the picture goes with the
+            # first call. The audio-native model has no transcript yet: it answers LOOK and the loop below takes the picture.
+            looks = self._can_look(toy)
+            if said and looks and camera.wants_look(said):
+                prompt, image = self._look_turn(toy, prompt, scene, said, image, tmp_files, trace)
             log.info("→ gemma: %s", prompt.replace("\n", " | "))
             notes = ((self.parent.notes_block() + "\n" + getattr(self.parent, "told_block", lambda: "")()).strip() if self.parent else "")   # added AFTER the log line: notes are never logged
             if notes != self._notes_sent:
@@ -618,20 +624,33 @@ class Director:
             parser = ReplyLines(speakers, line_ready, heard)
             kwargs = dict(wav=wav if self.llm.hears_audio else None, image=image)
             stream = getattr(self.llm, "stream", None)
+            peel = camera.LookPeeler() if looks and utt and not image else None   # round 0 may be the one-word LOOK request
             with trace.span("llm_ms"):
-                chunks = stream(prompt, **kwargs) if stream else iter([self.llm.ask(prompt, **kwargs)])
-                try:
-                    for delta in chunks:
-                        if self._gen != gen:
-                            break
-                        if delta:
-                            trace.mark("first_model_text_ms")
-                            parser.feed(delta)
-                    parser.finish()
-                finally:
-                    close = getattr(chunks, "close", None)
-                    if close:
-                        close()
+                for round_ in (0, 1):
+                    chunks = stream(prompt, **kwargs) if stream else iter([self.llm.ask(prompt, **kwargs)])
+                    try:
+                        for delta in chunks:
+                            if self._gen != gen:
+                                break
+                            if peel:
+                                delta = peel.feed(delta)
+                            if delta:
+                                trace.mark("first_model_text_ms")
+                                parser.feed(delta)
+                        if peel:
+                            parser.feed(peel.finish())
+                    finally:
+                        close = getattr(chunks, "close", None)
+                        if close:
+                            close()
+                    if not (peel and peel.looking and round_ == 0 and self._gen == gen):
+                        break
+                    # The child asked the toy to look: one picture from the toy that heard them, camera off again, same turn.
+                    if peel.heard:
+                        heard(peel.heard)
+                    prompt, image = self._look_turn(toy, prompt, scene, None, None, tmp_files, trace, replace=False)
+                    kwargs, peel = dict(wav=None, image=image), None
+                parser.finish()
             trace.mark("model_done_ms")
             if not parser.count:
                 raise ValueError("Model produced no labelled line for an online toy")
@@ -676,6 +695,38 @@ class Director:
             s.reset()
 
     # ---------- helpers ----------
+    # ---------- camera policy: look on request ----------
+    def _can_look(self, toy) -> bool:
+        """On-request looking is on (default), this toy has a camera and the perceiver can take a picture."""
+        a = getattr(self.hub, "atoms", {}).get(toy)
+        return (not config.CAPTURE_CONTINUOUS and hasattr(self.eyes, "snap") and bool(a and getattr(a, "cam", False))
+                and getattr(config, "LOOK_ON_REQUEST", True))
+
+    def _look_turn(self, toy, prompt, scene, said, image, tmp_files, trace, replace=True):
+        """Turn `toy`'s camera on for ONE picture, then off. Returns (prompt, image path) for the model call that answers it.
+        replace=True swaps the [SCENE] line of an existing prompt for the [CAMERA] block (transcript path); replace=False
+        returns just the [CAMERA] block (the model already holds the question as audio). The frame lives in a RAM temp file that
+        the end of the turn deletes; the Perceiver forgets it immediately."""
+        path, text, got = image, "", False
+        with trace.span("look_ms"):
+            try:
+                view = self.eyes.snap(toy)
+                if view is not None and view.jpeg:
+                    path, got = self._tmp(view.jpeg, ".jpg"), True
+                    tmp_files.append(path)
+                    text = view.describe()
+            except Exception:  # noqa: BLE001 — a camera hiccup must never break the turn
+                log.warning("look failed for %s", toy)
+            finally:
+                close = getattr(self.eyes, "close", None)
+                if close:
+                    close(toy)
+        trace.mark("look_done_ms")
+        block = camera.look_prompt(NAMES[toy], text, got, said)
+        if replace:
+            return prompt.replace("[SCENE] " + scene, block, 1), path
+        return block, path
+
     @staticmethod
     def _tmpdir():
         return "/dev/shm" if os.path.isdir("/dev/shm") else None

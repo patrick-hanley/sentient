@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 import cv2
 import numpy as np
 
-from . import config
+from . import config, teach
 
 log = logging.getLogger("perception")
 ARUCO_TO_TOY = {t["aruco"]: k for k, t in config.TOYS.items()}
@@ -66,6 +66,7 @@ class Recognizer:
                                              cv2.aruco.DetectorParameters())
         self.clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4, 4))
         self.obj = self.emb = None
+        self.gallery = lambda: teach.EMPTY   # main wires the Parent Board's encrypted store here (brain/teach.py)
         try:
             import mediapipe as mp
             from mediapipe.tasks.python import BaseOptions, vision
@@ -88,7 +89,7 @@ class Recognizer:
             db = np.load(config.ENROLL_DB, allow_pickle=True)
             self.people = db["people"].item()
             self.pets = db["pets"].item()
-        log.info("enrolled people=%s pets=%s", list(self.people), list(self.pets))
+        log.info("enrolled (legacy file) people=%d pets=%d", len(self.people), len(self.pets))   # counts only, never names
 
     def save_db(self):
         np.savez(config.ENROLL_DB, people=np.array(self.people, dtype=object), pets=np.array(self.pets, dtype=object))
@@ -129,6 +130,18 @@ class Recognizer:
             r = self.emb.embed(self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=rgb))
         return np.array(r.embeddings[0].embedding, dtype=np.float32)
 
+    @property
+    def embedder_name(self) -> str:
+        return "mp" if self.emb else "hist"
+
+    def thing_vec(self, img, box):
+        """(embedder name, vector) for the region of a toy or household item: MediaPipe where installed, else a colour histogram."""
+        x, y, w, h = box
+        vec = self.embed(img, box)
+        if vec is not None:
+            return "mp", vec
+        return "hist", teach.hist_embed(img[max(0, y):y + h, max(0, x):x + w])
+
     def who(self, feat) -> tuple[str | None, float]:
         best, score = None, 0.0
         for name, feats in self.people.items():
@@ -159,8 +172,14 @@ class Recognizer:
     # ---------- full analysis ----------
     def analyze(self, img, own_toy: str | None = None) -> list[Thing]:
         things = []
+        gal = self.gallery()
         for box, feat, sc in self.faces(img):
             name, _ = self.who(feat)
+            hit = None if name else gal.match_face(feat, config.FACE_MATCH)   # the Parent Board's encrypted enrollments
+            if hit:
+                role, name = hit
+                if role == "child":
+                    name = "child"
             if name and name.strip().lower() in ("child", "the child"):
                 things.append(Thing("child", "the child", box, sc))       # only a face enrolled as "child" is the child
             else:
@@ -172,13 +191,33 @@ class Recognizer:
                 x, y, w, h = cv2.boundingRect(c.astype(np.int32))
                 # the tag is on the chest; widen the box to roughly the whole toy
                 things.append(Thing("toy", config.TOYS[toy]["name"].upper(), (x - w, y - 2 * w, 3 * w, 4 * w)))
-        for cls, box, sc in self.objects(img):
+        objs = self.objects(img)
+        things += self._taught(img, gal, own_toy, objs, {t.label for t in things if t.kind == "toy"})
+        for cls, box, sc in objs:
             if cls in PET_CLASSES:
                 pet = self.which_pet(cls, self.embed(img, box))
                 things.append(Thing("pet", f"{cls} {pet}" if pet else f"a {cls}", box, sc))
             elif cls == "book":
                 things.append(Thing("object", "a book", box, sc))
         return things
+
+    def _taught(self, img, gal, own_toy, objs, tagged) -> list[Thing]:
+        """Toys (recognised by how they look, no ArUco tag needed) and household items a parent taught the camera."""
+        if not gal.things:
+            return []
+        regs = teach.regions(img, [b for _, b, _ in objs])
+        cands: dict[str, list] = {}
+        for emb in {t[2] for t in gal.things}:
+            if emb == self.embedder_name:
+                cands[emb] = [self.thing_vec(img, r)[1] for r in regs]
+        skip = {("toy", k) for k in config.TOYS if k == own_toy or config.TOYS[k]["name"].upper() in tagged}
+        out = []
+        for kind, name, score, ri in gal.match_things(cands, exclude=skip):
+            if kind == "toy":
+                out.append(Thing("toy", config.TOYS[name]["name"].upper(), regs[ri], score))
+            else:
+                out.append(Thing("object", name, regs[ri], score))
+        return out
 
 
 def _salience(t: Thing, w, h):
@@ -188,7 +227,9 @@ def _salience(t: Thing, w, h):
 
 
 class Perceiver:
-    """Polls each toy's camera, keeps the latest View, fires on_seen(toy, Thing) for new familiar faces/pets."""
+    """Camera policy (brain/camera.py): cameras are OFF. snap(toy) takes ONE picture on demand (the child asked what the toy
+    sees) and close(toy) drops it again. Only with SENTIENT_CAMERA_CONTINUOUS=1 does start() poll every toy's camera, keep the
+    latest View and fire on_seen(toy, Thing) for new familiar faces/pets (the old behaviour)."""
 
     def __init__(self, hub, rec: Recognizer, on_seen=None):
         self.hub, self.rec = hub, rec
@@ -198,10 +239,34 @@ class Perceiver:
         self._last_greet: dict[str, float] = {}
 
     def start(self):
+        if not config.CAPTURE_CONTINUOUS:
+            log.info("cameras are off: a toy looks only when the child asks (SENTIENT_CAMERA_CONTINUOUS=1 turns continuous capture back on)")
+            return
         for toy in config.TOY_ORDER:
             threading.Thread(target=self._loop, args=(toy,), daemon=True, name=f"eyes-{toy}").start()
 
+    def snap(self, toy) -> View | None:
+        """On demand: one frame from `toy`'s camera (allowed mid-turn), analysed and kept in RAM as that toy's View. No greeting
+        fires. The caller ends it with close(toy) once it has the frame."""
+        jpg = self.hub.capture(toy, force=True)
+        img = cv2.imdecode(np.frombuffer(jpg, np.uint8), cv2.IMREAD_COLOR) if jpg else None
+        if img is None:
+            return None
+        try:
+            self._update(toy, img, jpg, greet=False)
+        except Exception:  # noqa: BLE001
+            log.exception("perception failed for %s", toy)
+            self.views[toy] = View(toy, time.time(), True, [], None, jpg)
+        return self.views[toy]
+
+    def close(self, toy):
+        """Camera off again: forget the frame (the dashboard shows 'camera off'). Continuous mode keeps its rolling view."""
+        if not config.CAPTURE_CONTINUOUS:
+            self.views[toy] = View(toy)
+
     def scene_text(self) -> str:
+        if not config.CAPTURE_CONTINUOUS and not any(v.eyes for v in self.views.values()):
+            return "All cameras are off; a toy looks only when the child asks."
         return " ".join(self.views[t].describe() for t in self.hub.online()) or "No toys can see right now."
 
     def _loop(self, toy):
@@ -222,7 +287,7 @@ class Perceiver:
                         log.exception("perception failed for %s", toy)
             time.sleep(max(0.05, period - (time.time() - t0)))
 
-    def _update(self, toy, img, jpg):
+    def _update(self, toy, img, jpg, greet=True):
         h, w = img.shape[:2]
         things = self.rec.analyze(img, own_toy=toy)
         things.sort(key=lambda t: _salience(t, w, h), reverse=True)
@@ -237,7 +302,7 @@ class Perceiver:
         v.annotated = cv2.imencode(".jpg", ann)[1].tobytes()
         self.views[toy] = v
         now = time.time()
-        for t in things:
+        for t in things if greet else ():
             if t.kind in ("person", "pet") and now - self._last_greet.get(t.label, 0) > config.GREET_COOLDOWN_S:
                 self._last_greet[t.label] = now
                 self.on_seen(toy, t)
