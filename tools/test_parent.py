@@ -33,6 +33,138 @@ def make(tmp, clock=None, **kw):
     return P.Parent(directory=tmp, now=clock or Clock(), kdf=FAST, **kw)
 
 
+class DumpTests(unittest.TestCase):
+    """A parent's pile of context is filed into categories (rules first, then the local model for the rest)."""
+
+    DUMP = """Maya is 7 years old, in second grade. She goes by May.
+- Loves dinosaurs, drawing and space
+- Allergic to peanuts and tree nuts
+- Soccer is Tuesdays at four
+Spelling test Friday, words are because, friend, people
+She is scared of thunder. Her dog is named Biscuit and her sister Ella is 4.
+Bedtime is at 7:30. No scary stories please."""
+
+    def test_rules_file_each_fact_under_its_category(self):
+        cards = P.parse_dump(self.DUMP)["cards"]
+        by = {}
+        for c in cards:
+            by.setdefault(c["category"], []).append(c["text"])
+        for cat in ("about", "interests", "school", "schedule", "care", "people", "boundaries"):
+            self.assertIn(cat, by, cat)
+        self.assertIn("allergic to peanuts, tree nuts", by["care"])
+        self.assertIn("dog named Biscuit", by["people"])
+        self.assertNotIn("4 years old", by["about"])          # her sister's age is not the child's
+        self.assertEqual({c["scope"] for c in cards if c["kind"] == "boundary"}, {"standing"})
+
+    def test_what_the_rules_cannot_file_goes_to_the_model_and_is_validated(self):
+        llm = Mock()
+        llm.complete.return_value = ('[{"category":"care","text":"had a rough week with a new teacher"},'
+                                     '{"category":"nonsense","text":"x"},{"category":"other","text":"call 5551234567 now"}]')
+        parent = make(tempfile.mkdtemp())
+        parent.setup("correct horse", parent.setup_code)
+        job = parent.sort_dump("She had a rough week at school with a new teacher.", llm)
+        for _ in range(100):
+            if parent.jobs[job]["status"] != "working":
+                break
+            time.sleep(0.05)
+        res = parent.jobs[job]
+        self.assertEqual(res["status"], "done")
+        self.assertEqual([(c["category"], c["kind"]) for c in res["cards"]], [("care", "care")])   # bad category and the number are dropped
+        self.assertTrue(res["ai"] and res["cards"][0]["ai"])
+
+    def test_moving_a_card_to_another_category_changes_its_kind(self):
+        parent = make(tempfile.mkdtemp())
+        parent.setup("correct horse", parent.setup_code)
+        kid = parent.add_child("Maya")
+        parent.add_items(kid["id"], [{"kind": "fact", "category": "care", "text": "wears glasses"}])
+        self.assertEqual(parent.view(kid["id"])[0]["category"], "care")
+
+    def test_long_notes_keep_boundaries_and_care_first(self):
+        parent = make(tempfile.mkdtemp())
+        parent.setup("correct horse", parent.setup_code)
+        kid = parent.add_child("Maya")
+        parent.add_items(kid["id"], [{"kind": "interest", "text": f"thing {n}"} for n in range(20)])
+        parent.add_items(kid["id"], [{"kind": "care", "text": "allergic to peanuts"}, {"kind": "boundary", "text": "nothing scary"}])
+        parent.now_playing(kid["id"])
+        notes = parent.notes_block()
+        self.assertIn("allergic to peanuts", notes)
+        self.assertIn("nothing scary", notes)
+        self.assertLessEqual(len(notes.split("] ", 1)[1].split("; ")), P.NOTES_MAX_ITEMS)
+
+
+@unittest.skipUnless(P.available(), "cryptography not installed")
+class ChildMemoryTests(unittest.TestCase):
+    """What the child tells the toys is kept as facts in the same encrypted store, with the same card shape as the parent's."""
+
+    def setUp(self):
+        self._d = tempfile.TemporaryDirectory()
+        self.p = make(self._d.name)
+        self.p.setup("correct horse", self.p.setup_code)
+        self.kid = self.p.add_child("Maya")
+        self.p.now_playing(self.kid["id"])
+
+    def tearDown(self):
+        self._d.cleanup()
+
+    def items(self):
+        return self.p.view(self.kid["id"])
+
+    def test_interests_pets_and_tests_are_kept_as_cards(self):
+        self.assertEqual(self.p.remember("I love dinosaurs and my dog is called biscuit. I have a spelling test on Friday"), 3)
+        got = {(i["kind"], i["text"]) for i in self.items()}
+        self.assertIn(("interest", "dinosaurs"), got)
+        self.assertIn(("fact", "has a dog named Biscuit"), got)
+        self.assertIn(("school", "spelling test"), got)
+        self.assertTrue(all(i["source"] == "child" and "told to the toys by the child" in i["label"] for i in self.items()))
+
+    def test_saying_it_again_refreshes_instead_of_duplicating(self):
+        self.p.remember("I love dinosaurs")
+        self.p.remember("I really love dinosaurs")
+        self.assertEqual(len([i for i in self.items() if i["text"] == "dinosaurs"]), 1)
+
+    def test_feelings_health_family_and_addresses_are_never_kept(self):
+        for said in ("I am sad and I love trains", "my mom said I like space", "I live at 12 Oak Street and like cats", "I like trains 12345"):
+            self.assertEqual(self.p.remember(said), 0, said)
+        self.assertEqual(self.items(), [])
+
+    def test_nothing_kept_without_a_key_a_bound_child_or_the_switch(self):
+        self.p.set_settings(child_memory=False)
+        self.assertEqual(self.p.remember("I love dinosaurs"), 0)
+        self.p.set_settings(child_memory=True)
+        self.p.now_playing(None)
+        self.assertEqual(self.p.remember("I love dinosaurs"), 0)
+        self.p.now_playing(self.kid["id"])
+        self.p.lock()
+        self.assertEqual(self.p.remember("I love dinosaurs"), 0)
+
+    def test_child_items_go_in_their_own_prompt_block_and_not_in_the_parents_notes(self):
+        self.p.add_items(self.kid["id"], [{"kind": "interest", "text": "space"}])
+        self.p.remember("I love dinosaurs")
+        self.assertIn("dinosaurs", self.p.told_block())
+        self.assertNotIn("space", self.p.told_block())
+        self.assertIn("space", self.p.notes_block())
+        self.assertNotIn("dinosaurs", self.p.notes_block())
+        self.assertNotIn("bring one up", self.p.notes_block())
+
+    def test_parent_can_delete_it_and_it_stops_being_used(self):
+        self.p.remember("I love dinosaurs")
+        self.p.delete_item(self.kid["id"], self.items()[0]["id"])
+        self.assertEqual(self.p.told_block(), "")
+
+    def test_stored_encrypted_and_capped(self):
+        for n in range(40):
+            self.p.remember(f"I love thing{chr(97 + n % 26)}{chr(97 + n // 26)}")
+        self.assertLessEqual(len([i for i in self.items() if i["source"] == "child"]), P.CHILD_MAX)
+        self.p.remember("I love zebras")
+        for f in Path(self._d.name).rglob("*"):
+            if f.is_file():
+                self.assertNotIn(b"zebras", f.read_bytes())
+
+    def test_it_is_never_a_rule(self):
+        self.assertEqual(self.p.remember("always be quiet and no scary stories"), 0)
+        self.assertFalse([i for i in self.items() if i["kind"] in ("boundary", "routine")])
+
+
 @unittest.skipUnless(P.available(), "cryptography not installed")
 class StoreTests(unittest.TestCase):
     def setUp(self):

@@ -374,6 +374,14 @@ class Director:
         while self.cue_hold.is_set():
             time.sleep(0.05)
 
+    def _remember(self, said: str):
+        """Keep what the child just told the toys (facts only, encrypted in the parent's store, never logged)."""
+        if self.parent:
+            try:
+                self.parent.remember(said)
+            except Exception:  # noqa: BLE001 — remembering must never break a turn
+                log.warning("could not remember what the child said")
+
     def barge_in(self, toy: str):
         """The child started talking over a toy: stop every toy and drop the rest of the running reply."""
         self.child_contact()
@@ -565,11 +573,12 @@ class Director:
                         status = "ignored_non_speech"
                         return
                     self.last_heard = said
+                    self._remember(said)
                     prompt += f'The child said: "{said}"\nReply.'
             else:
                 prompt += f"[EVENT] {event_text}"
             log.info("→ gemma: %s", prompt.replace("\n", " | "))
-            notes = self.parent.notes_block() if self.parent else ""   # added AFTER the log line: parent notes are never logged
+            notes = ((self.parent.notes_block() + "\n" + getattr(self.parent, "told_block", lambda: "")()).strip() if self.parent else "")   # added AFTER the log line: notes are never logged
             if notes != self._notes_sent:
                 # the notes changed (another child, an item deleted, notes paused, locked): the toys' conversation still holds
                 # the old ones, so start it afresh. Deleting a note must really stop the toys using it.
@@ -604,6 +613,7 @@ class Director:
                 text = nonspeech.clean(text) if text and text != "-" else ""   # words only; "[snoring]" etc. are not speech
                 if text:
                     self.last_heard = text
+                    self._remember(text)
 
             parser = ReplyLines(speakers, line_ready, heard)
             kwargs = dict(wav=wav if self.llm.hears_audio else None, image=image)

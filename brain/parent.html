@@ -1,0 +1,211 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>Parent Board</title>
+<style>
+:root{--bg:#f6f4ef;--fg:#1f1f22;--card:#fff;--mut:#62626a;--line:#e2dfd6;--soft:#efece4;--acc:#256a66;--acc-fg:#fff;--bad:#b3261e;--warn:#8a5a00;--r:12px}
+@media(prefers-color-scheme:dark){:root{--bg:#141416;--fg:#f1f1f3;--card:#1f1f23;--mut:#a0a0a9;--line:#33333a;--soft:#2a2a30;--acc:#66bcb5;--acc-fg:#0e1f1e;--bad:#f2b8b5;--warn:#e6c26b}}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;overflow-x:hidden;font:16px/1.45 system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg)}
+main{max-width:760px;margin:0 auto;padding:0 16px 48px}
+h1{font-size:20px;margin:0;letter-spacing:-.01em}h2{font-size:18px;margin:0 0 4px}h3{font-size:14px;margin:0;font-weight:600}
+p{margin:0}.mut{color:var(--mut);font-size:14px}.err{color:var(--bad)}[hidden]{display:none!important}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 8px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.bar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.kids{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center}
+section{margin:0 0 28px}
+.head{margin:0 0 10px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{min-height:40px;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:6px 14px;cursor:pointer}
+button:hover{border-color:var(--acc)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+button.p{background:var(--acc);color:var(--acc-fg);border-color:var(--acc);font-weight:600}
+button.q{border-color:transparent;background:transparent;color:var(--mut);padding:6px 10px}button.q:hover{color:var(--fg)}
+button.danger{color:var(--bad)}button[aria-pressed=true],button.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset;font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+textarea{min-height:150px;resize:vertical}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>input{flex:1 1 160px}.grow{flex:1 1 0}
+.banner{background:var(--soft);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin:0 0 16px}
+.group{margin-top:16px}.group>h3{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;color:var(--mut);text-transform:none}
+.card{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.card:first-of-type{border-top:0}
+.card .txt{min-width:0;overflow-wrap:anywhere}.card .acts{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px;background:var(--soft);color:var(--mut);margin-left:6px;vertical-align:1px}
+.tag.warn{color:var(--warn)}.tag.ai{color:var(--acc)}
+.edit{display:grid;grid-template-columns:1fr 150px auto;gap:6px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.edit:first-of-type{border-top:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 4px}
+.chips button{min-height:34px;padding:2px 12px;font-size:14px}
+details{border-top:1px solid var(--line);padding:10px 0}details>summary{cursor:pointer;font-weight:600;list-style:revert}
+details>div{margin-top:10px}
+.save{position:sticky;bottom:0;background:var(--card);padding:10px 0 2px;margin-top:10px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+@media(max-width:560px){.edit{grid-template-columns:1fr auto}.edit select{grid-column:1/2}.card{grid-template-columns:1fr}.card .acts{justify-content:flex-start}}
+</style></head><body><main>
+
+<section id=lock class=panel hidden style="margin-top:24px">
+ <h1>Parent Board</h1><p class=mut id=lockmsg style="margin:6px 0 12px"></p>
+ <div style="display:grid;gap:8px;max-width:360px">
+  <input id=pin type=password autocomplete=off placeholder="Family PIN" aria-label="Family PIN">
+  <input id=pin2 type=password autocomplete=off placeholder="Type it again" aria-label="Confirm PIN" hidden>
+  <input id=code autocomplete=off placeholder="Setup code (in the brain's log)" aria-label="Setup code" hidden>
+  <div class=row><button class=p id=lockbtn>Open</button><span id=lockerr class=err role=alert></span></div>
+ </div><p class=mut id=lockhelp style="margin-top:8px"></p>
+</section>
+
+<div id=app hidden>
+<header>
+ <div class=bar><h1>Parent Board</h1><button class=q id=lockNow>Lock</button></div>
+ <div class=kids id=kids></div>
+</header>
+<div id=banner class=banner hidden></div>
+
+<section aria-labelledby=teach>
+ <div class=head><h2 id=teach>Tell the toys</h2><p class=mut id=bindnote></p></div>
+ <div class=panel>
+  <label for=dump class=mut>Write or paste anything useful. The brain sorts it into categories for you to check. Nothing is saved until you press Save.</label>
+  <textarea id=dump placeholder="Maya is 7, in second grade. She loves dinosaurs and drawing. Peanut allergy. Soccer is Tuesdays at four. Spelling test Friday, words: because, friend. Scared of thunder. No scary stories. Her dog is Biscuit."></textarea>
+  <div class=row style="margin-top:8px"><button class=p id=sort>Sort it</button>
+   <input type=file id=photo accept="image/*" capture=environment hidden><button id=photobtn type=button>Photo of homework</button>
+   <span class=mut id=sortmsg role=status></span></div>
+  <div id=review hidden></div>
+ </div>
+ <details style="border-top:0;padding-bottom:0"><summary>Quick add</summary><div id=quick></div></details>
+</section>
+
+<section aria-labelledby=known>
+ <div class=head><h2 id=known>What the toys know</h2><p class=mut id=knownnote></p></div>
+ <div class=chips id=filters role=group aria-label="Filter by category"></div>
+ <div class=panel id=items></div>
+</section>
+
+<section>
+ <details open style="border-top:0;padding-top:0"><summary>Say it now</summary><div>
+  <p class=mut>The toys react in their own words. Nothing is saved or logged.</p>
+  <div class=chips id=cues style="margin-top:8px"></div>
+  <div class=row><input id=cuetext placeholder="or type something, e.g. it is raining, no bikes today" aria-label="Say it now"><button class=p id=cuesend>Send</button></div>
+  <label class=mut><input type=checkbox id=urgent style="width:auto"> Stop everything now (drops what the toys are saying)</label>
+  <p class=mut id=cuemsg role=status></p></div></details>
+ <details><summary>Settings</summary><div>
+  <label class=mut style="display:block"><input type=checkbox id=noteson style="width:auto"> Toys use the notes</label>
+  <label class=mut style="display:block"><input type=checkbox id=childmem style="width:auto"> Toys remember what the child tells them (it appears in the notes, tagged; delete any)</label>
+  <div class=row style="margin:8px 0"><span class=mut>Weekly check-in:</span><select id=cday style="width:auto" aria-label="Check-in day"></select><select id=chour style="width:auto" aria-label="Check-in hour"></select></div>
+  <div class=row><input id=oldpin type=password placeholder="Current PIN" aria-label="Current PIN"><input id=newpin type=password placeholder="New PIN" aria-label="New PIN"><button id=chpin>Change PIN</button></div>
+  <p class=mut style="margin:8px 0">Notes live only on the brain, encrypted. After a restart the toys use none until you open this board and enter the PIN.</p>
+  <div class=row><button class=danger id=clearall>Delete all notes for this child</button><button class=danger id=wipe>Delete all profiles</button></div>
+  <p class=mut id=setmsg role=status></p></div></details>
+</section>
+</div></main>
+
+<script>
+const $=id=>document.getElementById(id);
+let S=null,kid=null,cards=[],filter="all",ALL=[];
+const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const CATS=()=>S?S.categories:[];
+function el(t,txt,cls){const e=document.createElement(t);if(txt!==undefined&&txt!==null)e.textContent=txt;if(cls)e.className=cls;return e}
+async function api(path,body,raw){const o={method:(body===undefined&&!raw)?"GET":"POST",headers:{"X-PB":"1"}};
+ if(raw){o.headers["Content-Type"]=raw.type;o.body=raw}else if(body!==undefined){o.headers["Content-Type"]="application/json";o.body=JSON.stringify(body)}
+ const r=await fetch(path,o);let j={};try{j=await r.json()}catch(e){}
+ if(r.status==401){showLock();throw new Error("locked")}if(!r.ok)throw new Error(j.error||"Something went wrong.");return j}
+let idle;function bump(){clearTimeout(idle);idle=setTimeout(()=>{api("/api/logout",{}).catch(()=>{});showLock()},300000)}
+document.addEventListener("click",bump);document.addEventListener("keydown",bump);
+
+/* ---------- lock ---------- */
+async function showLock(){$("app").hidden=true;$("lock").hidden=false;const st=await (await fetch("/api/status")).json();
+ $("pin2").hidden=st.configured;$("code").hidden=!st.needs_code;$("pin").value=$("pin2").value=$("code").value="";
+ $("lockmsg").textContent=!st.crypto?"This brain cannot store profiles yet (the encryption library is missing).":st.configured?(st.unlocked?"Enter the family PIN.":"The brain restarted. Enter the PIN to switch the notes back on."):"First time: choose a family PIN of "+st.min_digits+"+ digits, or a phrase of "+st.min_pin+"+ characters (stronger). Everyone in the household shares it. The setup code is printed in the brain's log when it starts.";
+ $("lockbtn").textContent=st.configured?"Open":"Set PIN";$("lockhelp").textContent=st.locked_for?"Too many tries. Wait "+st.locked_for+" seconds.":""}
+$("lockbtn").onclick=async()=>{$("lockerr").textContent="";const st=await (await fetch("/api/status")).json();
+ try{if(!st.configured){if($("pin").value!==$("pin2").value)throw new Error("The two PINs differ.");await api("/api/setup",{pin:$("pin").value,code:$("code").value})}else await api("/api/login",{pin:$("pin").value});$("lock").hidden=true;await load()}catch(e){if(e.message!="locked")$("lockerr").textContent=e.message}};
+$("lockNow").onclick=async()=>{await api("/api/lock",{});showLock()};
+
+/* ---------- children and state ---------- */
+const child=()=>S&&S.children.find(c=>c.id==kid);
+async function load(){S=await api("/api/state");$("app").hidden=false;bump();if(!kid||!child())kid=S.bound||(S.children[0]||{}).id||null;draw();await items()}
+function draw(){
+ const k=$("kids");k.textContent="";
+ S.children.forEach(c=>{const b=el("button");const d=el("span","","dot");d.style.background=c.color;b.append(d,c.name+(S.bound==c.id?" · playing":""));b.setAttribute("aria-pressed",String(c.id==kid));b.onclick=()=>{kid=c.id;filter="all";draw();items()};k.append(b)});
+ const add=el("input");add.placeholder="Add a child (first name)";add.setAttribute("aria-label","Add a child");add.style.cssText="flex:1 1 140px;width:auto;max-width:220px;min-height:40px";
+ const ab=el("button","Add");ab.onclick=async()=>{if(add.value.trim()){const c=await api("/api/child/add",{name:add.value});kid=c.id;await load()}};add.onkeydown=e=>{if(e.key=="Enter")ab.click()};k.append(add,ab);
+ const c=child();
+ $("teach").textContent=c?"Tell the toys about "+c.name:"Tell the toys";
+ const bn=$("bindnote");bn.textContent=c?(S.bound==kid?c.name+" is playing now: the toys use these notes (ends after 30 idle minutes). ":"Not playing now: the toys play generically. "):"Add a child to begin. ";
+ if(c){const b=el("button",S.bound==kid?"Stop":"Playing now",S.bound==kid?"":"p");b.style.minHeight="32px";b.onclick=async()=>{await api("/api/nowplaying",{child:S.bound==kid?null:kid});await load()};bn.append(b)}
+ $("known").textContent=c?"What the toys know about "+c.name:"What the toys know";
+ const cu=$("cues");cu.textContent="";S.cues.forEach(q=>{const b=el("button",q.label);b.onclick=()=>sendcue({cue:q.id});cu.append(b)});
+ const bnr=$("banner");bnr.hidden=!S.checkin_due;if(S.checkin_due){bnr.textContent="Weekly check-in: tap “Still true” on what still applies and delete what does not, then ";const b=el("button","Done","p");b.onclick=async()=>{await api("/api/checkin/done",{});await load()};bnr.append(b)}
+ $("noteson").checked=S.settings.notes_on!==false;$("childmem").checked=S.settings.child_memory!==false;
+ const d=$("cday");if(!d.options.length){DAYS.forEach((n,i)=>d.add(new Option(n,i)));for(let h=0;h<24;h++)$("chour").add(new Option(h+":00",h))}d.value=S.settings.checkin_day;$("chour").value=S.settings.checkin_hour;
+ quick()}
+
+/* ---------- what the toys know ---------- */
+async function items(){ALL=kid?(await api("/api/items?child="+kid)).items:[];renderItems()}
+function renderItems(){
+ const box=$("items"),f=$("filters");box.textContent="";f.textContent="";
+ const counts={};ALL.forEach(i=>counts[i.category]=(counts[i.category]||0)+1);
+ $("knownnote").textContent=ALL.length?ALL.length+" notes. Tap “Still true” on faded ones; delete anything that is wrong.":"";
+ if(!ALL.length){box.append(el("p","Nothing yet. That is fine: the toys play normally. Add something above.","mut"));return}
+ const mk=(id,label,n)=>{const b=el("button",label+(n!=null?" "+n:""));b.setAttribute("aria-pressed",String(filter==id));b.onclick=()=>{filter=id;renderItems()};f.append(b)};
+ mk("all","All",ALL.length);CATS().filter(c=>counts[c.id]).forEach(c=>mk(c.id,c.label,counts[c.id]));
+ CATS().filter(c=>counts[c.id]&&(filter=="all"||filter==c.id)).forEach(c=>{
+  const g=el("div","","group");g.append(el("h3",c.label));
+  ALL.filter(i=>i.category==c.id).forEach(i=>{
+   const row=el("div","","card"+(i.state=="stale"?" stale":""));const t=el("div","","txt");t.append(i.label.replace(" (told to the toys by the child)",""));
+   if(i.source=="child")t.append(el("span","told by the child","tag"));
+   if(i.state=="stale")t.append(el("span","not used: still true?","tag warn"));
+   const a=el("div","","acts");
+   if(i.state=="stale"||S.checkin_due){const ok=el("button","Still true");ok.onclick=async()=>{await api("/api/items/confirm",{child:kid,id:i.id});await items()};a.append(ok)}
+   const x=el("button","Delete","q danger");x.setAttribute("aria-label","Delete: "+i.label);x.onclick=async()=>{await api("/api/items/delete",{child:kid,id:i.id});await items()};a.append(x);
+   row.append(t,a);g.append(row)});
+  box.append(g)})}
+
+/* ---------- tell the toys: dump -> sorted cards -> review -> save ---------- */
+function startSort(job,msg){$("sortmsg").textContent=msg;$("sort").disabled=true;
+ (async()=>{try{for(let n=0;n<90;n++){const j=await api("/api/sort/status?job="+job);
+   if(j.status=="done"){cards=j.cards.map(c=>Object.assign({},c));showReview(j.unparsed||[],j.ai);$("sortmsg").textContent="";return}
+   if(j.status!="working"){throw new Error(j.error||"Could not sort that.")}
+   await new Promise(s=>setTimeout(s,1000))}throw new Error("That took too long. Try less text.")}
+  catch(e){$("sortmsg").textContent=e.message}finally{$("sort").disabled=false}})()}
+$("sort").onclick=async()=>{if(!kid)return $("sortmsg").textContent="Add a child first.";const t=$("dump").value.trim();if(!t)return $("sortmsg").textContent="Write or paste something first.";
+ try{const r=await api("/api/sort",{text:t});startSort(r.job,"Sorting on the brain…")}catch(e){$("sortmsg").textContent=e.message}};
+$("photobtn").onclick=()=>$("photo").click();
+$("photo").onchange=async()=>{const f=$("photo").files[0];if(!f||!kid)return;
+ try{const r=await api("/api/photo?child="+kid,undefined,f);startSort(r.job,"Reading the photo on the brain (it is deleted right after)…")}catch(e){$("sortmsg").textContent=e.message}$("photo").value=""};
+function showReview(unparsed,ai){
+ const w=$("review");w.textContent="";w.hidden=false;
+ const unp=unparsed.slice();
+ w.append(el("h3","Check the sorting"));w.lastChild.style.margin="16px 0 2px";
+ w.append(el("p",cards.length?"Change the wording or category, remove what is wrong, then save."+(ai?" Some cards were sorted by the local model: read them first.":""):"Nothing could be sorted automatically.","mut"));
+ CATS().forEach(c=>{const mine=cards.filter(x=>x.category==c.id);if(!mine.length)return;
+  const g=el("div","","group");g.append(el("h3",c.label));
+  mine.forEach(cd=>{const row=el("div","","edit");
+   const inp=el("input");inp.value=cd.label?cd.label.replace(/^(About|Care|Keep it|Routine|Goal|Loves|Reads): /,"").replace(/^Loves /,""):cd.text;inp.value=cd.edited||cd.text;inp.setAttribute("aria-label","Card text");inp.oninput=()=>{cd.text=inp.value;cd.edited=inp.value};
+   const sel=el("select");sel.setAttribute("aria-label","Category");CATS().forEach(k=>sel.add(new Option(k.label,k.id)));sel.value=cd.category;sel.onchange=()=>{cd.category=sel.value;showReview(unparsed,ai)};
+   const rm=el("button","Remove","q danger");rm.onclick=()=>{cards.splice(cards.indexOf(cd),1);showReview(unparsed,ai)};
+   row.append(inp,sel,rm);
+   const meta=[];if(cd.ai)meta.push("sorted by the local model");if(cd.due)meta.push("due "+cd.due);if(cd.time)meta.push("at "+cd.time);if(cd.weekday!=null)meta.push("every "+DAYS[cd.weekday]);
+   g.append(row);if(meta.length)g.append(el("div",meta.join(" · "),"mut"))});w.append(g)});
+ if(unp.length){const g=el("div","","group");g.append(el("h3","Could not sort these"));
+  unp.forEach((u,i)=>{const row=el("div","","card");row.append(el("div",u,"txt"));const a=el("div","","acts");
+   const keep=el("button","Keep as Other");keep.onclick=()=>{cards.push({kind:"fact",category:"other",text:u.slice(0,60)});unparsed.splice(unparsed.indexOf(u),1);showReview(unparsed,ai)};
+   const skip=el("button","Skip","q");skip.onclick=()=>{unparsed.splice(unparsed.indexOf(u),1);showReview(unparsed,ai)};a.append(keep,skip);row.append(a);g.append(row)});w.append(g)}
+ const bar=el("div","","save");
+ const sv=el("button","Save "+cards.length+" for "+((child()||{}).name||""),"p");sv.disabled=!cards.length;
+ sv.onclick=async()=>{sv.disabled=true;try{await api("/api/items/add",{child:kid,cards:cards.map(c=>({kind:c.kind,category:c.category,text:c.text,detail:c.detail,due:c.due,weekday:c.weekday,time:c.time,scope:c.scope}))});
+   $("dump").value="";cards=[];w.hidden=true;$("sortmsg").textContent="Saved.";await items()}catch(e){$("sortmsg").textContent=e.message;sv.disabled=false}};
+ const dc=el("button","Discard","q");dc.onclick=()=>{cards=[];w.hidden=true};bar.append(sv,dc);w.append(bar)}
+
+const QUICK={Interests:["dinosaurs","space","drawing","music","animals","building","sport"],Boundaries:["quieter voices","no scary stories","gentle today"],School:["spelling test","times tables","reading practice"]};
+function quick(){const w=$("quick");w.textContent="";Object.entries(QUICK).forEach(([g,list])=>{w.append(el("p",g,"mut"));const r=el("div","","chips");
+ list.forEach(t=>{const b=el("button",t);b.onclick=async()=>{if(!kid)return;const cd=g=="Interests"?{kind:"interest",text:t}:g=="Boundaries"?{kind:"boundary",text:t.replace(" today",""),scope:t=="gentle today"?"today":"standing"}:{kind:"school",text:t};await api("/api/items/add",{child:kid,cards:[cd]});await items()};r.append(b)});w.append(r)})}
+
+/* ---------- say it now, settings ---------- */
+async function sendcue(b){$("cuemsg").textContent="";try{const r=await api("/api/cue",Object.assign({urgent:$("urgent").checked},b));$("cuemsg").textContent=r.ok?"Sent"+(r.cue?": "+r.cue:""):r.reason;if(r.ok)$("cuetext").value=""}catch(e){$("cuemsg").textContent=e.message}setTimeout(()=>$("cuemsg").textContent="",4000)}
+$("cuesend").onclick=()=>$("cuetext").value.trim()&&sendcue({text:$("cuetext").value});
+$("noteson").onchange=async()=>{await api("/api/settings",{notes_on:$("noteson").checked})};
+$("childmem").onchange=async()=>{await api("/api/settings",{child_memory:$("childmem").checked})};
+$("cday").onchange=$("chour").onchange=async()=>{await api("/api/settings",{checkin_day:+$("cday").value,checkin_hour:+$("chour").value})};
+$("chpin").onclick=async()=>{try{await api("/api/pin/change",{old:$("oldpin").value,new:$("newpin").value});$("setmsg").textContent="PIN changed.";$("oldpin").value=$("newpin").value=""}catch(e){$("setmsg").textContent=e.message}};
+$("clearall").onclick=async()=>{if(kid&&confirm("Delete every note for this child?")){await api("/api/items/clear",{child:kid});await items()}};
+$("wipe").onclick=async()=>{if(prompt("This deletes every profile and the PIN. Type DELETE to continue.")=="DELETE"){const pin=prompt("Enter the family PIN to confirm.");if(pin){try{await api("/api/wipe",{confirm:"DELETE",pin:pin});showLock()}catch(e){$("setmsg").textContent=e.message}}}};
+(async()=>{try{await load()}catch(e){if(e.message!="locked")showLock()}})();
+</script></body></html>

@@ -32,13 +32,25 @@ MIN_PIN = 6            # a phrase or anything with a non-digit; all-digit PINs n
 MIN_DIGITS = 8
 SESSION_IDLE_S = 300
 BIND_IDLE_S = 1800
-KINDS = ("interest", "hobby", "school", "reading", "boundary", "routine", "goal")
+KINDS = ("interest", "hobby", "school", "reading", "boundary", "routine", "goal", "fact", "profile", "care", "person")
+# The schema: every item is {id, kind, text, detail, due, weekday, time, scope, source, added, confirmed}; the CATEGORY is derived
+# from the kind (so older profiles need no migration) and is what the board shows and the prompt is ordered by.
+CATEGORIES = [("about", "About them"), ("interests", "Interests"), ("school", "School & learning"), ("schedule", "Schedule & routines"),
+              ("care", "Care & comfort"), ("people", "People & pets"), ("boundaries", "Boundaries"), ("other", "Other")]
+KIND_CATEGORY = {"profile": "about", "interest": "interests", "school": "school", "reading": "school", "goal": "school",
+                 "hobby": "schedule", "routine": "schedule", "care": "care", "person": "people", "boundary": "boundaries", "fact": "other"}
+CATEGORY_KIND = {"about": "profile", "interests": "interest", "school": "goal", "schedule": "routine", "care": "care",
+                 "people": "person", "boundaries": "boundary", "other": "fact"}   # the kind a card gets when a parent moves it to a category
+PROMPT_ORDER = ["boundaries", "care", "school", "schedule", "about", "people", "interests", "other"]   # what to keep first if the notes are long
+NOTES_MAX_ITEMS, NOTES_MAX_CHARS = 16, 1100
+CHILD_KINDS = ("interest", "hobby", "school", "reading", "fact")   # what the child can teach the toys: never rules or routines
+CHILD_MAX = 25                                                       # remembered things per child; the oldest go first
 COLORS = ["#e76f51", "#2a9d8f", "#e9c46a", "#264653", "#8ab17d", "#b5838d", "#6d6875", "#f4a261"]
 WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 DAY_ABBR = {"mon": 0, "tue": 1, "tues": 1, "wed": 2, "thu": 3, "thur": 3, "thurs": 3, "fri": 4, "sat": 5, "sun": 6}
 
 # how long an item stays active without being re-confirmed (days); None = until the parent removes it
-STALE_DAYS = {"interest": 28, "hobby": 84, "reading": 120, "routine": None, "goal": None, "boundary": None, "school": None}
+STALE_DAYS = {"interest": 28, "hobby": 84, "reading": 120, "routine": None, "goal": None, "boundary": None, "school": None, "fact": 180, "profile": 365, "care": None, "person": None}
 PURGE_AFTER_STALE_DAYS = 14
 
 _LABELS = re.compile(r"\b(DYNO|SAGE|PENNY|HEARD|SCENE|EVENT|TOYS HERE|HEARD BY)\b\s*:", re.I)
@@ -167,6 +179,8 @@ def item_state(item: dict, now: float) -> str:
         except ValueError:
             return "expired"
     days = STALE_DAYS.get(kind)
+    if kind == "fact" and item.get("source") == "child":
+        days = 56          # something a child said fades faster than something a parent wrote
     if days is None:
         return "active"
     age = (now - (_parse_iso(item.get("confirmed")) or _parse_iso(item.get("added")) or now)) / 86400
@@ -203,7 +217,12 @@ def _day_name(item: dict, now: float) -> str:
 
 
 def describe(item: dict, now: float) -> str:
-    """Parent-facing one-liner for a card or list row."""
+    """Parent-facing one-liner for a card or list row (items the child told the toys say so)."""
+    out = _describe(item, now)
+    return out + (" (told to the toys by the child)" if item.get("source") == "child" else "")
+
+
+def _describe(item: dict, now: float) -> str:
     k, t = item["kind"], item["text"]
     day, tm = _day_name(item, now), _fmt_time(item.get("time"))
     if k == "interest":
@@ -214,6 +233,12 @@ def describe(item: dict, now: float) -> str:
         return f"{t[:1].upper() + t[1:]}" + (f" - {day}" if day else "") + (f" (words: {item['detail']})" if item.get("detail") else "")
     if k == "reading":
         return f"Reads {t}"
+    if k in ("fact", "person"):
+        return t[:1].upper() + t[1:]
+    if k == "profile":
+        return "About: " + t
+    if k == "care":
+        return "Care: " + t
     if k == "boundary":
         return f"Keep it: {t}" + (" (today)" if item.get("scope") == "today" else "")
     if k == "routine":
@@ -240,6 +265,10 @@ def prompt_phrase(item: dict, now: float) -> str:
         return f"{t} {day}".strip() + (f" (words: {words})" if words else "")
     if kind == "reading":
         return f"reads {t}"
+    if kind in ("fact", "person", "profile"):
+        return t
+    if kind == "care":
+        return f"be mindful: {t}"
     if kind == "boundary":
         return f"keep it {t}" + (" today" if item.get("scope") == "today" else "")
     if kind == "routine":
@@ -392,6 +421,169 @@ def parse_text(text: str, now: float | None = None) -> dict:
             c["label"] = describe(dict(c, kind=c["kind"]), now)
             out.append(c)
     return {"cards": out, "unparsed": unparsed}
+
+
+_SENSITIVE = re.compile(r"\b(hurt|hurts|scared|afraid|sad|cry|crying|hate|hit me|hits me|bully|bullied|sick|ill|doctor|hospital|"
+                        r"address|phone|password|email|live at|lives at|street|secret|private|die|dead|kill|stupid|dumb|"
+                        r"mummy|mommy|mum|mom|daddy|dad)\b|\d{4,}", re.I)
+_PET = re.compile(r"\bmy\s+(dog|cat|puppy|kitten|hamster|rabbit|fish|bird|horse|turtle|guinea pig)\s+(?:is\s+)?(?:called|named)\s+([A-Za-z]{2,14})\b", re.I)
+_HAVEPET = re.compile(r"\bi\s+have\s+a\s+(dog|cat|puppy|kitten|hamster|rabbit|fish|bird|horse|turtle|guinea pig)\s+(?:called|named)\s+([A-Za-z]{2,14})\b", re.I)
+_FAV = re.compile(r"\bmy\s+favou?rite\s+([a-z ]{3,16}?)\s+is\s+(?:the\s+|a\s+|an\s+)?([a-z][a-z' ]{1,24}?)(?:[.!?,]|$|\s+and\b)", re.I)
+
+
+def parse_child(text: str, now: float | None = None) -> list[dict]:
+    """What a child said in the first person -> cards of the kinds a child may teach the toys. Same card shape as the parent's.
+    Anything about feelings, health, family members, addresses or other people is deliberately not kept."""
+    now = now or time.time()
+    s = " ".join((text or "").split())
+    if not s or len(s) > 300 or _SENSITIVE.search(s):
+        return []
+    cards = []
+    for rx in (_PET, _HAVEPET):
+        for m in rx.finditer(s):
+            cards.append({"kind": "fact", "text": f"has a {m.group(1).lower()} named {m.group(2).title()}"})
+    for m in _FAV.finditer(s):
+        cards.append({"kind": "interest", "text": f"{m.group(2).strip().lower()} (favourite {m.group(1).strip().lower()})"})
+    # reuse the parent's rules after turning "I love ..." / "I have a spelling test on Friday" into the parent's third person
+    third = re.sub(r"\bi'?m\b|\bi am\b", "child is", s, flags=re.I)
+    third = re.sub(r"\bi\s+(really\s+)?(love|like|enjoy|adore)\b", lambda m: "child " + (m.group(1) or "") + m.group(2) + "s", third, flags=re.I)
+    third = re.sub(r"\bi\s+(have|got)\b", "child has", third, flags=re.I)
+    third = re.sub(r"\bi\s+play\b", "child plays", third, flags=re.I)
+    third = re.sub(r"\bi\s+read\b", "child reads", third, flags=re.I)
+    if re.search(r"\bchild\b", third):
+        for c in parse_text(third, now)["cards"]:
+            if c["kind"] in ("interest", "hobby", "school", "reading") and not _SENSITIVE.search(c["text"]):
+                if c["kind"] == "school":
+                    c["due"] = c.get("due")
+                cards.append({k: c.get(k) for k in ("kind", "text", "detail", "due", "weekday", "time")})
+            elif c["kind"] == "goal":
+                cards.append({"kind": "fact", "text": "is learning " + c["text"]})
+    seen, out = set(), []
+    for c in cards:
+        c["text"] = safe_text(c["text"], 60)
+        key = (c["kind"], c["text"].lower())
+        if c["kind"] in CHILD_KINDS and c["text"] and key not in seen and c["text"].lower() not in ("it", "that", "this", "them", "you"):
+            seen.add(key)
+            out.append(c)
+    return out[:5]
+
+
+# ----------------------------------------------------------------------------------------------------------
+# context dump -> cards in categories: rules first (deterministic), then the local Gemma for what the rules missed
+# ----------------------------------------------------------------------------------------------------------
+_PETS = "dog|cat|puppy|kitten|hamster|rabbit|fish|bird|horse|turtle|guinea pig|lizard|snake"
+_RELS = "brother|sister|cousin|grandma|grandpa|grandmother|grandfather|nana|nanny|granny|gran|aunt|auntie|uncle|best friend|friend|teacher|babysitter|nanny"
+_GRADES = {"kindergarten": "kindergarten", "first": "1st", "second": "2nd", "third": "3rd", "fourth": "4th", "fifth": "5th", "sixth": "6th"}
+
+
+def _extra_rules(seg: str) -> list[dict]:
+    """Cards the base parser does not know: about, care, people. Case is kept so names stay capitalised."""
+    low, out = seg.lower(), []
+    others = re.search(r"\b(" + _RELS + "|" + _PETS + r")\b", low)    # "her sister Ella is 4" is not the child's age
+    m = re.search(r"\b(\d{1,2})[- ]?(?:years?|yrs?)[- ]?old\b|\bage[d]?\s+(\d{1,2})\b" + ("" if others else r"|\bis\s+(\d{1,2})\b(?!\s*(?:am|pm|:))"), low)
+    if m and others and not re.search(r"\b(she|he|they)\s+is\b|\bage[d]?\b", low):
+        m = None
+    if m:
+        out.append({"kind": "profile", "text": f"{next(g for g in m.groups() if g)} years old"})
+    g = re.search(r"\b(?:in\s+)?(?:(\d{1,2})(?:st|nd|rd|th)\s+(?:grade|year)|(kindergarten|first|second|third|fourth|fifth|sixth)\s+(?:grade|year)|(?:grade|year)\s+(\d{1,2})|(kindergarten))\b", low)
+    if g:
+        v = g.group(1) or g.group(3) or _GRADES.get(g.group(2) or g.group(4) or "", "")
+        if v:
+            out.append({"kind": "profile", "text": "in kindergarten" if v == "kindergarten" else (f"in {v} grade" if v[-2:] in ("st", "nd", "rd", "th") else f"in grade {v}")})
+    m = re.search(r"\b(?:goes by|likes to be called|prefers to be called|nickname is|nicknamed)\s+([A-Z][a-z]{1,12})\b", seg)
+    if m:
+        out.append({"kind": "profile", "text": f"goes by {m.group(1)}"})
+    for m in re.finditer(r"\ballerg(?:ic|y|ies)\s+(?:to\s+)?([a-z][a-z ,]{2,40}?)(?=[.;!?]|$|\bbut\b)", low):
+        out.append({"kind": "care", "text": "allergic to " + " ".join(m.group(1).replace(" and ", ", ").split())})
+    m = re.search(r"\b(?:is|are)?\s*(?:afraid|scared|frightened|nervous)\s+(?:of|about)\s+([a-z][a-z ]{2,30}?)(?=[.;!?,]|$|\bbut\b|\band\b)", low)
+    if m:
+        out.append({"kind": "care", "text": "afraid of " + m.group(1).strip()})
+    if re.search(r"\b(shy|anxious|sensitive|easily upset|gets overwhelmed)\b", low):
+        out.append({"kind": "care", "text": "can be " + re.search(r"\b(shy|anxious|sensitive|easily upset|gets overwhelmed)\b", low).group(1) + ", go gently"})
+    for m in re.finditer(r"\b(?i:(?:has|have|got)\s+an?\s+|(?:his|her|their)\s+)(?i:(" + _PETS + r"))\s+(?:is\s+)?(?:called|named)\s+([A-Z][a-z]{1,14})\b", seg):
+        out.append({"kind": "person", "text": f"{m.group(1).lower()} named {m.group(2)}"})
+    for m in re.finditer(r"\b(?i:(?:(?:his|her|their)\s+)?(" + _RELS + r"))\s+(?:is\s+)?(?:called\s+|named\s+)?((?:(?:Mrs?|Ms|Miss|Dr)\.?\s+)?[A-Z][a-z]{1,14})\b", seg):
+        out.append({"kind": "person", "text": f"{m.group(1).lower()} {m.group(2).replace('.', '')}"})
+    return out
+
+
+def _segments(text: str) -> list[str]:
+    segs = []
+    for line in re.split(r"[\n\r]+", text):
+        line = re.sub(r"^\s*(?:[-*\u2022]|\d+[.)])\s*", "", line).strip()
+        for sent in re.split(r"(?<=[.!?;])\s+", line):
+            if sent.strip(" .!?;"):
+                segs.append(sent.strip())
+    return segs[:60]
+
+
+def _tidy(cards: list[dict], now: float) -> list[dict]:
+    seen, out = set(), []
+    for c in cards:
+        c.setdefault("detail", None); c.setdefault("due", None); c.setdefault("weekday", None); c.setdefault("time", None)
+        c.setdefault("scope", "standing")
+        c["text"] = safe_text(c["text"], 60)
+        c["category"] = KIND_CATEGORY.get(c["kind"], "other")
+        key = (c["kind"], c["text"].lower(), c["due"], c["weekday"])
+        if c["text"] and c["kind"] in KINDS and key not in seen:
+            seen.add(key)
+            c["label"] = describe(dict(c), now)
+            out.append(c)
+    return out
+
+
+def parse_dump(text: str, now: float | None = None) -> dict:
+    """A parent's pile of context -> {cards, unparsed}. Rules only (Gemma is added by sort_dump); nothing is saved."""
+    now = now or time.time()
+    cards, unparsed = [], []
+    for seg in _segments(text[:6000]):
+        found = parse_text(seg, now)["cards"] + _extra_rules(seg)
+        for c in found:      # in a dump a rule is standing unless it says today; a one-off tone needs the word
+            if c["kind"] == "boundary" and not re.search(r"\b(today|tonight|this (morning|afternoon|evening))\b", seg, re.I):
+                c["scope"] = "standing"
+        if found:
+            cards += found
+        else:
+            unparsed.append(seg)
+    return {"cards": _tidy(cards, now), "unparsed": unparsed}
+
+
+_SORT_SYSTEM = ("You file a parent's notes about their child for a toy that plays with the child. Reply with ONLY a JSON array, no prose. "
+                "Each item: {\"category\": one of about|interests|school|schedule|care|people|boundaries|other, \"text\": under 8 words, "
+                "plain and factual, \"day\": optional weekday name, \"time\": optional HH:MM 24-hour}. "
+                "about=age, grade, nickname, personality. interests=loves/likes. school=tests, homework, subjects, reading level, goals. "
+                "schedule=activities, routines, events. care=allergies, fears, comfort, sleep, sensitivities. people=family, pets, friends by first name. "
+                "boundaries=topics or tones to avoid, rules. other=anything useful that fits nowhere. Skip addresses, phone numbers, "
+                "last names, money and anything that is not useful for playing with a child. Never invent facts.")
+
+
+def _gemma_sort(llm, segments: list[str], now: float) -> list[dict]:
+    """Ask the local model to file the sentences the rules could not. Strictly validated: unknown categories, long or odd text are dropped."""
+    prompt = "Notes:\n" + "\n".join("- " + safe_text(x, 200) for x in segments[:20]) + "\n\nJSON array:"
+    out = llm.complete(prompt, system=_SORT_SYSTEM, max_tokens=500) or ""
+    m = re.search(r"\[.*\]", out, re.S)
+    if not m:
+        return []
+    try:
+        raw = json.loads(m.group(0))
+    except ValueError:
+        return []
+    cards = []
+    for r in raw[:20] if isinstance(raw, list) else []:
+        if not isinstance(r, dict) or r.get("category") not in CATEGORY_KIND or not isinstance(r.get("text"), str):
+            continue
+        text = safe_text(r["text"], 60)
+        if not text or re.search(r"\d{5,}|@", text):
+            continue
+        c = {"kind": CATEGORY_KIND[r["category"]], "text": text, "ai": True}
+        wd = _weekday(str(r.get("day") or "")) if r.get("day") else None
+        if wd is not None:
+            c["weekday"] = wd
+        t = _find_time("at " + str(r["time"])) if r.get("time") else None
+        if t:
+            c["time"] = t
+        cards.append(c)
+    return cards
 
 
 # ----------------------------------------------------------------------------------------------------------
@@ -654,7 +846,7 @@ class Parent:
         raise KeyError("No such child.")
 
     # ---- items ----
-    def add_items(self, cid: str, cards: list[dict]) -> list[dict]:
+    def add_items(self, cid: str, cards: list[dict], source: str = "parent") -> list[dict]:
         with self._lock:
             self._require()
             child = self._child(cid)
@@ -662,6 +854,9 @@ class Parent:
             added = []
             for c in cards[:20]:
                 kind = c.get("kind")
+                cat = c.get("category")
+                if cat in CATEGORY_KIND and KIND_CATEGORY.get(kind) != cat:
+                    kind = CATEGORY_KIND[cat]          # the parent moved the card to another category
                 text = safe_text(c.get("text"), 60)
                 if kind not in KINDS or not text:
                     continue
@@ -669,7 +864,8 @@ class Parent:
                         "due": c.get("due") if re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(c.get("due") or "")) else None,
                         "weekday": c.get("weekday") if isinstance(c.get("weekday"), int) and 0 <= c["weekday"] <= 6 else None,
                         "time": c.get("time") if re.fullmatch(r"\d{2}:\d{2}", str(c.get("time") or "")) else None,
-                        "scope": "today" if c.get("scope") == "today" else "standing", "added": _iso(now), "confirmed": _iso(now)}
+                        "scope": "today" if c.get("scope") == "today" else "standing", "added": _iso(now), "confirmed": _iso(now),
+                        "source": "child" if source == "child" else "parent"}
                 if kind == "school" and not item["due"]:
                     item["due"] = (_today(now) + dt.timedelta(days=(4 - _today(now).weekday()) % 7)).isoformat()   # defaults to this Friday
                 self.items[cid].append(item)
@@ -719,7 +915,8 @@ class Parent:
             self._require()
             self.sweep()
             now = self.now()
-            return [dict(i, state=item_state(i, now), label=describe(i, now)) for i in self.items.get(cid, [])]
+            return [dict(i, state=item_state(i, now), label=describe(i, now), category=KIND_CATEGORY.get(i["kind"], "other"))
+                    for i in self.items.get(cid, [])]
 
     # ---- weekly check-in ----
     def checkin_due(self) -> bool:
@@ -748,6 +945,8 @@ class Parent:
                 s["checkin_hour"] = max(0, min(23, int(kw["checkin_hour"])))
             if kw.get("notes_on") is not None:
                 s["notes_on"] = bool(kw["notes_on"])
+            if kw.get("child_memory") is not None:
+                s["child_memory"] = bool(kw["child_memory"])
             self._write_index()
 
     # ---- now playing ----
@@ -781,12 +980,94 @@ class Parent:
             if not child:
                 return ""
             now = self.now()
-            phrases = [prompt_phrase(i, now) for i in self.items.get(child["id"], []) if item_state(i, now) == "active"]
-            phrases = [p for p in phrases if p]
+            live = [i for i in self.items.get(child["id"], []) if item_state(i, now) == "active" and i.get("source") != "child"]
+            live.sort(key=lambda i: PROMPT_ORDER.index(KIND_CATEGORY.get(i["kind"], "other")))   # long notes keep the important ones
+            phrases, size = [], 0
+            for i in live:
+                ph = prompt_phrase(i, now)
+                if ph and len(phrases) < NOTES_MAX_ITEMS and size + len(ph) <= NOTES_MAX_CHARS:
+                    phrases.append(ph)
+                    size += len(ph) + 2
             if not phrases:
                 return ""
             return ("[PRIVATE NOTES: use them to choose topics and games; never quote them, never mention that notes, a parent or "
-                    "a cue exist; never use one as a test; a 'keep it' note beats an interest for tone] " + "; ".join(phrases[:12]))
+                    "a cue exist; never use one as a test; a 'keep it' note beats an interest for tone; a 'be mindful' note is about their safety or comfort] " + "; ".join(phrases))
+
+    def told_block(self) -> str:
+        """What the child told the toys themselves, for the prompt: the toys may bring it up like a friend who remembers."""
+        with self._lock:
+            if self._dek is None or not self.index["settings"].get("notes_on", True) or not self.index["settings"].get("child_memory", True):
+                return ""
+            child = self.bound_child()
+            if not child:
+                return ""
+            now = self.now()
+            told = [prompt_phrase(i, now) for i in self.items.get(child["id"], [])
+                    if i.get("source") == "child" and item_state(i, now) == "active"]
+            told = [t for t in told if t]
+            if not told:
+                return ""
+            return ("[THE CHILD TOLD YOU THESE THEMSELVES: bring one up now and then, naturally and warmly, like a friend who "
+                    "remembers ('You told me you like dinosaurs!'); never invent more, never say it was written down] " + "; ".join(told[-10:]))
+
+    def remember(self, said: str) -> int:
+        """Keep what the child just told the toys (facts only, never the sentence): an interest, a hobby day, a test, a pet's name.
+        Needs the key, a child marked 'Playing now' and the parent's switch on; otherwise nothing is kept. Returns the count kept."""
+        with self._lock:
+            if self._dek is None or not self.index["settings"].get("notes_on", True) or not self.index["settings"].get("child_memory", True):
+                return 0
+            child = self.bound_child()
+            if not child:
+                return 0
+            cards = parse_child(said, self.now())
+            if not cards:
+                return 0
+            cid, now = child["id"], self.now()
+            fresh = []
+            for c in cards:
+                same = next((i for i in self.items[cid] if i.get("source") == "child" and i["kind"] == c["kind"]
+                             and i["text"].lower() == c["text"].lower()), None)
+                if same:
+                    same["confirmed"] = _iso(now)      # said again: still true
+                else:
+                    fresh.append(c)
+            if fresh:
+                self.add_items(cid, fresh, source="child")
+                mine = [i for i in self.items[cid] if i.get("source") == "child"]
+                for old in mine[:-CHILD_MAX]:
+                    self.items[cid].remove(old)
+            self._write_items(cid)
+            return len(cards)
+
+    def sort_dump(self, text: str, llm, busy=lambda: False) -> str:
+        """Start sorting a parent's context dump. Returns a job id; poll `jobs[job]` (same shape as a worksheet read)."""
+        with self._lock:
+            self._require()
+        job = secrets.token_hex(6)
+        self.jobs[job] = {"status": "working", "cards": [], "at": self.now()}
+        threading.Thread(target=self._sort_job, args=(job, text, llm, busy), daemon=True, name="sort-dump").start()
+        return job
+
+    def _sort_job(self, job, text, llm, busy):
+        try:
+            now = self.now()
+            res = parse_dump(text, now)
+            cards, unparsed, ai = res["cards"], res["unparsed"], False
+            if unparsed and hasattr(llm, "complete"):
+                waited = 0
+                while busy() and waited < 30:     # never compete with a child's turn
+                    time.sleep(1)
+                    waited += 1
+                try:
+                    extra = _tidy(_gemma_sort(llm, unparsed, now), now)
+                    if extra:
+                        cards, unparsed, ai = _tidy(cards + extra, now), [], True
+                except Exception as e:  # noqa: BLE001 — the rules' cards are still useful
+                    log.warning("Gemma sort failed: %s", e)
+            self.jobs[job] = {"status": "done", "cards": cards, "unparsed": unparsed, "ai": ai, "at": self.now()}
+        except Exception as e:  # noqa: BLE001
+            log.warning("sorting failed: %s", e)
+            self.jobs[job] = {"status": "error", "error": "Could not sort that.", "cards": [], "at": self.now()}
 
     # ---- worksheets (a photo is read in RAM, summarised, and deleted at once) ----
     def read_worksheet(self, cid: str, image: bytes, llm, busy=lambda: False) -> str:
