@@ -1,0 +1,2552 @@
+{
+ "subject": "science",
+ "sources": [
+  "https://www.cde.ca.gov/pd/ca/sc/ngssintro.asp",
+  "https://www.cde.ca.gov/ci/sc/cf/"
+ ],
+ "verified": false,
+ "verification_note": "cde.ca.gov blocks automated fetches (web-firewall redirect), so these topics were written from knowledge of the California standards and NOT checked against the page; the listed sources are where to verify them. Review in a browser before relying on it.",
+ "note": "California NGSS-style science topics, K-5 by grade and 6-8 by an integrated-model grade placement (6: ecosystems, energy, climate, plate tectonics; 7: cells, atoms, reactions, resources; 8: forces, waves, genetics, evolution, space), written from general knowledge of CA NGSS; the CDE pages could not be fetched at authoring time, so placement of grades 6-8 should be verified.",
+ "items": [
+  {
+   "id": "science-0-push-pull",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Pushes and pulls",
+   "kind": "topic",
+   "summary": "A push moves something away and a pull brings it closer. Try pushing a toy car, then pulling it. A bigger push makes it go faster!",
+   "tags": [
+    "push",
+    "pull",
+    "force",
+    "motion",
+    "toys"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-0-push-pull-vocab",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Motion words",
+   "kind": "vocab",
+   "summary": "Let's learn words about moving things! Things can push, pull, roll, slide, and spin.",
+   "words": [
+    "push",
+    "pull",
+    "roll",
+    "slide",
+    "spin",
+    "faster",
+    "slower"
+   ],
+   "tags": [
+    "motion",
+    "words",
+    "push",
+    "pull"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-0-sun-warms",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "The Sun warms the Earth",
+   "kind": "topic",
+   "summary": "The Sun sends light that warms the ground, the water, and you. That's why a sidewalk gets hot in the sun but a shady spot stays cool.",
+   "tags": [
+    "sun",
+    "warm",
+    "light",
+    "shade",
+    "heat"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-0-plants-need",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "What plants need",
+   "kind": "topic",
+   "summary": "Plants need water, light, and air to grow. Without them a plant gets droopy and sad. Do you water a plant at home?",
+   "tags": [
+    "plants",
+    "water",
+    "sunlight",
+    "grow"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-0-animals-need",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "What animals need",
+   "kind": "topic",
+   "summary": "Animals need food, water, air, and a safe place to live. People are animals too, and we need the same things!",
+   "tags": [
+    "animals",
+    "food",
+    "water",
+    "shelter"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-0-weather-watch",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Watching the weather",
+   "kind": "topic",
+   "summary": "Weather is what the air outside is doing today: sunny, rainy, windy, cloudy, or snowy. Look out the window. What's the weather right now?",
+   "tags": [
+    "weather",
+    "sunny",
+    "rain",
+    "wind",
+    "cloud"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-0-weather-vocab",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Weather words",
+   "kind": "vocab",
+   "summary": "Here are weather words! Weather can be sunny, cloudy, rainy, windy, or stormy.",
+   "words": [
+    "sunny",
+    "cloudy",
+    "rainy",
+    "windy",
+    "stormy",
+    "snowy",
+    "temperature"
+   ],
+   "tags": [
+    "weather",
+    "words",
+    "rain",
+    "sun"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-0-living-nonliving",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Living and nonliving",
+   "kind": "topic",
+   "summary": "Living things grow, need food, and change. A cat and a tree are living. A rock and a ball are not. Can you spot something living near you?",
+   "tags": [
+    "living",
+    "nonliving",
+    "alive",
+    "rock"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-0-animals-change-land",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Animals change their home",
+   "kind": "topic",
+   "summary": "Animals change the land around them. Beavers build dams, and birds build nests. People change the land too, when we build houses and roads.",
+   "tags": [
+    "beaver",
+    "nest",
+    "dam",
+    "environment"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-0-save-water",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Taking care of water",
+   "kind": "topic",
+   "summary": "Water is precious, especially in California where it can get very dry. We can turn off the tap while brushing teeth to save water.",
+   "tags": [
+    "water",
+    "drought",
+    "save",
+    "california",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-0-fact-weather-safety",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Weather and safety",
+   "kind": "fact",
+   "summary": "Some weather can be dangerous, like strong wind or a big storm. Grown-ups listen to weather reports so everyone can stay safe.",
+   "tags": [
+    "storm",
+    "safety",
+    "wind",
+    "weather"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-0-tide-pool-look",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Tide pool animals",
+   "kind": "fact",
+   "summary": "At California beaches, tide pools are little puddles left when the ocean goes out. Sea stars, crabs, and anemones live in them. Look gently and never pull them off!",
+   "words": [
+    "sea star",
+    "crab",
+    "anemone"
+   ],
+   "tags": [
+    "tide",
+    "pool",
+    "beach",
+    "ocean",
+    "california",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-0-design-helper",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Engineering design",
+   "title": "Fix a problem",
+   "kind": "topic",
+   "summary": "Engineers solve problems by making things. If rain wets your friend, you could design an umbrella or a shelter. What problem would you fix?",
+   "tags": [
+    "engineer",
+    "design",
+    "problem",
+    "build"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-0-fact-redwood-tall",
+   "grade": 0,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Tall trees",
+   "kind": "fact",
+   "summary": "California's coast redwoods are the tallest trees on Earth, some are over 350 feet, taller than a 30-story building!",
+   "tags": [
+    "redwood",
+    "tree",
+    "tall",
+    "california",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-1-sound-vibrate",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Sound is a shake",
+   "kind": "topic",
+   "summary": "Sound comes from things that vibrate, which means shake back and forth very fast. Touch your throat while you hum and you can feel it!",
+   "tags": [
+    "sound",
+    "vibration",
+    "hum",
+    "noise"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-1-sound-vocab",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Sound words",
+   "kind": "vocab",
+   "summary": "Let's learn sound words! Sounds can be loud or quiet, high or low.",
+   "words": [
+    "sound",
+    "vibrate",
+    "loud",
+    "quiet",
+    "pitch",
+    "echo",
+    "hear"
+   ],
+   "tags": [
+    "sound",
+    "words",
+    "loud",
+    "quiet"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-1-light-see",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Light helps us see",
+   "kind": "topic",
+   "summary": "We see things because light bounces off them into our eyes. With no light at all, like in a closed closet, we can't see anything.",
+   "tags": [
+    "light",
+    "see",
+    "dark",
+    "eyes"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-1-light-materials",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "See-through and blocking",
+   "kind": "topic",
+   "summary": "Some things let light pass through, like clear glass. Some block it and make a shadow, like a book. Some let a little through, like wax paper.",
+   "words": [
+    "transparent",
+    "translucent",
+    "opaque",
+    "shadow"
+   ],
+   "tags": [
+    "shadow",
+    "transparent",
+    "glass",
+    "light"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-1-plant-parts",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Plant parts",
+   "kind": "vocab",
+   "summary": "Plants have parts that do jobs! Roots drink water, stems hold the plant up, and leaves catch sunlight.",
+   "words": [
+    "roots",
+    "stem",
+    "leaves",
+    "flower",
+    "seed",
+    "fruit"
+   ],
+   "tags": [
+    "plant",
+    "parts",
+    "roots",
+    "leaves"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-1-animal-parts",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Animal body parts for survival",
+   "kind": "topic",
+   "summary": "Animals have parts that help them live. Birds have wings to fly, fish have fins to swim, and rabbits have big ears to hear danger.",
+   "tags": [
+    "animal",
+    "body",
+    "wings",
+    "fins",
+    "ears"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-1-parents-babies",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Parents and babies",
+   "kind": "topic",
+   "summary": "Baby plants and animals look a lot like their parents but are not exactly the same. Puppies look like dogs, and a baby sunflower grows into a tall sunflower.",
+   "tags": [
+    "baby",
+    "parents",
+    "offspring",
+    "grow"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-1-sun-patterns",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Sun, moon, and stars patterns",
+   "kind": "topic",
+   "summary": "The Sun rises in the morning and sets in the evening. The Moon and stars come out at night. These patterns repeat every day.",
+   "tags": [
+    "sun",
+    "moon",
+    "stars",
+    "sunrise",
+    "sunset"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-1-seasons-day-length",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Longer and shorter days",
+   "kind": "topic",
+   "summary": "In summer the Sun stays up longer, so days are long. In winter the days are shorter. This pattern happens every year.",
+   "tags": [
+    "season",
+    "summer",
+    "winter",
+    "day",
+    "night"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-1-moon-phases-look",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "The changing Moon",
+   "kind": "fact",
+   "summary": "The Moon looks different through the month, from a thin curve to a big circle. It's the same Moon, we just see a different amount of its sunny side.",
+   "tags": [
+    "moon",
+    "phases",
+    "night"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-1-tide-pool-structures",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Tide pool survival",
+   "kind": "fact",
+   "summary": "Mussels on California rocks hold on with strong threads so waves can't wash them away. Body parts that help animals survive are called adaptations.",
+   "words": [
+    "mussel",
+    "wave",
+    "tide",
+    "rock"
+   ],
+   "tags": [
+    "mussel",
+    "tide",
+    "pool",
+    "california",
+    "adaptation",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-1-design-sound",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Engineering design",
+   "title": "Make a sound signal",
+   "kind": "topic",
+   "summary": "Engineers can make a tool to send a message far away. A drum, a whistle, or a flashlight can send signals when we can't shout.",
+   "tags": [
+    "signal",
+    "drum",
+    "whistle",
+    "flashlight"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-1-fact-hummingbird",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Hummingbirds in California",
+   "kind": "fact",
+   "summary": "Anna's hummingbird lives in California all year. Its long thin beak reaches deep into flowers to sip sweet nectar.",
+   "words": [
+    "beak",
+    "nectar",
+    "hummingbird"
+   ],
+   "tags": [
+    "hummingbird",
+    "beak",
+    "california",
+    "bird",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-1-fact-sun-never-look",
+   "grade": 1,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Sun safety",
+   "kind": "fact",
+   "summary": "The Sun is a star, the closest one to us. Never look right at it. Sunglasses and hats help keep your eyes and skin safe.",
+   "tags": [
+    "sun",
+    "star",
+    "safety"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-2-states-matter",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Solid, liquid, gas",
+   "kind": "topic",
+   "summary": "Matter comes as solid, liquid, or gas. Ice is solid, water is liquid, and steam is gas. Heating or cooling can change one into another!",
+   "words": [
+    "solid",
+    "liquid",
+    "gas"
+   ],
+   "tags": [
+    "solid",
+    "liquid",
+    "gas",
+    "ice",
+    "steam"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-2-matter-vocab",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Material words",
+   "kind": "vocab",
+   "summary": "Let's describe stuff! Materials can be hard or soft, rough or smooth, flexible or stiff.",
+   "words": [
+    "hard",
+    "soft",
+    "rough",
+    "smooth",
+    "flexible",
+    "stiff",
+    "strong",
+    "waterproof"
+   ],
+   "tags": [
+    "material",
+    "properties",
+    "words"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-2-melt-freeze",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Melting and freezing",
+   "kind": "topic",
+   "summary": "Heat melts ice into water, and cooling freezes water back into ice. Even melted chocolate can harden again when cool. Some changes can be undone!",
+   "tags": [
+    "melt",
+    "freeze",
+    "ice",
+    "reversible"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-2-build-with-pieces",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Little pieces build big things",
+   "kind": "topic",
+   "summary": "Small pieces can be put together to make something new, like bricks making a wall. We can take them apart and build something different.",
+   "tags": [
+    "blocks",
+    "build",
+    "pieces",
+    "materials"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-2-seed-spread",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "How seeds travel",
+   "kind": "topic",
+   "summary": "Plants can't walk, so seeds hitch a ride. Wind blows dandelion fluff, animals carry burrs on fur, and squirrels bury acorns that grow into oaks.",
+   "words": [
+    "seed",
+    "pollinate",
+    "disperse"
+   ],
+   "tags": [
+    "seed",
+    "wind",
+    "animals",
+    "dandelion",
+    "acorn"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-2-bees-pollinate",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Pollinators",
+   "kind": "topic",
+   "summary": "Bees and other animals visit flowers for nectar and carry pollen from flower to flower. That helps plants make seeds and fruit.",
+   "words": [
+    "pollen",
+    "nectar",
+    "bee"
+   ],
+   "tags": [
+    "bee",
+    "pollen",
+    "flower",
+    "pollinate"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-2-habitats",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Habitats",
+   "kind": "topic",
+   "summary": "A habitat is a place where plants and animals live and find what they need. Deserts, forests, and oceans are all different habitats with different living things.",
+   "words": [
+    "habitat",
+    "desert",
+    "forest",
+    "ocean"
+   ],
+   "tags": [
+    "habitat",
+    "desert",
+    "forest",
+    "ocean"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-2-ca-habitats",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "California habitats",
+   "kind": "fact",
+   "summary": "California has many habitats close together: foggy redwood forests, hot deserts, snowy mountains, and rocky coast tide pools.",
+   "words": [
+    "redwood",
+    "desert",
+    "coast",
+    "mountain"
+   ],
+   "tags": [
+    "california",
+    "habitats",
+    "desert",
+    "forest",
+    "coast",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-2-land-water-maps",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Land and water",
+   "kind": "topic",
+   "summary": "Earth has land and water. We can show them on a map. Landforms include mountains, hills, valleys, and islands. Bodies of water include oceans, lakes, and rivers.",
+   "words": [
+    "mountain",
+    "valley",
+    "island",
+    "river",
+    "lake",
+    "ocean"
+   ],
+   "tags": [
+    "landform",
+    "water",
+    "map",
+    "mountain"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-2-land-vocab",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Landform words",
+   "kind": "vocab",
+   "summary": "Here are landform words! A hill is smaller than a mountain, and a valley is low land between them.",
+   "words": [
+    "hill",
+    "valley",
+    "mountain",
+    "canyon",
+    "plain",
+    "island",
+    "coast"
+   ],
+   "tags": [
+    "landforms",
+    "hill",
+    "valley"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-2-fast-slow-change",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Slow and fast changes",
+   "kind": "topic",
+   "summary": "Earth changes all the time. Volcanoes and floods change land fast. Wind and water wearing down rock changes it very slowly, over thousands of years.",
+   "words": [
+    "erosion",
+    "volcano",
+    "flood"
+   ],
+   "tags": [
+    "erosion",
+    "wind",
+    "water",
+    "volcano",
+    "slow",
+    "fast"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-2-earthquakes-intro",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Earthquakes in California",
+   "kind": "fact",
+   "summary": "California has earthquakes because pieces of Earth's crust slide past each other. If one happens, remember: drop, cover, and hold on.",
+   "words": [
+    "earthquake",
+    "crust",
+    "drop cover hold"
+   ],
+   "tags": [
+    "earthquake",
+    "california",
+    "safety",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-2-water-forms",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Water in different places",
+   "kind": "fact",
+   "summary": "Water is found as liquid in oceans and rivers, and as solid ice on tall mountains like California's Sierra Nevada. Snow there melts in spring and fills rivers.",
+   "words": [
+    "snow",
+    "ice",
+    "river",
+    "sierra nevada"
+   ],
+   "tags": [
+    "water",
+    "snow",
+    "ice",
+    "sierra",
+    "california",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-2-design-compare",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Engineering design",
+   "title": "Test and compare",
+   "kind": "topic",
+   "summary": "Engineers build, test, and then make it better. If you build two paper bridges, see which holds more toy cars. Testing shows which design works best.",
+   "words": [
+    "test",
+    "compare",
+    "design"
+   ],
+   "tags": [
+    "engineer",
+    "test",
+    "compare",
+    "build"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-2-drought-water",
+   "grade": 2,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Dry spells in California",
+   "kind": "fact",
+   "summary": "Sometimes California gets very little rain for years, which is called drought. People then save water and plants and animals have to cope.",
+   "words": [
+    "drought",
+    "rain",
+    "reservoir"
+   ],
+   "tags": [
+    "drought",
+    "water",
+    "california",
+    "dry",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-3-forces-balanced",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Balanced and unbalanced forces",
+   "kind": "topic",
+   "summary": "When pushes and pulls are equal and opposite, a thing stays still. When one is stronger, the thing moves. Tug-of-war shows this: the stronger side wins.",
+   "words": [
+    "force",
+    "balanced",
+    "unbalanced"
+   ],
+   "tags": [
+    "force",
+    "tug",
+    "of",
+    "war",
+    "balance",
+    "motion"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-3-motion-patterns",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Patterns in motion",
+   "kind": "topic",
+   "summary": "A swing moves back and forth in a regular pattern. If we watch the pattern, we can predict where it will be next.",
+   "words": [
+    "pattern",
+    "predict",
+    "pendulum"
+   ],
+   "tags": [
+    "swing",
+    "pendulum",
+    "pattern",
+    "motion"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-3-magnets",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Magnets",
+   "kind": "topic",
+   "summary": "Magnets pull on some metals like iron, and they can push or pull other magnets without touching. Two north ends push apart, while north and south pull together.",
+   "words": [
+    "magnet",
+    "attract",
+    "repel",
+    "north pole",
+    "south pole"
+   ],
+   "tags": [
+    "magnet",
+    "attract",
+    "repel",
+    "iron"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-3-force-vocab",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Force words",
+   "kind": "vocab",
+   "summary": "Let's learn force words! Friction is a rubbing force that slows things down, and gravity pulls everything toward Earth.",
+   "words": [
+    "force",
+    "friction",
+    "gravity",
+    "magnet",
+    "attract",
+    "repel",
+    "motion",
+    "balanced"
+   ],
+   "tags": [
+    "force",
+    "friction",
+    "gravity",
+    "words"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-3-life-cycles",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Life cycles",
+   "kind": "topic",
+   "summary": "Living things grow and change through life cycles. A butterfly goes from egg to caterpillar to chrysalis to butterfly. Different animals have different cycles.",
+   "words": [
+    "egg",
+    "larva",
+    "pupa",
+    "adult"
+   ],
+   "tags": [
+    "life",
+    "cycle",
+    "butterfly",
+    "frog",
+    "egg"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-3-traits",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Traits and inheritance",
+   "kind": "topic",
+   "summary": "Traits are features like fur color or leaf shape. Young plants and animals get traits from their parents, but each one is a little bit different.",
+   "words": [
+    "trait",
+    "inherit",
+    "offspring"
+   ],
+   "tags": [
+    "traits",
+    "parents",
+    "inherit",
+    "color"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-3-variation",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Differences help survive",
+   "kind": "topic",
+   "summary": "In a group of the same kind of animal, each one is a little different. Sometimes those differences, like color, help one hide better or find more food.",
+   "words": [
+    "variation",
+    "camouflage"
+   ],
+   "tags": [
+    "variation",
+    "camouflage",
+    "survive"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-3-adaptations",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Adaptations to habitats",
+   "kind": "topic",
+   "summary": "Living things have features that fit their home. A desert kangaroo rat survives with very little water, and a polar bear's thick fur keeps it warm.",
+   "words": [
+    "adaptation",
+    "habitat",
+    "survive"
+   ],
+   "tags": [
+    "adaptation",
+    "habitat",
+    "desert",
+    "animals"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-3-fossils",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Fossils",
+   "kind": "topic",
+   "summary": "Fossils are the remains or prints of living things from long ago, kept in rock. They show us what lived on Earth before people.",
+   "words": [
+    "fossil",
+    "extinct",
+    "rock"
+   ],
+   "tags": [
+    "fossil",
+    "extinct",
+    "dinosaur",
+    "rock"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-3-la-tar-pits",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "La Brea Tar Pits",
+   "kind": "fact",
+   "summary": "In Los Angeles, tar bubbling up from the ground trapped animals thousands of years ago. Scientists have found saber-toothed cats, mammoths, and dire wolves there.",
+   "words": [
+    "tar pit",
+    "mammoth",
+    "saber-toothed cat"
+   ],
+   "tags": [
+    "la",
+    "brea",
+    "tar",
+    "pits",
+    "fossil",
+    "california",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-3-weather-climate",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Weather and climate",
+   "kind": "topic",
+   "summary": "Weather is what happens today. Climate is the usual weather in a place over many years. Los Angeles has a warm dry climate, while Alaska has a cold one.",
+   "words": [
+    "weather",
+    "climate",
+    "temperature",
+    "rainfall"
+   ],
+   "tags": [
+    "weather",
+    "climate",
+    "region"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-3-weather-hazards",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Weather hazards",
+   "kind": "topic",
+   "summary": "Some weather can cause harm, like floods, heavy storms, or wildfires in dry hot weather. Engineers design ways to lower the harm, like firebreaks and levees.",
+   "words": [
+    "flood",
+    "wildfire",
+    "storm",
+    "hazard"
+   ],
+   "tags": [
+    "flood",
+    "wildfire",
+    "storm",
+    "hazard",
+    "california",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-3-wildfire-season",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Wildfires in California",
+   "kind": "fact",
+   "summary": "In California's long dry summers, plants dry out and fires can spread fast. Firefighters, and careful campers, help keep everyone safe. Some plants even need fire to sprout seeds.",
+   "words": [
+    "wildfire",
+    "firefighter",
+    "dry"
+   ],
+   "tags": [
+    "wildfire",
+    "fire",
+    "california",
+    "dry",
+    "season",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-3-design-solutions",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Engineering design",
+   "title": "Designing a solution",
+   "kind": "topic",
+   "summary": "Engineers list what a solution must do, then try different ideas and compare. A good design meets the goal even when it has limits like cost and time.",
+   "words": [
+    "design",
+    "criteria",
+    "constraint"
+   ],
+   "tags": [
+    "engineer",
+    "design",
+    "criteria",
+    "constraint"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-3-fact-condor",
+   "grade": 3,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "California condors",
+   "kind": "fact",
+   "summary": "The California condor is a huge bird that nearly went extinct in the 1980s. Scientists and zoos helped raise chicks, and now condors fly free again in California.",
+   "words": [
+    "condor",
+    "extinct",
+    "endangered"
+   ],
+   "tags": [
+    "condor",
+    "endangered",
+    "bird",
+    "california",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-4-energy-motion",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Energy and speed",
+   "kind": "topic",
+   "summary": "Moving things have energy. The faster something moves, the more energy it has. A speeding bike is harder to stop than a slow one.",
+   "words": [
+    "energy",
+    "speed",
+    "kinetic"
+   ],
+   "tags": [
+    "energy",
+    "speed",
+    "motion",
+    "bike"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-4-energy-transfer",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Energy moves around",
+   "kind": "topic",
+   "summary": "Energy can pass from place to place by sound, light, heat, or electric current. Rubbing your hands makes them warm because motion energy turns into heat.",
+   "words": [
+    "heat",
+    "electric current",
+    "transfer"
+   ],
+   "tags": [
+    "energy",
+    "heat",
+    "electric",
+    "transfer"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-4-collisions",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Collisions",
+   "kind": "topic",
+   "summary": "When two things bump, energy passes from one to the other. A moving marble hitting a still marble makes it roll, and the first slows down.",
+   "words": [
+    "collision",
+    "energy",
+    "transfer"
+   ],
+   "tags": [
+    "collision",
+    "marbles",
+    "energy"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-4-energy-vocab",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Energy words",
+   "kind": "vocab",
+   "summary": "Let's learn energy words! Energy comes from sources like the Sun, wind, and fuel.",
+   "words": [
+    "energy",
+    "renewable",
+    "fuel",
+    "solar",
+    "wind",
+    "electric",
+    "conversion",
+    "generator"
+   ],
+   "tags": [
+    "energy",
+    "words",
+    "solar",
+    "wind"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-4-waves",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Waves",
+   "kind": "topic",
+   "summary": "Waves carry energy without carrying water along. A ball floating on the ocean mostly bobs up and down as the wave passes beneath it.",
+   "words": [
+    "wave",
+    "wavelength",
+    "amplitude"
+   ],
+   "tags": [
+    "wave",
+    "ocean",
+    "sound",
+    "light"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-4-information",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Sending information",
+   "kind": "topic",
+   "summary": "People send information using patterns, like Morse code, or by turning light and sound into signals. Fiber optic cables send messages as flashes of light.",
+   "words": [
+    "signal",
+    "code",
+    "pattern"
+   ],
+   "tags": [
+    "signal",
+    "code",
+    "information",
+    "light"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-4-structures-senses",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Structures that help animals",
+   "kind": "topic",
+   "summary": "Animals have body parts for surviving: eyes, ears, and noses gather information, and the brain decides what to do. Plants have thorns and roots that protect and feed them.",
+   "words": [
+    "senses",
+    "brain",
+    "thorn",
+    "root"
+   ],
+   "tags": [
+    "senses",
+    "brain",
+    "eyes",
+    "animal",
+    "plant"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-4-senses-vocab",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Sense and survive words",
+   "kind": "vocab",
+   "summary": "Let's learn words about how living things sense the world! Animals sense by seeing, hearing, smelling, and feeling.",
+   "words": [
+    "sense",
+    "receptor",
+    "internal",
+    "external",
+    "predator",
+    "prey",
+    "nerve"
+   ],
+   "tags": [
+    "senses",
+    "words",
+    "animals"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-4-rocks-erosion",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Weathering and erosion",
+   "kind": "topic",
+   "summary": "Wind, water, and ice break rock into smaller pieces, and moving water carries them away. Over millions of years this carved the Grand Canyon.",
+   "words": [
+    "weathering",
+    "erosion",
+    "deposit"
+   ],
+   "tags": [
+    "erosion",
+    "weathering",
+    "rock",
+    "canyon"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-4-yosemite-glacier",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Yosemite's glaciers",
+   "kind": "fact",
+   "summary": "Huge slow rivers of ice called glaciers carved Yosemite Valley long ago. They left steep granite walls like El Capitan and Half Dome.",
+   "words": [
+    "glacier",
+    "granite",
+    "valley"
+   ],
+   "tags": [
+    "yosemite",
+    "glacier",
+    "granite",
+    "california",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-4-fossil-layers",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Fossils and rock layers",
+   "kind": "topic",
+   "summary": "Rock layers form over time, with older layers usually on the bottom. Fossils in the layers show that places once looked different, like seas where land is now.",
+   "words": [
+    "layer",
+    "fossil",
+    "sediment"
+   ],
+   "tags": [
+    "fossil",
+    "layers",
+    "sediment",
+    "rock"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-4-quakes-volcanoes",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Earthquakes and volcanoes",
+   "kind": "topic",
+   "summary": "Most earthquakes and volcanoes happen near the edges of Earth's giant crust pieces. California sits near one such edge, where the San Andreas Fault runs.",
+   "words": [
+    "earthquake",
+    "volcano",
+    "fault",
+    "plate"
+   ],
+   "tags": [
+    "earthquake",
+    "volcano",
+    "fault",
+    "san",
+    "andreas",
+    "california",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-4-san-andreas",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "San Andreas Fault",
+   "kind": "fact",
+   "summary": "The San Andreas Fault is a long crack in California where two crust pieces slowly slide past each other. When they suddenly slip, we feel an earthquake. Scientists use maps to prepare.",
+   "words": [
+    "fault",
+    "crack",
+    "seismograph"
+   ],
+   "tags": [
+    "san",
+    "andreas",
+    "fault",
+    "earthquake",
+    "california",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-4-energy-resources",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Sources of energy",
+   "kind": "topic",
+   "summary": "We get energy from sources like sunlight, wind, water, coal, and oil. Some are renewable and won't run out, like sun and wind. California has many solar farms and wind turbines.",
+   "words": [
+    "renewable",
+    "solar",
+    "wind",
+    "fossil fuel"
+   ],
+   "tags": [
+    "renewable",
+    "solar",
+    "wind",
+    "energy",
+    "california",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-4-design-earthquake",
+   "grade": 4,
+   "subject": "science",
+   "strand": "Engineering design",
+   "title": "Earthquake-safe buildings",
+   "kind": "topic",
+   "summary": "Engineers design buildings to sway, not snap, in earthquakes. They test models on shake tables and keep improving them.",
+   "words": [
+    "shake table",
+    "design",
+    "model"
+   ],
+   "tags": [
+    "earthquake",
+    "building",
+    "engineer",
+    "test",
+    "california",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-5-matter-particles",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Matter is made of tiny particles",
+   "kind": "topic",
+   "summary": "All matter is made of tiny particles too small to see. Air looks empty but is full of them. A balloon grows when more air particles are inside.",
+   "words": [
+    "particle",
+    "atom",
+    "matter"
+   ],
+   "tags": [
+    "matter",
+    "particles",
+    "air",
+    "balloon"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-5-conservation-mass",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Mass doesn't disappear",
+   "kind": "topic",
+   "summary": "When ice melts, or sugar dissolves in water, the total amount of matter stays the same. Weigh before and after and it's equal.",
+   "words": [
+    "mass",
+    "dissolve",
+    "conserved"
+   ],
+   "tags": [
+    "mass",
+    "melt",
+    "dissolve",
+    "conserve"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-5-properties",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Properties of materials",
+   "kind": "topic",
+   "summary": "Materials have properties like color, hardness, how well they conduct heat or electricity, and whether they dissolve. Scientists use properties to tell materials apart.",
+   "words": [
+    "property",
+    "conduct",
+    "dissolve",
+    "magnetic"
+   ],
+   "tags": [
+    "properties",
+    "material",
+    "conduct"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-5-chemical-change",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Mixing and reacting",
+   "kind": "topic",
+   "summary": "Mixing can just combine things, like salt in water. But sometimes a new substance forms, like when baking soda and vinegar fizz. That's a chemical reaction.",
+   "words": [
+    "mixture",
+    "reaction",
+    "substance"
+   ],
+   "tags": [
+    "mixture",
+    "reaction",
+    "vinegar",
+    "baking",
+    "soda"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-5-matter-vocab",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Matter words",
+   "kind": "vocab",
+   "summary": "Let's learn words about matter! A mixture is two or more things together, and a solution is a mixture where one thing dissolves.",
+   "words": [
+    "matter",
+    "particle",
+    "mixture",
+    "solution",
+    "dissolve",
+    "property",
+    "reaction",
+    "mass"
+   ],
+   "tags": [
+    "matter",
+    "words",
+    "mixture"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-5-food-energy",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Energy from food",
+   "kind": "topic",
+   "summary": "Plants make their own food using sunlight, water, and air. Animals eat plants or other animals to get energy. So the Sun's energy ends up in your lunch!",
+   "words": [
+    "photosynthesis",
+    "energy",
+    "food"
+   ],
+   "tags": [
+    "photosynthesis",
+    "food",
+    "energy",
+    "sun"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-5-food-webs",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Food chains and webs",
+   "kind": "topic",
+   "summary": "A food chain shows who eats what: grass, rabbit, then fox. Many chains connect into a food web. Decomposers like fungi break down dead things and return nutrients to soil.",
+   "words": [
+    "producer",
+    "consumer",
+    "decomposer",
+    "food web"
+   ],
+   "tags": [
+    "food",
+    "chain",
+    "web",
+    "producer",
+    "consumer"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-5-ecosystem-vocab",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Ecosystem words",
+   "kind": "vocab",
+   "summary": "Let's learn ecosystem words! An ecosystem is all the living and nonliving things in a place working together.",
+   "words": [
+    "ecosystem",
+    "producer",
+    "consumer",
+    "decomposer",
+    "predator",
+    "prey",
+    "nutrients",
+    "food web"
+   ],
+   "tags": [
+    "ecosystem",
+    "words"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-5-kelp-forest",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Kelp forest ecosystem",
+   "kind": "fact",
+   "summary": "Off California's coast, giant kelp grows tall underwater, feeding and sheltering fish, otters, and urchins. Sea otters eat urchins, which keeps the kelp from being overgrazed.",
+   "words": [
+    "kelp",
+    "otter",
+    "urchin"
+   ],
+   "tags": [
+    "kelp",
+    "forest",
+    "otter",
+    "california",
+    "ocean",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-5-gravity",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Gravity",
+   "kind": "topic",
+   "summary": "Gravity pulls things toward the center of Earth, which is why things fall down no matter where you are on the planet. Earth's gravity keeps the Moon circling us.",
+   "words": [
+    "gravity",
+    "orbit",
+    "weight"
+   ],
+   "tags": [
+    "gravity",
+    "fall",
+    "earth",
+    "moon"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-5-sun-star",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "The Sun is a star",
+   "kind": "topic",
+   "summary": "The Sun looks bigger and brighter than other stars only because it's so close. Other stars are very far away, and some are much bigger than the Sun.",
+   "words": [
+    "star",
+    "distance",
+    "light-year"
+   ],
+   "tags": [
+    "sun",
+    "star",
+    "bright",
+    "distance"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-5-shadows-seasons",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Day, night, and seasons",
+   "kind": "topic",
+   "summary": "Earth spinning makes day and night, and its tilt as it circles the Sun makes seasons. Shadows change length through the day because the Sun's height changes.",
+   "words": [
+    "rotate",
+    "tilt",
+    "orbit",
+    "season",
+    "shadow"
+   ],
+   "tags": [
+    "rotation",
+    "tilt",
+    "seasons",
+    "shadow"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-5-earth-systems",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Earth's four systems",
+   "kind": "topic",
+   "summary": "Earth has the geosphere (rock), hydrosphere (water), atmosphere (air), and biosphere (life). They interact, like rain wearing rock and plants growing in soil.",
+   "words": [
+    "geosphere",
+    "hydrosphere",
+    "atmosphere",
+    "biosphere"
+   ],
+   "tags": [
+    "earth",
+    "systems",
+    "water",
+    "air",
+    "rock",
+    "life"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-5-water-supply",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Where the water is",
+   "kind": "fact",
+   "summary": "Most of Earth's water is salty ocean. Only a tiny bit is fresh and usable. California gets much of its fresh water from snowpack melting in the Sierra Nevada.",
+   "words": [
+    "fresh water",
+    "snowpack",
+    "ocean"
+   ],
+   "tags": [
+    "fresh",
+    "water",
+    "snowpack",
+    "sierra",
+    "california",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-5-design-protect",
+   "grade": 5,
+   "subject": "science",
+   "strand": "Engineering design",
+   "title": "Protecting Earth's resources",
+   "kind": "topic",
+   "summary": "People can protect land, water, air, and living things by recycling, saving water, and cleaning up. Communities can design solutions and test which one helps most.",
+   "words": [
+    "conserve",
+    "recycle",
+    "resource"
+   ],
+   "tags": [
+    "protect",
+    "environment",
+    "recycle",
+    "conserve",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-6-ecosystems-flow",
+   "grade": 6,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Matter and energy in ecosystems",
+   "kind": "topic",
+   "summary": "Energy from the Sun flows through ecosystems as organisms eat each other, while matter like carbon and nitrogen is recycled again and again.",
+   "words": [
+    "ecosystem",
+    "carbon cycle",
+    "producer",
+    "consumer"
+   ],
+   "tags": [
+    "ecosystem",
+    "energy",
+    "matter",
+    "carbon"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-6-populations",
+   "grade": 6,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Populations and resources",
+   "kind": "topic",
+   "summary": "Populations of living things grow or shrink depending on food, water, and space. When resources run short, competition increases, and the population can drop.",
+   "words": [
+    "population",
+    "resource",
+    "competition",
+    "biodiversity"
+   ],
+   "tags": [
+    "population",
+    "resources",
+    "competition"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-6-thermal-energy",
+   "grade": 6,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Heat and temperature",
+   "kind": "topic",
+   "summary": "Heat is energy moving from warmer to cooler things. Temperature measures how fast particles are moving on average. Metal spoons feel cold because they pull heat away from your hand quickly.",
+   "words": [
+    "thermal energy",
+    "conduction",
+    "convection",
+    "radiation",
+    "temperature"
+   ],
+   "tags": [
+    "heat",
+    "temperature",
+    "conduction",
+    "thermal"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-6-weather-climate-ms",
+   "grade": 6,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Weather, climate, and oceans",
+   "kind": "topic",
+   "summary": "The Sun heats Earth unevenly, so air and water currents move heat around. This drives weather and climate. Oceans store a lot of heat and shape coastal weather.",
+   "words": [
+    "atmosphere",
+    "current",
+    "climate",
+    "air mass"
+   ],
+   "tags": [
+    "weather",
+    "climate",
+    "ocean",
+    "current"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-6-california-climate",
+   "grade": 6,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "California's climate",
+   "kind": "fact",
+   "summary": "California has a Mediterranean climate with wet winters and dry summers. Cold ocean currents and coastal fog keep the coast cool while inland valleys get hot.",
+   "words": [
+    "fog",
+    "current",
+    "climate",
+    "rainfall"
+   ],
+   "tags": [
+    "california",
+    "climate",
+    "fog",
+    "coast",
+    "dry",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-6-plate-tectonics",
+   "grade": 6,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Plate tectonics",
+   "kind": "topic",
+   "summary": "Earth's outer shell is broken into plates that move slowly, only a few centimeters a year. Where they meet we get earthquakes, volcanoes, and mountains.",
+   "words": [
+    "plate",
+    "tectonic",
+    "boundary",
+    "mantle"
+   ],
+   "tags": [
+    "plate",
+    "tectonics",
+    "earthquake",
+    "volcano"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-6-san-andreas-ms",
+   "grade": 6,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "San Andreas transform boundary",
+   "kind": "fact",
+   "summary": "The San Andreas Fault is where the Pacific plate slides northwest past the North American plate. Stress builds, then releases as earthquakes, and scientists measure it to estimate hazards.",
+   "words": [
+    "transform",
+    "fault",
+    "Pacific plate",
+    "stress"
+   ],
+   "tags": [
+    "san",
+    "andreas",
+    "pacific",
+    "plate",
+    "california",
+    "earthquake",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-6-rock-cycle",
+   "grade": 6,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Rock cycle and Earth's history",
+   "kind": "topic",
+   "summary": "Rocks change between igneous, sedimentary, and metamorphic over millions of years. Rock layers and fossils help scientists tell Earth's long history.",
+   "words": [
+    "igneous",
+    "sedimentary",
+    "metamorphic",
+    "rock cycle"
+   ],
+   "tags": [
+    "rock",
+    "cycle",
+    "igneous",
+    "sedimentary"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-6-science-vocab-6",
+   "grade": 6,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Science words",
+   "kind": "vocab",
+   "summary": "Here are some science thinking words! Scientists ask questions, make hypotheses, collect evidence, and build models.",
+   "words": [
+    "hypothesis",
+    "evidence",
+    "model",
+    "variable",
+    "analyze",
+    "conclusion",
+    "system",
+    "data"
+   ],
+   "tags": [
+    "science",
+    "method",
+    "words",
+    "hypothesis",
+    "evidence"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-6-design-ms6",
+   "grade": 6,
+   "subject": "science",
+   "strand": "Engineering design",
+   "title": "Engineering design process",
+   "kind": "topic",
+   "summary": "Engineers define a problem, brainstorm, build a prototype, test it, and improve it. Compare designs using clear criteria like cost, safety, and effectiveness.",
+   "words": [
+    "prototype",
+    "criteria",
+    "constraint",
+    "iterate"
+   ],
+   "tags": [
+    "engineering",
+    "design",
+    "prototype",
+    "test"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-7-cells",
+   "grade": 7,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Cells are the building blocks",
+   "kind": "topic",
+   "summary": "All living things are made of cells. Some are just one cell, others have trillions. Cells have parts like a nucleus that directs the cell, and a membrane that controls what comes in and out.",
+   "words": [
+    "cell",
+    "nucleus",
+    "membrane",
+    "organelle",
+    "tissue"
+   ],
+   "tags": [
+    "cell",
+    "nucleus",
+    "membrane",
+    "organelle"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-7-body-systems",
+   "grade": 7,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Body systems",
+   "kind": "topic",
+   "summary": "Cells make tissues, tissues make organs, and organs work in body systems such as the circulatory, respiratory, and nervous systems. They cooperate to keep you alive.",
+   "words": [
+    "organ",
+    "system",
+    "circulatory",
+    "respiratory"
+   ],
+   "tags": [
+    "body",
+    "systems",
+    "organ",
+    "heart",
+    "lungs"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-7-photosynthesis-ms",
+   "grade": 7,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Photosynthesis and respiration",
+   "kind": "topic",
+   "summary": "In photosynthesis, plants use light, water, and carbon dioxide to make sugar and oxygen. In cellular respiration, cells use oxygen to release energy from that sugar.",
+   "words": [
+    "photosynthesis",
+    "respiration",
+    "glucose",
+    "chloroplast"
+   ],
+   "tags": [
+    "photosynthesis",
+    "respiration",
+    "chloroplast"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-7-matter-atoms",
+   "grade": 7,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Atoms and molecules",
+   "kind": "topic",
+   "summary": "Everything is made of atoms, which join into molecules. The periodic table lists the kinds of atoms, called elements. There are only about 118, yet they make everything.",
+   "words": [
+    "atom",
+    "molecule",
+    "element",
+    "periodic table"
+   ],
+   "tags": [
+    "atom",
+    "molecule",
+    "element",
+    "periodic",
+    "table"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-7-chemical-reactions",
+   "grade": 7,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Chemical reactions",
+   "kind": "topic",
+   "summary": "In a chemical reaction, atoms rearrange to make new substances, but none are lost. Signs include gas bubbles, color change, or heat. Rust and cooking are reactions.",
+   "words": [
+    "reactant",
+    "product",
+    "conservation",
+    "rust"
+   ],
+   "tags": [
+    "chemical",
+    "reaction",
+    "rust",
+    "cooking",
+    "atoms"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-7-ms-vocab-7",
+   "grade": 7,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Chemistry words",
+   "kind": "vocab",
+   "summary": "Here are chemistry words! In a reaction, reactants change into products.",
+   "words": [
+    "atom",
+    "element",
+    "compound",
+    "molecule",
+    "reactant",
+    "product",
+    "acid",
+    "base"
+   ],
+   "tags": [
+    "chemistry",
+    "words",
+    "atom",
+    "molecule"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-7-resources-human",
+   "grade": 7,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Natural resources and human impact",
+   "kind": "topic",
+   "summary": "People use resources like water, minerals, and fuel. Using them wisely and finding renewable options reduces harm to ecosystems and the climate.",
+   "words": [
+    "renewable",
+    "nonrenewable",
+    "pollution",
+    "sustainability"
+   ],
+   "tags": [
+    "resources",
+    "renewable",
+    "pollution",
+    "sustainability"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-7-california-drought-ms",
+   "grade": 7,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "California water and drought",
+   "kind": "fact",
+   "summary": "Most of California's rain falls in the north, but most people live in the south. Dams, canals, and snowpack move water, and droughts push us to conserve and recycle.",
+   "words": [
+    "aqueduct",
+    "reservoir",
+    "drought",
+    "conservation"
+   ],
+   "tags": [
+    "california",
+    "drought",
+    "water",
+    "aqueduct",
+    "california"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-7-wildfire-ecology",
+   "grade": 7,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Fire and California ecosystems",
+   "kind": "fact",
+   "summary": "Many California plants, like chaparral shrubs and some pines, have adapted to fire. Some cones open only in heat. But hotter, bigger fires today challenge people and nature.",
+   "words": [
+    "chaparral",
+    "adaptation",
+    "wildfire"
+   ],
+   "tags": [
+    "wildfire",
+    "chaparral",
+    "ecosystem",
+    "california",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-7-ocean-ecosystems",
+   "grade": 7,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Ocean and tide pool systems",
+   "kind": "fact",
+   "summary": "California's coast has tide pools, kelp forests, and deep canyons like Monterey Bay's. Marine protected areas help keep these ecosystems healthy.",
+   "words": [
+    "tide pool",
+    "kelp",
+    "marine protected area"
+   ],
+   "tags": [
+    "ocean",
+    "monterey",
+    "tide",
+    "pool",
+    "california",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-8-forces-newton",
+   "grade": 8,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Forces and motion",
+   "kind": "topic",
+   "summary": "Newton's laws say things keep moving the same way unless a force acts, force makes things accelerate, and every push has an equal push back. Seat belts work because of the first law.",
+   "words": [
+    "force",
+    "acceleration",
+    "inertia",
+    "mass"
+   ],
+   "tags": [
+    "newton",
+    "force",
+    "motion",
+    "inertia"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-8-gravity-fields",
+   "grade": 8,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Gravity and fields",
+   "kind": "topic",
+   "summary": "Gravity is a pull between any two things with mass, and it's strong when one is huge like a planet. Magnets and electric charges act through fields without touching.",
+   "words": [
+    "gravity",
+    "field",
+    "magnetic",
+    "electric charge"
+   ],
+   "tags": [
+    "gravity",
+    "magnetic",
+    "field",
+    "force"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-8-waves-light",
+   "grade": 8,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Waves and light",
+   "kind": "topic",
+   "summary": "Waves carry energy. Light is an electromagnetic wave that can reflect, bend, and be absorbed. Sound needs matter to travel, but light can cross empty space.",
+   "words": [
+    "wave",
+    "reflect",
+    "refract",
+    "electromagnetic",
+    "frequency"
+   ],
+   "tags": [
+    "wave",
+    "light",
+    "reflect",
+    "refract",
+    "sound"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-8-genetics",
+   "grade": 8,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Genes and heredity",
+   "kind": "topic",
+   "summary": "Genes in DNA carry instructions for traits. Offspring get genes from parents, so they share traits but are not exact copies. Mutations can change genes.",
+   "words": [
+    "gene",
+    "DNA",
+    "heredity",
+    "mutation",
+    "allele"
+   ],
+   "tags": [
+    "gene",
+    "dna",
+    "heredity",
+    "mutation"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-8-evolution",
+   "grade": 8,
+   "subject": "science",
+   "strand": "Life science",
+   "title": "Natural selection",
+   "kind": "topic",
+   "summary": "Individuals in a species vary, and some have traits that help them survive and have babies. Over many generations those traits become more common, and species change.",
+   "words": [
+    "natural selection",
+    "adaptation",
+    "species",
+    "evidence"
+   ],
+   "tags": [
+    "evolution",
+    "natural",
+    "selection",
+    "darwin",
+    "species"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-8-fossil-evidence",
+   "grade": 8,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Evidence for evolution",
+   "kind": "fact",
+   "summary": "Fossils, similar bones across animals, and DNA all show living things share ancestors. Fossils from La Brea Tar Pits record Ice Age California.",
+   "words": [
+    "fossil",
+    "ancestor",
+    "anatomy",
+    "DNA"
+   ],
+   "tags": [
+    "fossil",
+    "evolution",
+    "la",
+    "brea",
+    "california",
+    "california"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-8-space-solar",
+   "grade": 8,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "The solar system and the Moon",
+   "kind": "topic",
+   "summary": "Gravity holds the planets in orbit around the Sun. The Moon's phases and eclipses come from how the Sun, Earth, and Moon line up, and tides come from the Moon's pull.",
+   "words": [
+    "orbit",
+    "phase",
+    "eclipse",
+    "tide"
+   ],
+   "tags": [
+    "solar",
+    "system",
+    "moon",
+    "eclipse",
+    "tide"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "science-8-space-universe",
+   "grade": 8,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Stars and galaxies",
+   "kind": "topic",
+   "summary": "The Sun is one star in the Milky Way, a galaxy with hundreds of billions of stars. The universe holds countless galaxies and began about 13.8 billion years ago.",
+   "words": [
+    "galaxy",
+    "universe",
+    "star",
+    "big bang"
+   ],
+   "tags": [
+    "galaxy",
+    "universe",
+    "star",
+    "milky",
+    "way"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "science-8-ms-vocab-8",
+   "grade": 8,
+   "subject": "science",
+   "strand": "Physical science",
+   "title": "Physics and life words",
+   "kind": "vocab",
+   "summary": "Here are some middle school science words! Force makes things accelerate, and a gene is a chunk of DNA.",
+   "words": [
+    "velocity",
+    "acceleration",
+    "inertia",
+    "frequency",
+    "gene",
+    "trait",
+    "natural selection",
+    "orbit"
+   ],
+   "tags": [
+    "physics",
+    "words",
+    "acceleration",
+    "gene"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "science-8-ca-earthquake-prep",
+   "grade": 8,
+   "subject": "science",
+   "strand": "Earth & space science",
+   "title": "Earthquake engineering",
+   "kind": "fact",
+   "summary": "California builders use base isolators, flexible steel, and strict codes so buildings can ride out earthquakes. Early warning apps can alert you seconds before shaking arrives.",
+   "words": [
+    "seismic",
+    "base isolator",
+    "early warning",
+    "magnitude"
+   ],
+   "tags": [
+    "earthquake",
+    "engineering",
+    "building",
+    "california",
+    "warning",
+    "california"
+   ],
+   "difficulty": 3
+  }
+ ]
+}

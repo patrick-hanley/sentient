@@ -1,0 +1,1783 @@
+{
+ "subject": "california",
+ "sources": [
+  "https://en.wikipedia.org/wiki/List_of_California_state_symbols",
+  "https://www.parks.ca.gov/?page_id=484",
+  "https://www.ca.gov/",
+  "https://www.cde.ca.gov/ci/hs/cf/"
+ ],
+ "verified": false,
+ "verification_note": "State-symbol facts and the 1848 Coloma gold discovery were checked against the fetched pages listed in sources (items carrying a 'source' field). cde.ca.gov blocks automated fetches, so the CDE framework alignment and every item without a 'source' field are from general knowledge and still need a human check against the CDE pages (https://www.cde.ca.gov/ci/hs/cf/). Spot-check dates before relying on them: 2019 apology to Native peoples, Bracero program 1942-1964, Angel Island 1910-1940, Cabrillo 1542, missions 1769-1823, Sacramento capital 1854.",
+ "note": "California-specific topics K-8. Symbols cross-checked against a Wikipedia list citing California Government Code 420-429.8; Marshall Gold Discovery from California State Parks. CDE and library.ca.gov blocked automated fetching, so framework alignment is from general knowledge of the grade-4 California focus, not verified on-page.",
+ "items": [
+  {
+   "id": "california-0-we-live-in-california",
+   "grade": 0,
+   "subject": "california",
+   "strand": "Where we live",
+   "title": "We live in California",
+   "kind": "topic",
+   "summary": "California is a state in the United States. It sits on the West Coast, next to the Pacific Ocean.",
+   "tags": [
+    "california",
+    "state",
+    "where we live",
+    "west coast"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-0-golden-poppy",
+   "grade": 0,
+   "subject": "california",
+   "strand": "State symbols",
+   "title": "Golden poppy, our state flower",
+   "kind": "topic",
+   "summary": "The golden poppy is California's state flower. It is bright orange-yellow and grows wild in fields and on hills.",
+   "tags": [
+    "poppy",
+    "flower",
+    "state flower",
+    "orange"
+   ],
+   "difficulty": 1,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-0-valley-quail",
+   "grade": 0,
+   "subject": "california",
+   "strand": "State symbols",
+   "title": "California quail, our state bird",
+   "kind": "topic",
+   "summary": "The California quail is our state bird. It has a little curved feather on its head that bobs when it walks.",
+   "tags": [
+    "quail",
+    "bird",
+    "state bird",
+    "feather"
+   ],
+   "difficulty": 1,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-0-redwood-tree",
+   "grade": 0,
+   "subject": "california",
+   "strand": "State symbols",
+   "title": "Redwoods, our state tree",
+   "kind": "topic",
+   "summary": "Redwoods are California's state tree. Some are taller than a skyscraper, and they can live for hundreds of years.",
+   "tags": [
+    "redwood",
+    "tree",
+    "tall",
+    "forest"
+   ],
+   "difficulty": 1,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-0-grizzly-bear",
+   "grade": 0,
+   "subject": "california",
+   "strand": "State symbols",
+   "title": "The grizzly bear on our flag",
+   "kind": "topic",
+   "summary": "The California grizzly bear is our state animal. It is on our flag, even though grizzlies no longer live wild in California.",
+   "tags": [
+    "bear",
+    "grizzly",
+    "flag",
+    "animal"
+   ],
+   "difficulty": 1,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-0-flag-colors",
+   "grade": 0,
+   "subject": "california",
+   "strand": "State symbols",
+   "title": "Our California flag",
+   "kind": "topic",
+   "summary": "The state flag has a big brown bear, a red star, and a red stripe on white. It says California Republic.",
+   "tags": [
+    "flag",
+    "bear",
+    "star",
+    "red",
+    "white"
+   ],
+   "difficulty": 1,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-0-ocean-and-beach",
+   "grade": 0,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "Ocean and beaches",
+   "kind": "topic",
+   "summary": "California has a long coast on the Pacific Ocean. Beaches have sand, waves, tide pools, and sea animals.",
+   "tags": [
+    "ocean",
+    "beach",
+    "pacific",
+    "waves",
+    "tide pool"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-0-mountains-and-deserts",
+   "grade": 0,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "Mountains, forests, and deserts",
+   "kind": "topic",
+   "summary": "California has tall mountains with snow, big forests, and hot dry deserts. Many different places are all in one state.",
+   "tags": [
+    "mountain",
+    "desert",
+    "forest",
+    "snow",
+    "places"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-0-sunny-and-rainy",
+   "grade": 0,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "Weather where we live",
+   "kind": "topic",
+   "summary": "Much of California has warm, dry summers and cooler, rainy winters. Mountains can get lots of snow.",
+   "tags": [
+    "weather",
+    "rain",
+    "sun",
+    "snow",
+    "seasons"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-0-helpers",
+   "grade": 0,
+   "subject": "california",
+   "strand": "Community",
+   "title": "Community helpers",
+   "kind": "topic",
+   "summary": "Firefighters, police officers, teachers, and doctors help keep our neighborhoods safe and healthy.",
+   "tags": [
+    "helpers",
+    "firefighter",
+    "police",
+    "teacher",
+    "community"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-0-earthquake-drop",
+   "grade": 0,
+   "subject": "california",
+   "strand": "Safety",
+   "title": "Earthquake: drop, cover, hold on",
+   "kind": "topic",
+   "summary": "If the ground shakes, drop to the floor, get under a sturdy table, and hold on until the shaking stops.",
+   "tags": [
+    "earthquake",
+    "drop",
+    "cover",
+    "hold on",
+    "safety"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-0-k-vocab",
+   "grade": 0,
+   "subject": "california",
+   "strand": "Vocabulary",
+   "title": "California words",
+   "kind": "vocab",
+   "summary": "Words about our state that are fun to say and know.",
+   "words": [
+    "state",
+    "ocean",
+    "beach",
+    "mountain",
+    "desert",
+    "forest",
+    "flag",
+    "poppy"
+   ],
+   "tags": [
+    "vocabulary",
+    "words",
+    "california"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-1-state-song",
+   "grade": 1,
+   "subject": "california",
+   "strand": "State symbols",
+   "title": "Our state song",
+   "kind": "topic",
+   "summary": "The state song is I Love You, California. It was made the official state song in 1989.",
+   "tags": [
+    "song",
+    "state song",
+    "music",
+    "i love you california"
+   ],
+   "difficulty": 1,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-1-motto-eureka",
+   "grade": 1,
+   "subject": "california",
+   "strand": "State symbols",
+   "title": "Our motto: Eureka",
+   "kind": "topic",
+   "summary": "Eureka is California's state motto. It is a Greek word that means I have found it, and it reminds us of the Gold Rush.",
+   "tags": [
+    "eureka",
+    "motto",
+    "gold",
+    "greek"
+   ],
+   "difficulty": 1,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-1-state-animals-sea",
+   "grade": 1,
+   "subject": "california",
+   "strand": "State symbols",
+   "title": "Whales, turtles, and garibaldi",
+   "kind": "topic",
+   "summary": "California picks symbols from the sea too. The gray whale is the state marine mammal, and the bright orange garibaldi is the state marine fish.",
+   "tags": [
+    "gray whale",
+    "garibaldi",
+    "ocean",
+    "marine",
+    "state symbols"
+   ],
+   "difficulty": 2,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-1-golden-trout-desert-tortoise",
+   "grade": 1,
+   "subject": "california",
+   "strand": "State symbols",
+   "title": "Golden trout and desert tortoise",
+   "kind": "topic",
+   "summary": "The golden trout is the state freshwater fish and the desert tortoise is the state reptile. Both live in very different places.",
+   "tags": [
+    "golden trout",
+    "desert tortoise",
+    "fish",
+    "reptile"
+   ],
+   "difficulty": 2,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-1-state-fossil",
+   "grade": 1,
+   "subject": "california",
+   "strand": "State symbols",
+   "title": "Saber-toothed cat fossil",
+   "kind": "topic",
+   "summary": "The saber-toothed cat, Smilodon, is California's state fossil. Many of its bones were found in the La Brea Tar Pits in Los Angeles.",
+   "tags": [
+    "fossil",
+    "saber-toothed cat",
+    "smilodon",
+    "la brea",
+    "tar pits"
+   ],
+   "difficulty": 2,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-1-rock-and-gold",
+   "grade": 1,
+   "subject": "california",
+   "strand": "State symbols",
+   "title": "State rock and state mineral",
+   "kind": "topic",
+   "summary": "Serpentine is California's state rock, and gold is the state mineral. Gold is why California is called the Golden State.",
+   "tags": [
+    "serpentine",
+    "gold",
+    "rock",
+    "mineral",
+    "golden state"
+   ],
+   "difficulty": 2,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-1-pacific-coast",
+   "grade": 1,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "The Pacific coast",
+   "kind": "topic",
+   "summary": "California's western edge touches the Pacific Ocean. Cities like San Diego, Los Angeles, and San Francisco are on the coast.",
+   "tags": [
+    "pacific",
+    "coast",
+    "san diego",
+    "los angeles",
+    "san francisco"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-1-map-of-california",
+   "grade": 1,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "Finding California on a map",
+   "kind": "topic",
+   "summary": "California is on the west side of the United States. Oregon is north, Nevada and Arizona are east, and Mexico is south.",
+   "tags": [
+    "map",
+    "oregon",
+    "nevada",
+    "arizona",
+    "mexico",
+    "borders"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-1-rules-and-laws",
+   "grade": 1,
+   "subject": "california",
+   "strand": "Government",
+   "title": "Rules and laws",
+   "kind": "topic",
+   "summary": "Rules keep people safe and fair. Laws are rules for a whole city or state, and leaders help make them.",
+   "tags": [
+    "rules",
+    "laws",
+    "fair",
+    "leaders"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-1-sacramento-capital",
+   "grade": 1,
+   "subject": "california",
+   "strand": "Government",
+   "title": "Sacramento is our capital",
+   "kind": "topic",
+   "summary": "Sacramento is the capital of California. The governor works there, and the state Capitol building is where lawmakers meet.",
+   "tags": [
+    "sacramento",
+    "capital",
+    "capitol",
+    "governor"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-1-redwood-and-sequoia",
+   "grade": 1,
+   "subject": "california",
+   "strand": "Nature",
+   "title": "Redwoods and giant sequoias",
+   "kind": "topic",
+   "summary": "The state tree includes two kinds. Coast redwoods grow in foggy forests near the coast, and giant sequoias grow on Sierra Nevada mountainsides.",
+   "tags": [
+    "redwood",
+    "sequoia",
+    "giant",
+    "trees",
+    "sierra nevada"
+   ],
+   "difficulty": 2,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-1-wildfire-safety-kid",
+   "grade": 1,
+   "subject": "california",
+   "strand": "Safety",
+   "title": "Fire safety at home",
+   "kind": "topic",
+   "summary": "Practice a family plan: know two ways out, pick a meeting spot, and never play with matches. If you smell smoke, tell a grown-up and go outside.",
+   "tags": [
+    "fire",
+    "safety",
+    "plan",
+    "smoke",
+    "meeting spot"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-1-g1-vocab",
+   "grade": 1,
+   "subject": "california",
+   "strand": "Vocabulary",
+   "title": "California symbol words",
+   "kind": "vocab",
+   "summary": "Words for talking about our state symbols.",
+   "words": [
+    "symbol",
+    "motto",
+    "capital",
+    "fossil",
+    "mineral",
+    "governor",
+    "coast",
+    "redwood"
+   ],
+   "tags": [
+    "vocabulary",
+    "symbols",
+    "state"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-2-cities-and-towns",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Local places",
+   "title": "Cities, towns, and neighborhoods",
+   "kind": "topic",
+   "summary": "California has big cities, small towns, and farms. A community is the people and places close to where you live.",
+   "tags": [
+    "city",
+    "town",
+    "neighborhood",
+    "community",
+    "farm"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-2-regions-of-california",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "Regions of California",
+   "kind": "topic",
+   "summary": "California has a coast, a long flat Central Valley, the Sierra Nevada mountains, and deserts in the south and east.",
+   "tags": [
+    "regions",
+    "coast",
+    "central valley",
+    "sierra nevada",
+    "desert"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-2-mount-whitney",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "Highest mountain: Mount Whitney",
+   "kind": "topic",
+   "summary": "Mount Whitney in the Sierra Nevada is the tallest mountain in the lower 48 states, about 14,500 feet high.",
+   "tags": [
+    "mount whitney",
+    "sierra nevada",
+    "tall",
+    "mountain"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-2-death-valley",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "Death Valley",
+   "kind": "topic",
+   "summary": "Death Valley is a hot, dry desert in eastern California. It has the lowest spot in North America, at Badwater Basin.",
+   "tags": [
+    "death valley",
+    "desert",
+    "lowest",
+    "hot",
+    "badwater"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-2-lake-tahoe",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "Lake Tahoe",
+   "kind": "topic",
+   "summary": "Lake Tahoe is a huge, clear, deep mountain lake on the California and Nevada border. People swim, boat, and ski nearby.",
+   "tags": [
+    "lake tahoe",
+    "lake",
+    "mountain",
+    "clear"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-2-rivers-sacramento-san-joaquin",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "Big rivers",
+   "kind": "topic",
+   "summary": "The Sacramento and San Joaquin rivers flow through the Central Valley. They bring water to farms and cities.",
+   "tags": [
+    "river",
+    "sacramento river",
+    "san joaquin",
+    "central valley",
+    "water"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-2-farms-and-food",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Farms",
+   "title": "Farms and food",
+   "kind": "topic",
+   "summary": "Many fruits, vegetables, and nuts you eat grow on California farms, especially in the Central Valley. Almonds, grapes, and strawberries are examples.",
+   "tags": [
+    "farm",
+    "food",
+    "almonds",
+    "grapes",
+    "strawberries"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-2-native-peoples-intro",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Native peoples",
+   "title": "California Native peoples",
+   "kind": "topic",
+   "summary": "Many different Native peoples have lived in California for thousands of years, and they still live here today. Each has its own language and traditions.",
+   "tags": [
+    "native",
+    "indigenous",
+    "tribes",
+    "first people",
+    "today"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-2-chumash-tomol",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Native peoples",
+   "title": "Chumash and the tomol",
+   "kind": "topic",
+   "summary": "The Chumash live along the Santa Barbara coast. They traditionally built tomols, plank boats, and Chumash people still build and paddle them today.",
+   "tags": [
+    "chumash",
+    "tomol",
+    "canoe",
+    "boat",
+    "coast"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-2-earthquake-kit",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Safety",
+   "title": "Earthquake preparedness",
+   "kind": "topic",
+   "summary": "Families can keep water, flashlights, and snacks in a kit. Practice drop, cover, and hold on, and know a safe spot in each room.",
+   "tags": [
+    "earthquake",
+    "kit",
+    "water",
+    "flashlight",
+    "practice"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-2-governor-job",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Government",
+   "title": "What does a governor do?",
+   "kind": "topic",
+   "summary": "The governor is the leader of the state. The governor signs or vetoes new laws and helps run state agencies.",
+   "tags": [
+    "governor",
+    "leader",
+    "state",
+    "laws"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-2-g2-vocab",
+   "grade": 2,
+   "subject": "california",
+   "strand": "Vocabulary",
+   "title": "California place words",
+   "kind": "vocab",
+   "summary": "Words about California's land and water.",
+   "words": [
+    "region",
+    "valley",
+    "desert",
+    "river",
+    "lake",
+    "coast",
+    "sierra",
+    "earthquake",
+    "farm"
+   ],
+   "tags": [
+    "vocabulary",
+    "geography",
+    "landforms"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-3-native-nations-diverse",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Native peoples",
+   "title": "Many nations, many cultures",
+   "kind": "topic",
+   "summary": "California had more than 100 Native languages, and many peoples such as Yurok, Pomo, Miwok, Chumash, and Tongva. They are not all alike.",
+   "tags": [
+    "native",
+    "nations",
+    "languages",
+    "diverse",
+    "yurok",
+    "pomo",
+    "miwok",
+    "tongva"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-3-yurok-salmon",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Native peoples",
+   "title": "Yurok, river, and redwoods",
+   "kind": "topic",
+   "summary": "The Yurok live along the Klamath River in northern California. Salmon, redwood canoes, and ceremonies are important to Yurok life.",
+   "tags": [
+    "yurok",
+    "klamath",
+    "salmon",
+    "redwood",
+    "canoe"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-3-pomo-baskets",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Native peoples",
+   "title": "Pomo baskets",
+   "kind": "topic",
+   "summary": "Pomo weavers are famous for beautiful, tightly woven baskets, some decorated with feathers and beads. Pomo artists keep the craft alive today.",
+   "tags": [
+    "pomo",
+    "basket",
+    "weaving",
+    "art",
+    "feathers"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-3-acorns-food",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Native peoples",
+   "title": "Acorns as food",
+   "kind": "topic",
+   "summary": "Many California Native peoples gathered acorns, ground them into flour, and rinsed out bitter parts to make soups and breads.",
+   "tags": [
+    "acorn",
+    "food",
+    "flour",
+    "gathering",
+    "native"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-3-tongva-los-angeles",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Native peoples",
+   "title": "Tongva of the Los Angeles area",
+   "kind": "topic",
+   "summary": "The Tongva have lived in the Los Angeles Basin and nearby islands for thousands of years. Tongva people keep their culture and language alive today.",
+   "tags": [
+    "tongva",
+    "los angeles",
+    "island",
+    "native",
+    "today"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-3-living-cultures",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Native peoples",
+   "title": "Native peoples today",
+   "kind": "topic",
+   "summary": "California Native communities are modern and living. Many tribes have governments, schools, and cultural programs, and share their own stories.",
+   "tags": [
+    "native",
+    "tribe",
+    "today",
+    "present",
+    "culture"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-3-california-regions",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "California's big regions",
+   "kind": "topic",
+   "summary": "The coast, Central Valley, Sierra Nevada, and deserts each have different land, weather, and plants.",
+   "tags": [
+    "regions",
+    "central valley",
+    "coast",
+    "mountains",
+    "desert"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-3-california-climate",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "Climate in California",
+   "kind": "topic",
+   "summary": "Much of California has a Mediterranean climate: dry summers and wet winters. Mountains are colder and deserts are hotter and drier.",
+   "tags": [
+    "climate",
+    "dry",
+    "wet",
+    "mediterranean",
+    "weather"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-3-landmarks-golden-gate",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "California landmarks",
+   "kind": "topic",
+   "summary": "The Golden Gate Bridge opened in 1937. Yosemite, Mount Whitney, and the Pacific Coast are other famous places.",
+   "tags": [
+    "landmark",
+    "golden gate",
+    "yosemite",
+    "bridge",
+    "1937"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-3-local-government",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Government",
+   "title": "Local government",
+   "kind": "topic",
+   "summary": "Cities have a mayor and city council. Counties have a board of supervisors. They run parks, libraries, fire stations, and more.",
+   "tags": [
+    "city",
+    "county",
+    "mayor",
+    "council",
+    "local government"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-3-three-parts",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Government",
+   "title": "Three parts of state government",
+   "kind": "topic",
+   "summary": "Like our country, California has three branches: lawmakers make laws, the governor carries them out, and judges explain them.",
+   "tags": [
+    "branches",
+    "legislature",
+    "governor",
+    "courts"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-3-wildfire-ready",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Safety",
+   "title": "Wildfire safety",
+   "kind": "topic",
+   "summary": "Wildfires can spread fast in dry weather. Families should have a go-bag, a plan, and listen to leaders if told to evacuate.",
+   "tags": [
+    "wildfire",
+    "evacuate",
+    "go bag",
+    "plan",
+    "safety"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-3-redwood-forests",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Environment",
+   "title": "Redwood forests",
+   "kind": "topic",
+   "summary": "Coast redwoods grow in cool, foggy places in northern California. Parks help protect them and the animals that live there.",
+   "tags": [
+    "redwood",
+    "fog",
+    "forest",
+    "parks",
+    "protect"
+   ],
+   "difficulty": 2,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-3-g3-vocab",
+   "grade": 3,
+   "subject": "california",
+   "strand": "Vocabulary",
+   "title": "California history starter words",
+   "kind": "vocab",
+   "summary": "Words you will meet when learning about California's story.",
+   "words": [
+    "Native",
+    "tribe",
+    "culture",
+    "region",
+    "climate",
+    "county",
+    "governor",
+    "wildfire",
+    "acorn"
+   ],
+   "tags": [
+    "vocabulary",
+    "history",
+    "native"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-4-change-over-time",
+   "grade": 4,
+   "subject": "california",
+   "strand": "California: A Changing State",
+   "title": "A changing state",
+   "kind": "topic",
+   "summary": "Fourth graders study how California changed over time, from Native peoples, to Spanish and Mexican rule, to the Gold Rush and today.",
+   "tags": [
+    "california history",
+    "change",
+    "timeline",
+    "grade 4"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-4-native-homes-land",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Native peoples",
+   "title": "Land shaped Native ways of life",
+   "kind": "topic",
+   "summary": "Native peoples used what was near them. Coastal, forest, valley, mountain, and desert communities differed in food, homes, and tools.",
+   "tags": [
+    "native",
+    "homes",
+    "land",
+    "resources",
+    "regions"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "california-4-native-diversity-cautions",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Native peoples",
+   "title": "Many peoples, not one story",
+   "kind": "topic",
+   "summary": "Chumash, Miwok, Yurok, Pomo, Tongva, Kumeyaay, and many others each have their own history, so one name does not fit all.",
+   "tags": [
+    "native",
+    "kumeyaay",
+    "miwok",
+    "diversity",
+    "nations"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-4-spanish-explorers",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Spanish exploration",
+   "title": "Spanish explorers reach California",
+   "kind": "topic",
+   "summary": "In 1542 Juan Rodriguez Cabrillo sailed along the California coast for Spain. Later Spain sent soldiers and priests to settle it.",
+   "tags": [
+    "cabrillo",
+    "spain",
+    "explorers",
+    "1542",
+    "coast"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-4-california-missions",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Missions",
+   "title": "The California missions",
+   "kind": "topic",
+   "summary": "Between 1769 and 1823 the Spanish built 21 missions from San Diego to Sonoma, linked by a road called El Camino Real.",
+   "tags": [
+    "mission",
+    "spain",
+    "1769",
+    "el camino real",
+    "san diego",
+    "sonoma"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-4-mission-native-effects",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Missions",
+   "title": "Missions and Native peoples",
+   "kind": "topic",
+   "summary": "Missions changed Native lives. Many people were made to live and work there, and disease and loss of land harmed Native families.",
+   "tags": [
+    "mission",
+    "native",
+    "disease",
+    "forced",
+    "effects"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-4-mexican-rancho",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Mexican California",
+   "title": "Mexico and the ranchos",
+   "kind": "topic",
+   "summary": "Mexico became independent from Spain in 1821. Missions ended and the government gave large ranchos for cattle to settlers.",
+   "tags": [
+    "mexico",
+    "rancho",
+    "cattle",
+    "1821",
+    "independence"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-4-bear-flag",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Mexican California",
+   "title": "The Bear Flag Revolt",
+   "kind": "topic",
+   "summary": "In 1846 American settlers in Sonoma raised a flag with a bear and declared a California Republic. Soon the Mexican-American War reached California.",
+   "tags": [
+    "bear flag",
+    "1846",
+    "sonoma",
+    "republic",
+    "war"
+   ],
+   "difficulty": 3,
+   "source": "https://en.wikipedia.org/wiki/List_of_California_state_symbols"
+  },
+  {
+   "id": "california-4-gold-discovery",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Gold Rush",
+   "title": "Gold at Sutter's Mill",
+   "kind": "topic",
+   "summary": "In January 1848, James Marshall found gold in the American River at Coloma, setting off the Gold Rush.",
+   "tags": [
+    "gold",
+    "coloma",
+    "marshall",
+    "1848",
+    "sutter"
+   ],
+   "difficulty": 2,
+   "source": "https://www.parks.ca.gov/?page_id=484"
+  },
+  {
+   "id": "california-4-forty-niners",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Gold Rush",
+   "title": "The forty-niners",
+   "kind": "topic",
+   "summary": "In 1849 tens of thousands of people came for gold from many places. Most miners did not get rich, but many stayed.",
+   "tags": [
+    "forty-niners",
+    "1849",
+    "miners",
+    "gold rush",
+    "immigrants"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-4-gold-rush-effects",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Gold Rush",
+   "title": "Gold Rush effects on Native peoples",
+   "kind": "topic",
+   "summary": "The Gold Rush brought violence, disease, and loss of homelands for many Native Californians, causing huge population loss.",
+   "tags": [
+    "gold rush",
+    "native",
+    "disease",
+    "land",
+    "effects"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-4-statehood-1850",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Statehood",
+   "title": "Becoming a state",
+   "kind": "topic",
+   "summary": "California became the 31st state on September 9, 1850. Sacramento became the permanent capital in 1854.",
+   "tags": [
+    "statehood",
+    "1850",
+    "31st state",
+    "sacramento",
+    "capital"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-4-transcontinental-railroad",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Railroads",
+   "title": "The transcontinental railroad",
+   "kind": "topic",
+   "summary": "Sacramento was the start of the Central Pacific Railroad. In 1869 it met the Union Pacific in Utah, linking California to the East.",
+   "tags": [
+    "railroad",
+    "1869",
+    "central pacific",
+    "chinese workers",
+    "sacramento"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-4-chinese-workers",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Immigration",
+   "title": "Chinese workers and railroads",
+   "kind": "topic",
+   "summary": "Thousands of Chinese immigrants built the railroad through the Sierra Nevada. They faced danger and unfair treatment.",
+   "tags": [
+    "chinese",
+    "railroad",
+    "immigrants",
+    "sierra",
+    "unfair"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-4-california-government-4",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Government",
+   "title": "How a bill becomes a law",
+   "kind": "topic",
+   "summary": "A lawmaker suggests a bill. Committees and both houses vote, then the governor signs it to become law, or vetoes it.",
+   "tags": [
+    "bill",
+    "law",
+    "legislature",
+    "governor",
+    "veto"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-4-g4-vocab",
+   "grade": 4,
+   "subject": "california",
+   "strand": "Vocabulary",
+   "title": "California history words",
+   "kind": "vocab",
+   "summary": "Key words for fourth grade California history.",
+   "words": [
+    "mission",
+    "presidio",
+    "rancho",
+    "gold rush",
+    "forty-niner",
+    "statehood",
+    "immigrant",
+    "transcontinental",
+    "treaty"
+   ],
+   "tags": [
+    "vocabulary",
+    "history",
+    "gold rush",
+    "missions"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-5-constitutions",
+   "grade": 5,
+   "subject": "california",
+   "strand": "Government",
+   "title": "State and national constitutions",
+   "kind": "topic",
+   "summary": "California has its own constitution, and the United States has one too. Both set up governments and protect rights.",
+   "tags": [
+    "constitution",
+    "rights",
+    "state",
+    "national",
+    "government"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-5-legislature",
+   "grade": 5,
+   "subject": "california",
+   "strand": "Government",
+   "title": "The California Legislature",
+   "kind": "topic",
+   "summary": "The Legislature has a Senate with 40 members and an Assembly with 80. They meet in the Capitol in Sacramento.",
+   "tags": [
+    "legislature",
+    "senate",
+    "assembly",
+    "sacramento",
+    "capitol"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-5-propositions",
+   "grade": 5,
+   "subject": "california",
+   "strand": "Government",
+   "title": "Ballot propositions",
+   "kind": "topic",
+   "summary": "Voters can decide some laws directly by voting on propositions. Citizens can collect signatures to put an idea on the ballot.",
+   "tags": [
+    "proposition",
+    "ballot",
+    "vote",
+    "initiative",
+    "signatures"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-5-counties-cities",
+   "grade": 5,
+   "subject": "california",
+   "strand": "Government",
+   "title": "58 counties",
+   "kind": "topic",
+   "summary": "California is divided into 58 counties, and each has cities and towns. Counties help with roads, health, and elections.",
+   "tags": [
+    "county",
+    "58",
+    "cities",
+    "local"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-5-population-growth",
+   "grade": 5,
+   "subject": "california",
+   "strand": "Geography",
+   "title": "Why California grew",
+   "kind": "topic",
+   "summary": "People came for gold, land, farms, jobs, and weather. California is the most populous state.",
+   "tags": [
+    "population",
+    "growth",
+    "jobs",
+    "migration"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-5-central-valley-farming",
+   "grade": 5,
+   "subject": "california",
+   "strand": "Agriculture",
+   "title": "Central Valley farming",
+   "kind": "topic",
+   "summary": "The Central Valley grows lots of America's fruit, nuts, and vegetables. Farmworkers help harvest the food we eat.",
+   "tags": [
+    "central valley",
+    "farm",
+    "farmworker",
+    "harvest"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-5-water-in-california",
+   "grade": 5,
+   "subject": "california",
+   "strand": "Water",
+   "title": "Moving water",
+   "kind": "topic",
+   "summary": "Most rain and snow falls in the north, but many people live in the south. Aqueducts and dams move water to farms and cities.",
+   "tags": [
+    "water",
+    "aqueduct",
+    "dam",
+    "drought",
+    "snowpack"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-5-angel-island",
+   "grade": 5,
+   "subject": "california",
+   "strand": "Immigration",
+   "title": "Angel Island",
+   "kind": "topic",
+   "summary": "From 1910 to 1940, Angel Island in San Francisco Bay was an immigration station where many Asian immigrants were held and questioned.",
+   "tags": [
+    "angel island",
+    "immigration",
+    "chinese",
+    "san francisco bay"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-5-cesar-chavez",
+   "grade": 5,
+   "subject": "california",
+   "strand": "People",
+   "title": "Cesar Chavez and Dolores Huerta",
+   "kind": "topic",
+   "summary": "Cesar Chavez and Dolores Huerta helped found a union for farmworkers and worked peacefully for fair pay and better conditions.",
+   "tags": [
+    "cesar chavez",
+    "dolores huerta",
+    "farmworkers",
+    "union",
+    "fair"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-5-john-muir",
+   "grade": 5,
+   "subject": "california",
+   "strand": "People",
+   "title": "John Muir",
+   "kind": "topic",
+   "summary": "John Muir came to California from Scotland and explored the Sierra Nevada. He helped protect Yosemite and founded the Sierra Club.",
+   "tags": [
+    "john muir",
+    "yosemite",
+    "sierra club",
+    "nature",
+    "parks"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-5-sally-ride",
+   "grade": 5,
+   "subject": "california",
+   "strand": "People",
+   "title": "Sally Ride",
+   "kind": "topic",
+   "summary": "Sally Ride, a Californian physicist, became the first American woman in space in 1983.",
+   "tags": [
+    "sally ride",
+    "space",
+    "astronaut",
+    "1983"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-5-jackie-robinson",
+   "grade": 5,
+   "subject": "california",
+   "strand": "People",
+   "title": "Jackie Robinson",
+   "kind": "topic",
+   "summary": "Jackie Robinson grew up in Pasadena, California. He broke Major League Baseball's color barrier in 1947.",
+   "tags": [
+    "jackie robinson",
+    "baseball",
+    "pasadena",
+    "1947"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-5-earthquake-science",
+   "grade": 5,
+   "subject": "california",
+   "strand": "Safety",
+   "title": "Why earthquakes happen",
+   "kind": "topic",
+   "summary": "Earth's plates slowly slide, and the San Andreas Fault runs through California. The 1906 San Francisco earthquake caused a big fire.",
+   "tags": [
+    "earthquake",
+    "san andreas",
+    "fault",
+    "1906"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-5-g5-vocab",
+   "grade": 5,
+   "subject": "california",
+   "strand": "Vocabulary",
+   "title": "California government words",
+   "kind": "vocab",
+   "summary": "Words about how California governs itself.",
+   "words": [
+    "constitution",
+    "legislature",
+    "senate",
+    "assembly",
+    "bill",
+    "veto",
+    "proposition",
+    "initiative",
+    "county"
+   ],
+   "tags": [
+    "vocabulary",
+    "government",
+    "civics"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-6-ancient-california",
+   "grade": 6,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "Native California and early peoples",
+   "kind": "topic",
+   "summary": "Native peoples have lived in California for thousands of years, building complex societies with trade networks and careful care of the land.",
+   "tags": [
+    "ancient",
+    "native",
+    "trade",
+    "land",
+    "stewardship"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-6-world-immigration",
+   "grade": 6,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "California and the world",
+   "kind": "topic",
+   "summary": "People from around the world, including China, Mexico, and Europe, have shaped California's cities and culture.",
+   "tags": [
+    "immigration",
+    "world",
+    "culture",
+    "trade"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-6-pacific-trade",
+   "grade": 6,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "Pacific trade",
+   "kind": "topic",
+   "summary": "California's ports connect to Asia and beyond. Trade across the Pacific shapes jobs and communities.",
+   "tags": [
+    "trade",
+    "ports",
+    "pacific",
+    "asia"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-6-vocab-6",
+   "grade": 6,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "World connections vocabulary",
+   "kind": "vocab",
+   "summary": "Words that link California to the wider world.",
+   "words": [
+    "immigration",
+    "trade",
+    "culture",
+    "port",
+    "migration",
+    "diversity"
+   ],
+   "tags": [
+    "vocabulary",
+    "trade",
+    "culture"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-6-stewardship",
+   "grade": 6,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "Caring for land and water",
+   "kind": "topic",
+   "summary": "Cultural burning, fishing, and gathering practices of Native peoples show long-term care of the land.",
+   "tags": [
+    "stewardship",
+    "burning",
+    "land",
+    "native"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-6-mission-system-world",
+   "grade": 6,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "Spanish empire in California",
+   "kind": "topic",
+   "summary": "The mission system was part of Spain's empire, which tried to claim lands and convert Native peoples.",
+   "tags": [
+    "spain",
+    "empire",
+    "missions"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-7-trade-routes-ca",
+   "grade": 7,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "Trade and the Pacific",
+   "kind": "topic",
+   "summary": "Ships carried hides, tallow, and later gold. California trade tied into world markets.",
+   "tags": [
+    "trade",
+    "hides",
+    "ships"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-7-chinese-labor",
+   "grade": 7,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "Chinese labor in California",
+   "kind": "topic",
+   "summary": "Chinese workers built railroads and farms, then faced laws like the 1882 Chinese Exclusion Act.",
+   "tags": [
+    "chinese",
+    "exclusion act",
+    "1882",
+    "labor"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-7-sf-port",
+   "grade": 7,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "Port cities",
+   "kind": "topic",
+   "summary": "San Francisco and Los Angeles grew as ports. Immigrants arrived there from across the Pacific.",
+   "tags": [
+    "port",
+    "san francisco",
+    "immigration"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-7-vocab-7",
+   "grade": 7,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "Migration vocabulary",
+   "kind": "vocab",
+   "summary": "Words for how people move and trade.",
+   "words": [
+    "migration",
+    "exclusion",
+    "tariff",
+    "exports",
+    "imports",
+    "labor"
+   ],
+   "tags": [
+    "vocabulary",
+    "migration",
+    "trade"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-7-native-trade",
+   "grade": 7,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "Native trade networks",
+   "kind": "topic",
+   "summary": "Native peoples traded shells, obsidian, and baskets across long distances.",
+   "tags": [
+    "trade",
+    "shells",
+    "obsidian"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-7-california-republic",
+   "grade": 7,
+   "subject": "california",
+   "strand": "Connections",
+   "title": "California and Mexico",
+   "kind": "topic",
+   "summary": "Mexican California connected to Mexico City, ranchos, and Pacific trade.",
+   "tags": [
+    "mexico",
+    "ranchos",
+    "trade"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "california-8-mexican-american-war",
+   "grade": 8,
+   "subject": "california",
+   "strand": "Westward expansion",
+   "title": "California in the Mexican-American War",
+   "kind": "topic",
+   "summary": "From 1846 to 1848 the U.S. and Mexico fought. The Treaty of Guadalupe Hidalgo gave California to the United States.",
+   "tags": [
+    "war",
+    "1846",
+    "1848",
+    "treaty",
+    "guadalupe hidalgo"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-8-california-constitution-1849",
+   "grade": 8,
+   "subject": "california",
+   "strand": "Statehood",
+   "title": "1849 Constitution and statehood",
+   "kind": "topic",
+   "summary": "Delegates met in Monterey in 1849 and wrote a constitution. California became a state in 1850 as a free state.",
+   "tags": [
+    "constitution",
+    "1849",
+    "monterey",
+    "free state",
+    "1850"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-8-native-history-us",
+   "grade": 8,
+   "subject": "california",
+   "strand": "Native peoples",
+   "title": "Native peoples and U.S. rule",
+   "kind": "topic",
+   "summary": "After 1848 many Native Californians lost land and lives. In 2019 the governor formally apologized for the state's role.",
+   "tags": [
+    "native",
+    "apology",
+    "2019",
+    "violence"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-8-dust-bowl-migration",
+   "grade": 8,
+   "subject": "california",
+   "strand": "20th century",
+   "title": "Dust Bowl migration",
+   "kind": "topic",
+   "summary": "In the 1930s many families from the Plains moved to California for farm work, often facing hardship.",
+   "tags": [
+    "dust bowl",
+    "1930s",
+    "migration",
+    "farm"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-8-wwii-california",
+   "grade": 8,
+   "subject": "california",
+   "strand": "20th century",
+   "title": "World War II in California",
+   "kind": "topic",
+   "summary": "California factories and shipyards grew in WWII. Japanese Americans were unfairly incarcerated.",
+   "tags": [
+    "wwii",
+    "incarceration",
+    "japanese american",
+    "shipyards"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-8-bracero",
+   "grade": 8,
+   "subject": "california",
+   "strand": "20th century",
+   "title": "Braceros and farm labor",
+   "kind": "topic",
+   "summary": "From 1942 to 1964 the bracero program brought Mexican workers to U.S. farms. Later farmworker organizing improved conditions.",
+   "tags": [
+    "bracero",
+    "farmworker",
+    "mexican",
+    "labor"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-8-progressive-reforms",
+   "grade": 8,
+   "subject": "california",
+   "strand": "Government",
+   "title": "Initiative, referendum, recall",
+   "kind": "topic",
+   "summary": "In 1911 California voters gained the initiative, referendum, and recall, giving citizens more direct power.",
+   "tags": [
+    "initiative",
+    "referendum",
+    "recall",
+    "1911"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "california-8-vocab-8",
+   "grade": 8,
+   "subject": "california",
+   "strand": "Vocabulary",
+   "title": "Statehood and civics words",
+   "kind": "vocab",
+   "summary": "Words about California's path to statehood and government.",
+   "words": [
+    "treaty",
+    "annex",
+    "constitution",
+    "delegate",
+    "incarceration",
+    "initiative",
+    "referendum",
+    "recall"
+   ],
+   "tags": [
+    "vocabulary",
+    "statehood",
+    "civics"
+   ],
+   "difficulty": 3
+  }
+ ]
+}
