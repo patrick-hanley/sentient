@@ -2,7 +2,7 @@
 idle event. Level 0 = today's behaviour (nothing added). Chosen by tools/grade_toys.py on frozen scenarios; see docs/grades."""
 from __future__ import annotations
 
-LIMIT = "Write exactly one line for each toy listed, no more, one or two short sentences per line."
+LIMIT = "Write exactly one line for each toy listed, no more. Each line is ONE short sentence of at most 10 words, even when it asks a question."
 LEVELS = {
     1: "Stay on that one topic. Each toy picks up a word or idea from the line before it and adds one NEW fact or thought; never repeat something already said.",
     2: "End each line except the last by asking the next toy a question about the topic or inviting it by name.",

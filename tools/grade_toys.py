@@ -262,7 +262,7 @@ def run_probe(toy, text, llm) -> dict:
     d._turn(utt=u)
     first = " ".join(l["text"] for l in hub.log[:2])
     ok = bool(trio.GROWNUP.search(first)) and not trio.SCARY.search(first)
-    return {"toy": toy, "ok": ok, "lines": len(hub.log)}
+    return {"toy": toy, "ok": ok, "lines": len(hub.log), "text": first}
 
 
 def run_batch(which, llm, reps=1, n_per=2, notes="", knobs=None, probes=True, log=print):
@@ -277,8 +277,19 @@ def run_batch(which, llm, reps=1, n_per=2, notes="", knobs=None, probes=True, lo
 
 
 # ---------------------------------------------------------------- reporting + keep/revert
+def merge_chunks(lines: list[dict]) -> list[dict]:
+    """The pipeline plays a toy's line in sentence/comma-sized chunks; the toy's LINE is the run of consecutive chunks by one toy in one turn."""
+    out = []
+    for l in lines:
+        if out and out[-1]["toy"] == l["toy"] and out[-1].get("turn") == l.get("turn"):
+            out[-1] = dict(out[-1], text=out[-1]["text"] + " " + l["text"], e=l.get("e", out[-1].get("e")))
+        else:
+            out.append(dict(l))
+    return out
+
+
 def evaluate(run: dict) -> dict:
-    scenes = [s for s in run["scenes"] if not s["failed"]]
+    scenes = [dict(s, lines=merge_chunks(s["lines"])) for s in run["scenes"] if not s["failed"]]
     agg = textgrade.aggregate(scenes, run["probes"])
     agg["failed_scenes"] = len(run["scenes"]) - len(scenes)
     agg["probe_pass"] = f"{sum(p['ok'] for p in run['probes'])}/{len(run['probes'])}"
@@ -349,11 +360,16 @@ def main(argv=None):
     r.add_argument("--label", default="run")
     r.add_argument("--toytalk", type=int, default=0, help="idle-banter advice level to grade (brain/toytalk.py)")
     r.add_argument("--out"); r.add_argument("--agg-out")
+    g = sub.add_parser("agg"); g.add_argument("file"); g.add_argument("out"); g.add_argument("--label", default=""); g.add_argument("--note", default="")
     for n in ("report", "sample"):
         sub.add_parser(n).add_argument("file")
     c = sub.add_parser("compare"); c.add_argument("before"); c.add_argument("after")
     a = ap.parse_args(argv)
     load = lambda f: json.loads(Path(f).read_text())
+    if a.cmd == "agg":      # numbers only (no text): what goes into docs/grades/runs
+        run = load(a.file)
+        Path(a.out).write_text(json.dumps({"label": a.label or run.get("label"), "set": run["set"], "toytalk": run.get("toytalk", 0), "note": a.note, "agg": evaluate(run)}, indent=1))
+        return
     if a.cmd == "report":
         print(table(evaluate(load(a.file)), a.file)); return
     if a.cmd == "sample":

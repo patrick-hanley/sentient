@@ -117,6 +117,12 @@ class Harness(unittest.TestCase):
             for a, b in zip(run["lines"], run["lines"][1:]):
                 self.assertLessEqual(a["e"], b["s"])                    # never talk over
 
+    def test_merge_chunks_joins_same_toy_in_one_turn(self):
+        ls = [{"toy": "dyno", "text": "Hi,", "turn": 0}, {"toy": "dyno", "text": "friends!", "turn": 0}, {"toy": "sage", "text": "Hello.", "turn": 0},
+              {"toy": "sage", "text": "Again.", "turn": 1}]
+        m = G.merge_chunks(ls)
+        self.assertEqual([(x["toy"], x["text"]) for x in m], [("dyno", "Hi, friends!"), ("sage", "Hello."), ("sage", "Again.")])
+
     def test_topic_scene_uses_given_topic(self):
         llm = G.StubToyLLM()
         sc = next(s for s in G.scenarios("tune") if s["kind"] == "topic")
