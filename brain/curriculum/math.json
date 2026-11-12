@@ -1,0 +1,2130 @@
+{
+ "subject": "math",
+ "sources": [
+  "https://www.cde.ca.gov/be/st/ss/",
+  "https://www.cde.ca.gov/ci/ma/cf/"
+ ],
+ "verified": false,
+ "verification_note": "cde.ca.gov blocks automated fetches (web-firewall redirect), so these topics were written from knowledge of the California sequence and NOT checked against the page; the listed sources are where to verify them. Review in a browser before relying on it.",
+ "note": "California Common Core State Standards for Mathematics (CA CCSSM) topics by grade, K-8, in own words; grade 8 is the Grade 8 CCSS course (CA also offers Integrated Math pathways). Written from knowledge of the CCSSM domain structure; the CDE pages could not be fetched at authoring time (bot-block redirect), so no standard codes are included.",
+ "items": [
+  {
+   "id": "math-0-counting-to-100",
+   "grade": 0,
+   "subject": "math",
+   "strand": "counting & cardinality",
+   "title": "Counting to 100",
+   "kind": "topic",
+   "summary": "You can count out loud to 100, by ones and by tens: 10, 20, 30! Say each number once as you point to each thing.",
+   "tags": [
+    "counting",
+    "count",
+    "100",
+    "tens",
+    "numbers"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-0-counting-objects",
+   "grade": 0,
+   "subject": "math",
+   "strand": "counting & cardinality",
+   "title": "Counting objects",
+   "kind": "topic",
+   "summary": "When you count things, touch each one and say one number. The last number you say tells how many there are altogether.",
+   "tags": [
+    "counting",
+    "objects",
+    "how-many",
+    "last-number"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-0-comparing-numbers",
+   "grade": 0,
+   "subject": "math",
+   "strand": "counting & cardinality",
+   "title": "Comparing numbers",
+   "kind": "topic",
+   "summary": "Which group has more? Match things up one to one. If one group has extras left over, that group has more. You can also compare numbers, like 7 and 4.",
+   "tags": [
+    "more",
+    "less",
+    "fewer",
+    "compare",
+    "same"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-0-writing-numbers-0-to-20",
+   "grade": 0,
+   "subject": "math",
+   "strand": "counting & cardinality",
+   "title": "Writing numbers 0 to 20",
+   "kind": "topic",
+   "summary": "Numbers are written with digits. Zero means none at all. Practice writing 0 through 20 and matching each digit to a group of things.",
+   "tags": [
+    "write",
+    "numbers",
+    "digits",
+    "zero"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-0-adding-is-putting-together",
+   "grade": 0,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Adding is putting together",
+   "kind": "topic",
+   "summary": "Adding means putting groups together to make a bigger group. 2 apples plus 3 apples makes 5 apples.",
+   "tags": [
+    "add",
+    "plus",
+    "together",
+    "more",
+    "sum"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-0-subtracting-is-taking-away",
+   "grade": 0,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Subtracting is taking away",
+   "kind": "topic",
+   "summary": "Subtracting means taking some away. If you have 5 grapes and eat 2, you have 3 left.",
+   "tags": [
+    "subtract",
+    "minus",
+    "take-away",
+    "left"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-0-making-10",
+   "grade": 0,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Making 10",
+   "kind": "topic",
+   "summary": "Two numbers can team up to make 10, like 6 and 4, or 7 and 3. Knowing these pairs makes adding easier.",
+   "tags": [
+    "ten",
+    "make-10",
+    "pairs",
+    "add"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-0-teen-numbers",
+   "grade": 0,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Teen numbers",
+   "kind": "topic",
+   "summary": "A teen number is ten ones and some extra ones. Fourteen is ten and four more.",
+   "tags": [
+    "teen",
+    "eleven",
+    "twelve",
+    "ten",
+    "ones",
+    "place-value"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-0-measuring-and-sorting",
+   "grade": 0,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Measuring and sorting",
+   "kind": "topic",
+   "summary": "You can compare things by length or weight: longer, shorter, heavier, lighter. You can also sort things into groups and count each group.",
+   "tags": [
+    "longer",
+    "shorter",
+    "heavier",
+    "lighter",
+    "sort",
+    "measure"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-0-flat-shapes",
+   "grade": 0,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Flat shapes",
+   "kind": "topic",
+   "summary": "Circles, squares, triangles, and rectangles are flat shapes. We can tell them apart by their sides and corners.",
+   "tags": [
+    "shapes",
+    "circle",
+    "square",
+    "triangle",
+    "rectangle"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-0-solid-shapes",
+   "grade": 0,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Solid shapes",
+   "kind": "topic",
+   "summary": "Cubes, cones, cylinders, and spheres are solid shapes. A ball is a sphere and a can is a cylinder.",
+   "tags": [
+    "solid",
+    "cube",
+    "cone",
+    "cylinder",
+    "sphere",
+    "3d"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-0-where-is-it",
+   "grade": 0,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Where is it?",
+   "kind": "topic",
+   "summary": "Position words tell where something is: above, below, beside, in front of, behind, and next to.",
+   "tags": [
+    "above",
+    "below",
+    "beside",
+    "behind",
+    "position"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-0-math-words-to-know",
+   "grade": 0,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Math words to know",
+   "kind": "vocab",
+   "summary": "These are words we use when we count and compare things.",
+   "tags": [
+    "vocabulary",
+    "words",
+    "counting"
+   ],
+   "difficulty": 1,
+   "words": [
+    "number",
+    "count",
+    "more",
+    "less",
+    "same",
+    "add",
+    "take away",
+    "equal",
+    "zero",
+    "ten"
+   ]
+  },
+  {
+   "id": "math-0-shape-words",
+   "grade": 0,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Shape words",
+   "kind": "vocab",
+   "summary": "These words help us talk about shapes.",
+   "tags": [
+    "shape",
+    "words",
+    "vocabulary"
+   ],
+   "difficulty": 2,
+   "words": [
+    "circle",
+    "square",
+    "triangle",
+    "rectangle",
+    "cube",
+    "sphere",
+    "cone",
+    "cylinder",
+    "side",
+    "corner"
+   ]
+  },
+  {
+   "id": "math-0-counting-by-tens",
+   "grade": 0,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Counting by tens",
+   "kind": "fact",
+   "summary": "Counting by tens goes 10, 20, 30, 40, 50, 60, 70, 80, 90, 100. Ten tens make one hundred!",
+   "tags": [
+    "skip-count",
+    "tens",
+    "fact",
+    "100"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-0-a-triangle-has-three-sides",
+   "grade": 0,
+   "subject": "math",
+   "strand": "facts",
+   "title": "A triangle has three sides",
+   "kind": "fact",
+   "summary": "A triangle always has 3 sides and 3 corners. A square has 4 sides that are all the same length.",
+   "tags": [
+    "triangle",
+    "square",
+    "sides",
+    "corners",
+    "fact"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-1-add-and-subtract-within-20",
+   "grade": 1,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Add and subtract within 20",
+   "kind": "topic",
+   "summary": "You can add and subtract numbers up to 20. Counting on helps: for 8 plus 3, start at 8 and count 9, 10, 11.",
+   "tags": [
+    "add",
+    "subtract",
+    "20",
+    "count-on"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-1-word-problems",
+   "grade": 1,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Word problems",
+   "kind": "topic",
+   "summary": "A story problem tells about adding or taking away. Read it, picture it, and decide whether to put together or take apart.",
+   "tags": [
+    "word-problem",
+    "story",
+    "add",
+    "subtract"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-1-fact-families",
+   "grade": 1,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Fact families",
+   "kind": "topic",
+   "summary": "Addition and subtraction are partners. 3 plus 4 is 7, so 7 minus 4 is 3. They use the same three numbers.",
+   "tags": [
+    "fact-family",
+    "add",
+    "subtract",
+    "inverse"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-1-what-does-the-equal-sign-mean",
+   "grade": 1,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "What does the equal sign mean?",
+   "kind": "topic",
+   "summary": "The equal sign means both sides have the same amount. 5 plus 2 equals 3 plus 4, because both make 7.",
+   "tags": [
+    "equal",
+    "equals",
+    "balance",
+    "sign"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-1-tens-and-ones",
+   "grade": 1,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Tens and ones",
+   "kind": "topic",
+   "summary": "Our numbers are built from tens and ones. 36 is 3 tens and 6 ones.",
+   "tags": [
+    "tens",
+    "ones",
+    "place-value",
+    "two-digit"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-1-counting-to-120",
+   "grade": 1,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Counting to 120",
+   "kind": "topic",
+   "summary": "You can count forward to 120 starting at any number, and read and write the numbers too.",
+   "tags": [
+    "count",
+    "120",
+    "numbers",
+    "read",
+    "write"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-1-comparing-two-digit-numbers",
+   "grade": 1,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Comparing two-digit numbers",
+   "kind": "topic",
+   "summary": "To compare 42 and 37, look at the tens first. 4 tens is more than 3 tens, so 42 is greater. We use the signs greater than, less than, and equal.",
+   "tags": [
+    "compare",
+    "greater",
+    "less",
+    "tens"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-1-measuring-length",
+   "grade": 1,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Measuring length",
+   "kind": "topic",
+   "summary": "To measure, line things up end to end with no gaps, using small same-size units like paper clips. The count is the length.",
+   "tags": [
+    "measure",
+    "length",
+    "units",
+    "paperclip"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-1-telling-time",
+   "grade": 1,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Telling time",
+   "kind": "topic",
+   "summary": "A clock tells time to the hour and half hour. When the long hand is on 12 it is o'clock. When it is on 6 it is half past.",
+   "tags": [
+    "clock",
+    "time",
+    "hour",
+    "half-hour"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-1-graphs",
+   "grade": 1,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Graphs",
+   "kind": "topic",
+   "summary": "Data can be sorted into groups and shown on a graph. Then you can see which group has the most and which has the least.",
+   "tags": [
+    "data",
+    "graph",
+    "sort",
+    "most",
+    "least"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-1-shapes-with-parts",
+   "grade": 1,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Shapes with parts",
+   "kind": "topic",
+   "summary": "Shapes can be split into equal parts. Two equal parts are halves. Four equal parts are fourths, also called quarters.",
+   "tags": [
+    "halves",
+    "fourths",
+    "quarters",
+    "equal-parts",
+    "shapes"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-1-math-words-for-first-grade",
+   "grade": 1,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Math words for first grade",
+   "kind": "vocab",
+   "summary": "These words show up in lots of first grade math.",
+   "tags": [
+    "vocabulary",
+    "words",
+    "learning"
+   ],
+   "difficulty": 1,
+   "words": [
+    "sum",
+    "difference",
+    "equal",
+    "tens",
+    "ones",
+    "greater than",
+    "less than",
+    "half",
+    "quarter",
+    "hour"
+   ]
+  },
+  {
+   "id": "math-1-shape-words-for-first-grade",
+   "grade": 1,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Shape words for first grade",
+   "kind": "vocab",
+   "summary": "These words describe shapes.",
+   "tags": [
+    "shape",
+    "vocabulary",
+    "learning"
+   ],
+   "difficulty": 2,
+   "words": [
+    "rectangle",
+    "hexagon",
+    "trapezoid",
+    "cube",
+    "cone",
+    "cylinder",
+    "vertex",
+    "side",
+    "attribute"
+   ]
+  },
+  {
+   "id": "math-1-doubles",
+   "grade": 1,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Doubles",
+   "kind": "fact",
+   "summary": "Doubles are the same number added twice, like 4 plus 4 is 8. Knowing doubles helps with near-doubles, like 4 plus 5.",
+   "tags": [
+    "doubles",
+    "add",
+    "fact"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-1-skip-counting-by-2-5-10",
+   "grade": 1,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Skip counting by 2, 5, 10",
+   "kind": "fact",
+   "summary": "Counting by twos goes 2, 4, 6, 8, 10. Counting by fives goes 5, 10, 15, 20, and by tens goes 10, 20, 30.",
+   "tags": [
+    "skip-count",
+    "twos",
+    "fives",
+    "tens",
+    "fact"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-2-fluent-add-and-subtract-to-20",
+   "grade": 2,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Fluent add and subtract to 20",
+   "kind": "topic",
+   "summary": "By the end of second grade you can add and subtract within 20 quickly in your head, using tricks like making ten.",
+   "tags": [
+    "add",
+    "subtract",
+    "fluent",
+    "mental"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-2-odd-and-even",
+   "grade": 2,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Odd and even",
+   "kind": "topic",
+   "summary": "A number is even if you can pair up everything with none left over. Even numbers end in 0, 2, 4, 6, or 8. Odd numbers have one left over.",
+   "tags": [
+    "odd",
+    "even",
+    "pairs"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-2-groups-and-arrays",
+   "grade": 2,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Groups and arrays",
+   "kind": "topic",
+   "summary": "An array is things in rows and columns, like muffins in a tray. 3 rows of 4 is 4 plus 4 plus 4. This is where multiplying starts.",
+   "tags": [
+    "array",
+    "rows",
+    "columns",
+    "repeated-addition"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-2-hundreds-tens-ones",
+   "grade": 2,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Hundreds, tens, ones",
+   "kind": "topic",
+   "summary": "A three-digit number has hundreds, tens, and ones. 253 is 2 hundreds, 5 tens, and 3 ones.",
+   "tags": [
+    "hundreds",
+    "place-value",
+    "three-digit",
+    "1000"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-2-adding-and-subtracting-to-1000",
+   "grade": 2,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Adding and subtracting to 1000",
+   "kind": "topic",
+   "summary": "You can add and subtract bigger numbers by place value, adding hundreds, tens, and ones. Sometimes you regroup, trading ten ones for one ten.",
+   "tags": [
+    "add",
+    "subtract",
+    "regroup",
+    "1000",
+    "carry"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-2-skip-counting",
+   "grade": 2,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Skip counting",
+   "kind": "topic",
+   "summary": "You can count by 5s, 10s, and 100s to 1000. Skip counting is a speedy way to count lots of things.",
+   "tags": [
+    "skip-count",
+    "5",
+    "10",
+    "100"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-2-measuring-with-rulers",
+   "grade": 2,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Measuring with rulers",
+   "kind": "topic",
+   "summary": "Rulers measure length in inches or centimeters. Line up the zero at the start of the object and read where it ends.",
+   "tags": [
+    "ruler",
+    "inches",
+    "centimeters",
+    "length"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-2-time-and-money",
+   "grade": 2,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Time and money",
+   "kind": "topic",
+   "summary": "We tell time to the nearest five minutes and know a.m. from p.m. We count coins like pennies, nickels, dimes, and quarters and bills.",
+   "tags": [
+    "time",
+    "clock",
+    "money",
+    "coins",
+    "dollars"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-2-line-plots-and-bar-graphs",
+   "grade": 2,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Line plots and bar graphs",
+   "kind": "topic",
+   "summary": "Measurements can be shown as dots on a line plot. Bar graphs use bars to compare how many in each group.",
+   "tags": [
+    "line-plot",
+    "bar-graph",
+    "data"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-2-shapes-with-sides-and-angles",
+   "grade": 2,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Shapes with sides and angles",
+   "kind": "topic",
+   "summary": "We can name shapes by their parts: triangles, quadrilaterals, pentagons, and hexagons by how many sides they have. Cubes are solid shapes with square faces.",
+   "tags": [
+    "shapes",
+    "sides",
+    "angles",
+    "pentagon",
+    "hexagon"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-2-equal-shares",
+   "grade": 2,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Equal shares",
+   "kind": "topic",
+   "summary": "A rectangle can be split into equal shares: halves, thirds, or fourths. Equal means every piece is the same size.",
+   "tags": [
+    "halves",
+    "thirds",
+    "fourths",
+    "equal-shares"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-2-math-words-for-second-grade",
+   "grade": 2,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Math words for second grade",
+   "kind": "vocab",
+   "summary": "These words help us talk about numbers and measuring.",
+   "tags": [
+    "vocabulary",
+    "words",
+    "learning"
+   ],
+   "difficulty": 1,
+   "words": [
+    "hundreds",
+    "digit",
+    "even",
+    "odd",
+    "array",
+    "regroup",
+    "estimate",
+    "inch",
+    "centimeter",
+    "equation"
+   ]
+  },
+  {
+   "id": "math-2-geometry-words",
+   "grade": 2,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Geometry words",
+   "kind": "vocab",
+   "summary": "These words help us talk about shapes.",
+   "tags": [
+    "vocabulary",
+    "geometry",
+    "learning"
+   ],
+   "difficulty": 2,
+   "words": [
+    "quadrilateral",
+    "pentagon",
+    "hexagon",
+    "angle",
+    "face",
+    "edge",
+    "vertex",
+    "symmetry"
+   ]
+  },
+  {
+   "id": "math-2-skip-counting-patterns",
+   "grade": 2,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Skip counting patterns",
+   "kind": "fact",
+   "summary": "Counting by 5s always ends in 0 or 5. Counting by 10s always ends in 0.",
+   "tags": [
+    "skip-count",
+    "5s",
+    "10s",
+    "pattern",
+    "fact"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-2-dollar-and-coins",
+   "grade": 2,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Dollar and coins",
+   "kind": "fact",
+   "summary": "One dollar is 100 cents. A quarter is 25 cents, a dime is 10, a nickel is 5, and a penny is 1.",
+   "tags": [
+    "money",
+    "coins",
+    "quarter",
+    "dime",
+    "nickel",
+    "penny",
+    "fact"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-3-what-multiplication-means",
+   "grade": 3,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "What multiplication means",
+   "kind": "topic",
+   "summary": "Multiplying is adding equal groups. 4 groups of 3 is 12. We write it 4 times 3 equals 12.",
+   "tags": [
+    "multiply",
+    "multiplication",
+    "equal-groups",
+    "times"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-3-what-division-means",
+   "grade": 3,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "What division means",
+   "kind": "topic",
+   "summary": "Division splits things into equal groups or finds how many in each group. 12 shared among 4 friends is 3 each. Division and multiplication are partners.",
+   "tags": [
+    "divide",
+    "division",
+    "share",
+    "equal-groups"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-3-multiplication-facts-to-100",
+   "grade": 3,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Multiplication facts to 100",
+   "kind": "topic",
+   "summary": "By the end of third grade you know your times tables up to 10 times 10 by heart. Patterns and tricks make them easier.",
+   "tags": [
+    "times-tables",
+    "multiplication",
+    "facts",
+    "fluent"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-3-properties-of-multiplication",
+   "grade": 3,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Properties of multiplication",
+   "kind": "topic",
+   "summary": "You can multiply in any order: 3 times 5 is the same as 5 times 3. It's called the commutative property.",
+   "tags": [
+    "commutative",
+    "order",
+    "property",
+    "multiply"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-3-rounding",
+   "grade": 3,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Rounding",
+   "kind": "topic",
+   "summary": "To round a number, find which ten or hundred it is closest to. 47 rounds to 50. If it's halfway or more, round up.",
+   "tags": [
+    "round",
+    "rounding",
+    "nearest",
+    "ten",
+    "hundred"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-3-add-and-subtract-to-1000",
+   "grade": 3,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Add and subtract to 1000",
+   "kind": "topic",
+   "summary": "You can add and subtract numbers up to 1000 using place value and regrouping.",
+   "tags": [
+    "add",
+    "subtract",
+    "1000",
+    "place-value"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-3-fractions-as-parts",
+   "grade": 3,
+   "subject": "math",
+   "strand": "number & operations - fractions",
+   "title": "Fractions as parts",
+   "kind": "topic",
+   "summary": "A fraction names equal parts of a whole. If a pizza is cut into 4 equal slices and you eat 1, you ate one fourth. The bottom number tells how many equal parts.",
+   "tags": [
+    "fraction",
+    "numerator",
+    "denominator",
+    "pizza",
+    "parts"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-3-fractions-on-a-number-line",
+   "grade": 3,
+   "subject": "math",
+   "strand": "number & operations - fractions",
+   "title": "Fractions on a number line",
+   "kind": "topic",
+   "summary": "Fractions are numbers that live between whole numbers on a number line. One half sits halfway between 0 and 1.",
+   "tags": [
+    "fraction",
+    "number-line",
+    "half"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-3-area",
+   "grade": 3,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Area",
+   "kind": "topic",
+   "summary": "Area is how much flat space covers a shape, counted in square units. A rectangle 3 units by 4 units has an area of 12 square units.",
+   "tags": [
+    "area",
+    "square-units",
+    "rectangle",
+    "multiply"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-3-perimeter",
+   "grade": 3,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Perimeter",
+   "kind": "topic",
+   "summary": "Perimeter is the distance around the outside of a shape. Add up all the side lengths.",
+   "tags": [
+    "perimeter",
+    "around",
+    "sides",
+    "add"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-3-time-volume-and-mass",
+   "grade": 3,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Time, volume, and mass",
+   "kind": "topic",
+   "summary": "We measure time in minutes, liquid volume in liters, and mass in grams or kilograms.",
+   "tags": [
+    "time",
+    "minutes",
+    "liters",
+    "grams",
+    "kilograms"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-3-multiplication-words",
+   "grade": 3,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Multiplication words",
+   "kind": "vocab",
+   "summary": "These words are used in multiplying and dividing.",
+   "tags": [
+    "multiplication",
+    "division",
+    "vocabulary"
+   ],
+   "difficulty": 1,
+   "words": [
+    "factor",
+    "product",
+    "quotient",
+    "multiple",
+    "array",
+    "equation",
+    "divide",
+    "equal groups"
+   ]
+  },
+  {
+   "id": "math-3-fraction-and-measuring-words",
+   "grade": 3,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Fraction and measuring words",
+   "kind": "vocab",
+   "summary": "These words help with fractions and measuring.",
+   "tags": [
+    "fraction",
+    "vocabulary",
+    "measure"
+   ],
+   "difficulty": 2,
+   "words": [
+    "numerator",
+    "denominator",
+    "fraction",
+    "unit fraction",
+    "area",
+    "perimeter",
+    "round",
+    "estimate"
+   ]
+  },
+  {
+   "id": "math-3-nines-trick",
+   "grade": 3,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Nines trick",
+   "kind": "fact",
+   "summary": "In the 9 times table, the digits of each answer add up to 9: 18 is 1 plus 8, and 27 is 2 plus 7. Neat pattern.",
+   "tags": [
+    "nines",
+    "times-table",
+    "trick",
+    "pattern",
+    "fact"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-3-zero-and-one-rules",
+   "grade": 3,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Zero and one rules",
+   "kind": "fact",
+   "summary": "Anything times 1 stays the same. Anything times 0 is 0.",
+   "tags": [
+    "zero",
+    "one",
+    "multiplication",
+    "rule",
+    "fact"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-4-place-value-to-a-million",
+   "grade": 4,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Place value to a million",
+   "kind": "topic",
+   "summary": "Each place in a number is worth ten times the place to its right. We can read and write numbers up to a million.",
+   "tags": [
+    "place-value",
+    "million",
+    "digits",
+    "ten-times"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-4-multi-digit-multiplying",
+   "grade": 4,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Multi-digit multiplying",
+   "kind": "topic",
+   "summary": "You can multiply big numbers by breaking them into place values, like 3 times 24 as 3 times 20 plus 3 times 4.",
+   "tags": [
+    "multiply",
+    "multi-digit",
+    "place-value"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-4-dividing-with-remainders",
+   "grade": 4,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Dividing with remainders",
+   "kind": "topic",
+   "summary": "Division with big numbers can have a remainder, the amount left over. 14 divided by 4 is 3 with 2 left over.",
+   "tags": [
+    "division",
+    "remainder",
+    "long-division"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-4-factors-and-multiples",
+   "grade": 4,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Factors and multiples",
+   "kind": "topic",
+   "summary": "Factors are numbers that multiply to make another number. Prime numbers like 7 only have 1 and themselves as factors.",
+   "tags": [
+    "factors",
+    "multiples",
+    "prime",
+    "composite"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-4-patterns",
+   "grade": 4,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Patterns",
+   "kind": "topic",
+   "summary": "A pattern follows a rule, like add 3 each time: 2, 5, 8, 11. Find the rule and predict what comes next.",
+   "tags": [
+    "pattern",
+    "rule",
+    "sequence"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-4-equivalent-fractions",
+   "grade": 4,
+   "subject": "math",
+   "strand": "number & operations - fractions",
+   "title": "Equivalent fractions",
+   "kind": "topic",
+   "summary": "One half is the same amount as two fourths. Different fractions can be equal when you cut the whole into more or fewer pieces.",
+   "tags": [
+    "equivalent",
+    "fractions",
+    "same-amount"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-4-adding-fractions",
+   "grade": 4,
+   "subject": "math",
+   "strand": "number & operations - fractions",
+   "title": "Adding fractions",
+   "kind": "topic",
+   "summary": "When the pieces are the same size, add the tops and keep the bottom. One fifth plus two fifths is three fifths.",
+   "tags": [
+    "add",
+    "fractions",
+    "like-denominators"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-4-decimals",
+   "grade": 4,
+   "subject": "math",
+   "strand": "number & operations - fractions",
+   "title": "Decimals",
+   "kind": "topic",
+   "summary": "Decimals are another way to write fractions with tenths and hundredths. 0.5 is one half, and 0.25 is one quarter.",
+   "tags": [
+    "decimals",
+    "tenths",
+    "hundredths",
+    "fraction",
+    "point"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-4-angles",
+   "grade": 4,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Angles",
+   "kind": "topic",
+   "summary": "An angle is where two lines meet and open up. We measure angles in degrees. A square corner is a right angle, 90 degrees.",
+   "tags": [
+    "angle",
+    "degrees",
+    "right-angle",
+    "protractor"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-4-converting-units",
+   "grade": 4,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Converting units",
+   "kind": "topic",
+   "summary": "Larger units can be changed to smaller ones: 1 meter is 100 centimeters, 1 hour is 60 minutes, 1 pound is 16 ounces.",
+   "tags": [
+    "units",
+    "convert",
+    "meter",
+    "centimeter"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-4-lines-and-symmetry",
+   "grade": 4,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Lines and symmetry",
+   "kind": "topic",
+   "summary": "Lines can be parallel, never touching, or perpendicular, crossing at a right angle. A shape has line symmetry if you can fold it into matching halves.",
+   "tags": [
+    "parallel",
+    "perpendicular",
+    "symmetry",
+    "lines"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-4-fourth-grade-words",
+   "grade": 4,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Fourth grade words",
+   "kind": "vocab",
+   "summary": "These words are used in fourth grade math.",
+   "tags": [
+    "vocabulary",
+    "words",
+    "learning"
+   ],
+   "difficulty": 1,
+   "words": [
+    "factor",
+    "multiple",
+    "prime",
+    "composite",
+    "remainder",
+    "equivalent",
+    "decimal",
+    "angle",
+    "degree",
+    "parallel",
+    "perpendicular",
+    "symmetry"
+   ]
+  },
+  {
+   "id": "math-4-fraction-words",
+   "grade": 4,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Fraction words",
+   "kind": "vocab",
+   "summary": "These words go with fractions and decimals.",
+   "tags": [
+    "fractions",
+    "vocabulary",
+    "learning"
+   ],
+   "difficulty": 2,
+   "words": [
+    "numerator",
+    "denominator",
+    "mixed number",
+    "tenths",
+    "hundredths",
+    "equivalent",
+    "improper fraction"
+   ]
+  },
+  {
+   "id": "math-4-divisibility-tricks",
+   "grade": 4,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Divisibility tricks",
+   "kind": "fact",
+   "summary": "A number is even if it ends in 0, 2, 4, 6, or 8. It can be divided by 5 if it ends in 0 or 5. It's divisible by 10 if it ends in 0.",
+   "tags": [
+    "divisible",
+    "tricks",
+    "even",
+    "five",
+    "ten",
+    "fact"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-4-right-and-straight-angles",
+   "grade": 4,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Right and straight angles",
+   "kind": "fact",
+   "summary": "A right angle is 90 degrees. A straight line is 180 degrees.",
+   "tags": [
+    "angle",
+    "right",
+    "straight",
+    "degrees",
+    "fact"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-5-decimals-and-place-value",
+   "grade": 5,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Decimals and place value",
+   "kind": "topic",
+   "summary": "Place value goes on past the decimal point to tenths, hundredths, and thousandths. We can compare, round, and do math with decimals.",
+   "tags": [
+    "decimal",
+    "place-value",
+    "thousandths",
+    "compare",
+    "round"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-5-multiplying-and-dividing-decimals",
+   "grade": 5,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Multiplying and dividing decimals",
+   "kind": "topic",
+   "summary": "Decimals add, subtract, multiply, and divide like whole numbers, with extra care about where the decimal point goes.",
+   "tags": [
+    "decimals",
+    "multiply",
+    "divide",
+    "point"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-5-powers-of-ten",
+   "grade": 5,
+   "subject": "math",
+   "strand": "number & operations in base ten",
+   "title": "Powers of ten",
+   "kind": "topic",
+   "summary": "Multiplying by 10 moves every digit one place left. Dividing by 10 moves them one place right. 10 times 10 times 10 is 10 cubed, 1,000.",
+   "tags": [
+    "powers",
+    "ten",
+    "exponents",
+    "place-value"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-5-adding-fractions-with-different-bottoms",
+   "grade": 5,
+   "subject": "math",
+   "strand": "number & operations - fractions",
+   "title": "Adding fractions with different bottoms",
+   "kind": "topic",
+   "summary": "To add one half and one third, change them to sixths first: three sixths plus two sixths is five sixths.",
+   "tags": [
+    "add",
+    "subtract",
+    "fractions",
+    "common-denominator"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-5-multiplying-fractions",
+   "grade": 5,
+   "subject": "math",
+   "strand": "number & operations - fractions",
+   "title": "Multiplying fractions",
+   "kind": "topic",
+   "summary": "Multiplying by a fraction means taking a part of something. One half of one third is one sixth.",
+   "tags": [
+    "multiply",
+    "fractions",
+    "part-of"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-5-dividing-with-fractions",
+   "grade": 5,
+   "subject": "math",
+   "strand": "number & operations - fractions",
+   "title": "Dividing with fractions",
+   "kind": "topic",
+   "summary": "We can divide a whole number by a unit fraction. How many halves are in 3? There are 6.",
+   "tags": [
+    "divide",
+    "fractions",
+    "unit-fraction"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-5-order-of-operations",
+   "grade": 5,
+   "subject": "math",
+   "strand": "operations & algebraic thinking",
+   "title": "Order of operations",
+   "kind": "topic",
+   "summary": "Do math in parentheses first, then the rest in order. 2 plus 3 times 4 is 14, since you multiply before you add.",
+   "tags": [
+    "order-of-operations",
+    "parentheses",
+    "pemdas"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-5-volume",
+   "grade": 5,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Volume",
+   "kind": "topic",
+   "summary": "Volume is how much space a solid shape takes up, counted in cubic units. A box 2 by 3 by 4 holds 24 cubes.",
+   "tags": [
+    "volume",
+    "cubic",
+    "box",
+    "length",
+    "width",
+    "height"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-5-converting-measurements",
+   "grade": 5,
+   "subject": "math",
+   "strand": "measurement & data",
+   "title": "Converting measurements",
+   "kind": "topic",
+   "summary": "We can convert units within a system, like 2 meters equals 200 centimeters, and use them to solve problems.",
+   "tags": [
+    "convert",
+    "units",
+    "metric",
+    "measurement"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-5-coordinate-plane",
+   "grade": 5,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Coordinate plane",
+   "kind": "topic",
+   "summary": "A coordinate plane has two number lines meeting at zero. A point has two numbers, like (3, 2): go right 3, then up 2.",
+   "tags": [
+    "coordinate",
+    "graph",
+    "x",
+    "y",
+    "ordered-pair"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-5-classifying-shapes",
+   "grade": 5,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Classifying shapes",
+   "kind": "topic",
+   "summary": "Shapes belong to families. Every square is a rectangle, and every rectangle is a parallelogram.",
+   "tags": [
+    "shapes",
+    "classify",
+    "quadrilateral",
+    "parallelogram"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-5-fifth-grade-math-words",
+   "grade": 5,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Fifth grade math words",
+   "kind": "vocab",
+   "summary": "These words come up in fifth grade math.",
+   "tags": [
+    "vocabulary",
+    "words",
+    "learning"
+   ],
+   "difficulty": 1,
+   "words": [
+    "decimal",
+    "exponent",
+    "volume",
+    "coordinate plane",
+    "ordered pair",
+    "numerator",
+    "denominator",
+    "parentheses",
+    "prism",
+    "cubic unit"
+   ]
+  },
+  {
+   "id": "math-5-shape-and-graph-words",
+   "grade": 5,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Shape and graph words",
+   "kind": "vocab",
+   "summary": "These words help us talk about graphs and shapes.",
+   "tags": [
+    "vocabulary",
+    "graph",
+    "shapes"
+   ],
+   "difficulty": 2,
+   "words": [
+    "axis",
+    "origin",
+    "parallelogram",
+    "rhombus",
+    "trapezoid",
+    "quadrilateral",
+    "perpendicular"
+   ]
+  },
+  {
+   "id": "math-5-zeros-and-exponents",
+   "grade": 5,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Zeros and exponents",
+   "kind": "fact",
+   "summary": "Ten squared is 100, ten cubed is 1,000. The number of zeros matches the exponent.",
+   "tags": [
+    "exponent",
+    "ten",
+    "zeros",
+    "fact"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-5-shape-family-tree",
+   "grade": 5,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Shape family tree",
+   "kind": "fact",
+   "summary": "A square has four equal sides and four right angles. That makes it a rectangle, a rhombus, and a parallelogram all at once.",
+   "tags": [
+    "square",
+    "rectangle",
+    "rhombus",
+    "parallelogram",
+    "fact"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-6-ratios",
+   "grade": 6,
+   "subject": "math",
+   "strand": "ratios & proportional relationships",
+   "title": "Ratios",
+   "kind": "topic",
+   "summary": "A ratio compares two amounts, like 2 cups of flour for every 3 cups of sugar. We can write it 2 to 3, 2:3, or two thirds.",
+   "tags": [
+    "ratio",
+    "compare",
+    "proportion",
+    "rate"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "math-6-rates-and-percent",
+   "grade": 6,
+   "subject": "math",
+   "strand": "ratios & proportional relationships",
+   "title": "Rates and percent",
+   "kind": "topic",
+   "summary": "A rate compares different units, like 60 miles per hour. A percent is a ratio out of 100. 50 percent is half.",
+   "tags": [
+    "rate",
+    "unit-rate",
+    "percent",
+    "miles-per-hour"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-6-dividing-fractions",
+   "grade": 6,
+   "subject": "math",
+   "strand": "the number system",
+   "title": "Dividing fractions",
+   "kind": "topic",
+   "summary": "To divide by a fraction, ask how many of it fit. How many one-halves fit in three-fourths? One and a half.",
+   "tags": [
+    "divide",
+    "fractions",
+    "reciprocal"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-6-negative-numbers",
+   "grade": 6,
+   "subject": "math",
+   "strand": "the number system",
+   "title": "Negative numbers",
+   "kind": "topic",
+   "summary": "Numbers can be less than zero, like -5 degrees on a cold day. On a number line, negatives sit to the left of zero.",
+   "tags": [
+    "negative",
+    "positive",
+    "integers",
+    "number-line"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-6-factors-and-multiples",
+   "grade": 6,
+   "subject": "math",
+   "strand": "the number system",
+   "title": "Factors and multiples",
+   "kind": "topic",
+   "summary": "The greatest common factor is the biggest number that divides two numbers evenly. The least common multiple is the smallest number both go into.",
+   "tags": [
+    "gcf",
+    "lcm",
+    "factors",
+    "multiples"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-6-variables-and-expressions",
+   "grade": 6,
+   "subject": "math",
+   "strand": "expressions & equations",
+   "title": "Variables and expressions",
+   "kind": "topic",
+   "summary": "A variable is a letter standing in for a number. In 3x plus 2, x can be any number, and we can work out the value.",
+   "tags": [
+    "variable",
+    "expression",
+    "algebra",
+    "letter"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-6-one-step-equations",
+   "grade": 6,
+   "subject": "math",
+   "strand": "expressions & equations",
+   "title": "One-step equations",
+   "kind": "topic",
+   "summary": "An equation says two things are equal. To solve x plus 4 equals 9, do the same thing to both sides: subtract 4 and x is 5.",
+   "tags": [
+    "equation",
+    "solve",
+    "variable",
+    "balance"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-6-area-and-volume",
+   "grade": 6,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Area and volume",
+   "kind": "topic",
+   "summary": "We find area of triangles and other shapes by cutting them into rectangles and triangles. Triangle area is half of base times height.",
+   "tags": [
+    "area",
+    "triangle",
+    "volume",
+    "polygon"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-6-mean-median-and-mode",
+   "grade": 6,
+   "subject": "math",
+   "strand": "statistics & probability",
+   "title": "Mean, median, and mode",
+   "kind": "topic",
+   "summary": "Mean is the average, median is the middle number, and mode is the number that shows up most. They're different ways to describe a data set.",
+   "tags": [
+    "mean",
+    "median",
+    "mode",
+    "average",
+    "statistics"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-6-sixth-grade-math-words",
+   "grade": 6,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Sixth grade math words",
+   "kind": "vocab",
+   "summary": "These words appear in sixth grade math.",
+   "tags": [
+    "vocabulary",
+    "words",
+    "learning"
+   ],
+   "difficulty": 1,
+   "words": [
+    "ratio",
+    "rate",
+    "percent",
+    "variable",
+    "expression",
+    "equation",
+    "integer",
+    "absolute value",
+    "median",
+    "mean"
+   ]
+  },
+  {
+   "id": "math-7-proportional-relationships",
+   "grade": 7,
+   "subject": "math",
+   "strand": "ratios & proportional relationships",
+   "title": "Proportional relationships",
+   "kind": "topic",
+   "summary": "Two amounts are proportional if one is always the same multiple of the other. Constant rate, like earning 12 dollars per hour, makes a straight line through zero.",
+   "tags": [
+    "proportional",
+    "constant-rate",
+    "unit-rate"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-7-percent-problems",
+   "grade": 7,
+   "subject": "math",
+   "strand": "ratios & proportional relationships",
+   "title": "Percent problems",
+   "kind": "topic",
+   "summary": "Percents help with tips, sales, tax, and interest. 20 percent off 50 dollars takes away 10 dollars.",
+   "tags": [
+    "percent",
+    "discount",
+    "tax",
+    "tip",
+    "interest"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-7-rational-numbers",
+   "grade": 7,
+   "subject": "math",
+   "strand": "the number system",
+   "title": "Rational numbers",
+   "kind": "topic",
+   "summary": "Rational numbers include fractions, decimals, and negatives. You can add, subtract, multiply, and divide all of them.",
+   "tags": [
+    "rational",
+    "negative",
+    "fractions",
+    "decimals"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-7-negative-number-rules",
+   "grade": 7,
+   "subject": "math",
+   "strand": "the number system",
+   "title": "Negative number rules",
+   "kind": "topic",
+   "summary": "Subtracting a number is the same as adding its opposite. A negative times a negative is a positive.",
+   "tags": [
+    "negative",
+    "opposite",
+    "subtract",
+    "multiply",
+    "sign"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-7-solving-multi-step-equations",
+   "grade": 7,
+   "subject": "math",
+   "strand": "expressions & equations",
+   "title": "Solving multi-step equations",
+   "kind": "topic",
+   "summary": "You can solve equations that take more than one step, like 2x plus 3 equals 11. Undo the add first, then the multiply, to get x equals 4.",
+   "tags": [
+    "equations",
+    "multi-step",
+    "solve",
+    "inequality"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-7-circles",
+   "grade": 7,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Circles",
+   "kind": "topic",
+   "summary": "The distance around a circle is its circumference, about 3.14 times the diameter. Area is pi times radius squared.",
+   "tags": [
+    "circle",
+    "circumference",
+    "pi",
+    "area",
+    "radius"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-7-scale-drawings",
+   "grade": 7,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Scale drawings",
+   "kind": "topic",
+   "summary": "A scale drawing is a smaller or larger copy where all lengths use the same scale, like maps and blueprints.",
+   "tags": [
+    "scale",
+    "map",
+    "drawing",
+    "proportion"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-7-probability",
+   "grade": 7,
+   "subject": "math",
+   "strand": "statistics & probability",
+   "title": "Probability",
+   "kind": "topic",
+   "summary": "Probability tells how likely something is, from 0 for impossible to 1 for certain. Flipping a coin has a probability of one half for heads.",
+   "tags": [
+    "probability",
+    "chance",
+    "likely",
+    "random"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-7-seventh-grade-math-words",
+   "grade": 7,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Seventh grade math words",
+   "kind": "vocab",
+   "summary": "These words appear in seventh grade math.",
+   "tags": [
+    "vocabulary",
+    "words",
+    "learning"
+   ],
+   "difficulty": 1,
+   "words": [
+    "proportion",
+    "constant of proportionality",
+    "rational number",
+    "opposite",
+    "inequality",
+    "circumference",
+    "diameter",
+    "radius",
+    "probability",
+    "sample"
+   ]
+  },
+  {
+   "id": "math-7-pi",
+   "grade": 7,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Pi",
+   "kind": "fact",
+   "summary": "Pi is about 3.14. It is the number you get when you divide any circle's circumference by its diameter, and its digits never end.",
+   "tags": [
+    "pi",
+    "circle",
+    "3.14",
+    "fact"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-8-exponents-and-scientific-notation",
+   "grade": 8,
+   "subject": "math",
+   "strand": "expressions & equations",
+   "title": "Exponents and scientific notation",
+   "kind": "topic",
+   "summary": "Exponents show repeated multiplying, and scientific notation uses powers of ten to write very big or tiny numbers, like 3 times 10 to the 8th.",
+   "tags": [
+    "exponent",
+    "scientific-notation",
+    "powers"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-8-linear-equations-and-slope",
+   "grade": 8,
+   "subject": "math",
+   "strand": "expressions & equations",
+   "title": "Linear equations and slope",
+   "kind": "topic",
+   "summary": "A linear equation makes a straight line. The slope tells how steep it is: how much it rises for each step to the right.",
+   "tags": [
+    "linear",
+    "slope",
+    "line",
+    "equation",
+    "y=mx+b"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-8-systems-of-equations",
+   "grade": 8,
+   "subject": "math",
+   "strand": "expressions & equations",
+   "title": "Systems of equations",
+   "kind": "topic",
+   "summary": "Two equations can be solved together. The answer is where their lines cross, a point that makes both true.",
+   "tags": [
+    "system",
+    "equations",
+    "lines",
+    "intersect"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-8-irrational-numbers",
+   "grade": 8,
+   "subject": "math",
+   "strand": "the number system",
+   "title": "Irrational numbers",
+   "kind": "topic",
+   "summary": "Some numbers, like the square root of 2 and pi, can't be written as a fraction. They're called irrational, and their decimals never repeat.",
+   "tags": [
+    "irrational",
+    "square-root",
+    "pi",
+    "real"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-8-functions",
+   "grade": 8,
+   "subject": "math",
+   "strand": "functions",
+   "title": "Functions",
+   "kind": "topic",
+   "summary": "A function is a rule that gives exactly one output for each input. We can show functions with tables, graphs, and equations.",
+   "tags": [
+    "function",
+    "input",
+    "output",
+    "rule",
+    "graph"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-8-pythagorean-theorem",
+   "grade": 8,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Pythagorean theorem",
+   "kind": "topic",
+   "summary": "In a right triangle, the two short sides squared add up to the longest side squared: a squared plus b squared equals c squared.",
+   "tags": [
+    "pythagorean",
+    "right-triangle",
+    "hypotenuse"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-8-transformations",
+   "grade": 8,
+   "subject": "math",
+   "strand": "geometry",
+   "title": "Transformations",
+   "kind": "topic",
+   "summary": "Shapes can be moved by sliding, flipping, or turning, and still be the same shape. We can also stretch them, called dilation.",
+   "tags": [
+    "translation",
+    "reflection",
+    "rotation",
+    "dilation",
+    "congruent"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "math-8-scatter-plots",
+   "grade": 8,
+   "subject": "math",
+   "strand": "statistics & probability",
+   "title": "Scatter plots",
+   "kind": "topic",
+   "summary": "A scatter plot shows pairs of numbers as dots. If they form a trend, we can draw a line of best fit to make predictions.",
+   "tags": [
+    "scatter-plot",
+    "trend",
+    "data",
+    "line-of-best-fit"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "math-8-eighth-grade-math-words",
+   "grade": 8,
+   "subject": "math",
+   "strand": "vocabulary",
+   "title": "Eighth grade math words",
+   "kind": "vocab",
+   "summary": "These words appear in eighth grade math.",
+   "tags": [
+    "vocabulary",
+    "words",
+    "learning"
+   ],
+   "difficulty": 1,
+   "words": [
+    "slope",
+    "function",
+    "hypotenuse",
+    "irrational",
+    "scientific notation",
+    "system of equations",
+    "transformation",
+    "congruent",
+    "dilation",
+    "volume"
+   ]
+  },
+  {
+   "id": "math-8-famous-right-triangle",
+   "grade": 8,
+   "subject": "math",
+   "strand": "facts",
+   "title": "Famous right triangle",
+   "kind": "fact",
+   "summary": "The 3-4-5 triangle is a right triangle: 9 plus 16 equals 25. Builders have used it to make square corners.",
+   "tags": [
+    "3-4-5",
+    "pythagorean",
+    "right-triangle",
+    "fact"
+   ],
+   "difficulty": 2
+  }
+ ]
+}

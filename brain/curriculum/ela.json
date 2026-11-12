@@ -1,0 +1,2660 @@
+{
+ "subject": "ela",
+ "sources": [
+  "https://www.cde.ca.gov/be/st/ss/",
+  "https://www.cde.ca.gov/ci/rl/cf/"
+ ],
+ "verified": false,
+ "verification_note": "cde.ca.gov blocks automated fetches (web-firewall redirect), so these topics were written from knowledge of the California standards and NOT checked against the page; the listed sources are where to verify them. Review in a browser before relying on it.",
+ "note": "California ELA/Literacy (CA CCSS) and ELD skills by grade, summarized in my own words. cde.ca.gov blocked automated page fetches (web application firewall redirect), so the URLs were NOT read in this session and skills come from prior knowledge of the standards and framework strands; no standard codes are given. CDE does not publish an official spelling or vocabulary list, so word lists are representative grade-appropriate examples that match the framework's skills.",
+ "items": [
+  {
+   "id": "ela-0-letter-names-and-sounds",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "Letter names and sounds",
+   "kind": "topic",
+   "summary": "Every letter has a name and a sound. Say the letter, then say the sound it makes, like /b/ for b.",
+   "tags": [
+    "letters",
+    "alphabet",
+    "sounds",
+    "abc"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-0-rhyming-words",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "Rhyming words",
+   "kind": "topic",
+   "summary": "Words that rhyme end with the same sound, like cat and hat. Can you think of a word that rhymes with dog?",
+   "tags": [
+    "rhyme",
+    "rhyming",
+    "sounds",
+    "poem"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-0-clapping-syllables",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "Clapping syllables",
+   "kind": "topic",
+   "summary": "Words have beats called syllables. Clap as you say them: ap-ple has two claps, and ba-na-na has three.",
+   "tags": [
+    "syllables",
+    "clap",
+    "beats",
+    "words"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-0-blending-sounds-into-words",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "Blending sounds into words",
+   "kind": "topic",
+   "summary": "Say each sound slowly and then slide them together: /c/ /a/ /t/ makes cat. That is how you read a new word.",
+   "tags": [
+    "blend",
+    "sound",
+    "read",
+    "cvc",
+    "sounding",
+    "out"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-0-how-books-work",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "reading foundations",
+   "title": "How books work",
+   "kind": "topic",
+   "summary": "You read a book from front to back, and words go left to right and top to bottom. Spaces show where one word ends.",
+   "tags": [
+    "book",
+    "print",
+    "left",
+    "right",
+    "pages",
+    "words"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-0-retelling-a-story",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Retelling a story",
+   "kind": "topic",
+   "summary": "After you hear a story, tell what happened using the characters, the setting, and the big events.",
+   "tags": [
+    "story",
+    "retell",
+    "characters",
+    "setting"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-0-asking-questions-about-a-book",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "reading informational",
+   "title": "Asking questions about a book",
+   "kind": "topic",
+   "summary": "Good readers ask who, what, where, and why. You can ask a question about a story or a true book you hear.",
+   "tags": [
+    "questions",
+    "who",
+    "what",
+    "where",
+    "why"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-0-drawing-dictating-and-writing",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Drawing, dictating, and writing",
+   "kind": "topic",
+   "summary": "You can share ideas by drawing and then telling or writing about your picture. Try writing the sounds you hear.",
+   "tags": [
+    "write",
+    "draw",
+    "picture",
+    "letters"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-0-capital-letters-and-your-name",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Capital letters and your name",
+   "kind": "topic",
+   "summary": "Names start with a capital letter. Sentences start with a capital letter too. Practice writing your own name.",
+   "tags": [
+    "capital",
+    "uppercase",
+    "lowercase",
+    "name"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-0-taking-turns-to-talk",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "speaking and listening",
+   "title": "Taking turns to talk",
+   "kind": "topic",
+   "summary": "In a conversation we listen to the speaker, wait for our turn, and then share our own idea.",
+   "tags": [
+    "listen",
+    "talk",
+    "turns",
+    "manners",
+    "conversation"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-0-learning-english-words",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "ELD",
+   "title": "Learning English words",
+   "kind": "topic",
+   "summary": "If you speak another language at home, that is a strength! You can learn English words by pointing, listening, and saying them aloud.",
+   "tags": [
+    "english",
+    "language",
+    "learner",
+    "words",
+    "speak"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-0-short-a-words",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Short a words",
+   "kind": "spelling",
+   "summary": "Listen for the short a sound, like in cat. Sound out each word and write it.",
+   "words": [
+    "cat",
+    "hat",
+    "mat",
+    "sat",
+    "bat",
+    "can",
+    "man",
+    "pan",
+    "map",
+    "cap"
+   ],
+   "tags": [
+    "short",
+    "a",
+    "cvc",
+    "spelling"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-0-short-i-words",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Short i words",
+   "kind": "spelling",
+   "summary": "Short i sounds like the middle of sit. Stretch out the sounds to spell these.",
+   "words": [
+    "sit",
+    "pig",
+    "big",
+    "lip",
+    "pin",
+    "win",
+    "hit",
+    "six",
+    "dig",
+    "fin"
+   ],
+   "tags": [
+    "short",
+    "i",
+    "cvc",
+    "spelling"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-0-short-o-words",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Short o words",
+   "kind": "spelling",
+   "summary": "Short o sounds like the middle of dog. Say each sound and write it down.",
+   "words": [
+    "dog",
+    "hot",
+    "top",
+    "pot",
+    "mop",
+    "box",
+    "job",
+    "fox",
+    "log",
+    "hop"
+   ],
+   "tags": [
+    "short",
+    "o",
+    "cvc",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-0-everyday-sight-words",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "sight words",
+   "title": "Everyday sight words",
+   "kind": "vocab",
+   "summary": "Some words are used all the time, so we learn them by sight. Try to read these without sounding them out.",
+   "words": [
+    "the",
+    "a",
+    "I",
+    "to",
+    "and",
+    "is",
+    "you",
+    "see",
+    "we",
+    "my",
+    "like",
+    "go"
+   ],
+   "tags": [
+    "sight",
+    "words",
+    "high",
+    "frequency",
+    "read"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-0-opposites-and-position-words",
+   "grade": 0,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Opposites and position words",
+   "kind": "vocab",
+   "summary": "Words like up and down, in and out, big and little tell where things are or how they are different.",
+   "words": [
+    "up",
+    "down",
+    "in",
+    "out",
+    "big",
+    "little",
+    "hot",
+    "cold",
+    "open",
+    "close"
+   ],
+   "tags": [
+    "opposites",
+    "position",
+    "words"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-1-digraphs-sh-ch-th-wh",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "Digraphs: sh, ch, th, wh",
+   "kind": "topic",
+   "summary": "Two letters can team up to make one sound, like sh in ship or ch in chip.",
+   "tags": [
+    "digraph",
+    "sh",
+    "ch",
+    "th",
+    "wh",
+    "sounds"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-1-silent-e-makes-vowels-say-their-name",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "Silent e makes vowels say their name",
+   "kind": "topic",
+   "summary": "A silent e at the end can make the vowel say its name: cap becomes cape, and kit becomes kite.",
+   "tags": [
+    "silent",
+    "e",
+    "long",
+    "vowel",
+    "magic",
+    "e"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-1-word-endings-s-ed-ing",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "Word endings -s, -ed, -ing",
+   "kind": "topic",
+   "summary": "Endings change a word. Jump, jumps, jumped, and jumping tell about one or many, now or before.",
+   "tags": [
+    "endings",
+    "suffix",
+    "ed",
+    "ing",
+    "plural"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-1-syllables-in-words",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "Syllables in words",
+   "kind": "topic",
+   "summary": "Every syllable has a vowel sound. Count the beats to read longer words like rab-bit and pic-nic.",
+   "tags": [
+    "syllables",
+    "vowels",
+    "beats",
+    "long",
+    "words"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-1-characters-setting-and-events",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Characters, setting, and events",
+   "kind": "topic",
+   "summary": "Stories have characters, a setting where they happen, and events in order. Tell the key details when you retell.",
+   "tags": [
+    "story",
+    "characters",
+    "setting",
+    "key",
+    "details"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-1-text-features-in-true-books",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "reading informational",
+   "title": "Text features in true books",
+   "kind": "topic",
+   "summary": "Headings, pictures, captions, and glossaries help you find facts fast in a nonfiction book.",
+   "tags": [
+    "nonfiction",
+    "heading",
+    "caption",
+    "glossary",
+    "facts"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-1-opinion-informing-and-storytelling",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Opinion, informing, and storytelling",
+   "kind": "topic",
+   "summary": "First graders write opinions with a reason, facts about a topic, and short stories with a beginning, middle, and end.",
+   "tags": [
+    "write",
+    "opinion",
+    "informative",
+    "narrative",
+    "story"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-1-sentences-and-punctuation",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Sentences and punctuation",
+   "kind": "topic",
+   "summary": "A sentence starts with a capital letter and ends with a period, question mark, or exclamation point.",
+   "tags": [
+    "sentence",
+    "capital",
+    "period",
+    "question",
+    "mark"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-1-speaking-in-complete-sentences",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "speaking and listening",
+   "title": "Speaking in complete sentences",
+   "kind": "topic",
+   "summary": "Listen carefully, ask a question if you do not understand, and answer in a whole sentence.",
+   "tags": [
+    "speak",
+    "listen",
+    "sentences",
+    "questions"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-1-using-english-to-share-ideas",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "ELD",
+   "title": "Using English to share ideas",
+   "kind": "topic",
+   "summary": "English learners can build sentences by adding details: I see a dog, then I see a big brown dog.",
+   "tags": [
+    "english",
+    "learner",
+    "sentences",
+    "details",
+    "speak"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-1-silent-e-words",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Silent e words",
+   "kind": "spelling",
+   "summary": "These words have a long vowel and a silent e at the end.",
+   "words": [
+    "cake",
+    "bike",
+    "home",
+    "cube",
+    "kite",
+    "rope",
+    "name",
+    "five",
+    "bone",
+    "tube"
+   ],
+   "tags": [
+    "silent",
+    "e",
+    "long",
+    "vowel",
+    "spelling"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-1-digraph-words",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Digraph words",
+   "kind": "spelling",
+   "summary": "Each word has sh, ch, th, or wh. Listen for the special sound.",
+   "words": [
+    "ship",
+    "chip",
+    "thin",
+    "whale",
+    "shop",
+    "chat",
+    "bath",
+    "fish",
+    "wish",
+    "much"
+   ],
+   "tags": [
+    "digraph",
+    "sh",
+    "ch",
+    "th",
+    "wh",
+    "spelling"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-1-blend-words",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Blend words",
+   "kind": "spelling",
+   "summary": "Blends keep both letter sounds, like st in stop and fl in flag.",
+   "words": [
+    "stop",
+    "flag",
+    "frog",
+    "drum",
+    "clap",
+    "swim",
+    "snap",
+    "plan",
+    "step",
+    "skip"
+   ],
+   "tags": [
+    "blends",
+    "consonant",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-1-sight-words-that-matter",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "sight words",
+   "title": "Sight words that matter",
+   "kind": "vocab",
+   "summary": "These tricky words do not always sound the way they look. Learn them by heart.",
+   "words": [
+    "said",
+    "was",
+    "they",
+    "were",
+    "have",
+    "from",
+    "there",
+    "what",
+    "when",
+    "some"
+   ],
+   "tags": [
+    "sight",
+    "words",
+    "high",
+    "frequency",
+    "tricky"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-1-feeling-words",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Feeling words",
+   "kind": "vocab",
+   "summary": "Words like happy, sad, and proud tell how people feel. Use them to talk about characters in stories.",
+   "words": [
+    "happy",
+    "sad",
+    "angry",
+    "proud",
+    "scared",
+    "excited",
+    "tired",
+    "lonely"
+   ],
+   "tags": [
+    "feelings",
+    "emotions",
+    "words"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-1-opposites",
+   "grade": 1,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Opposites",
+   "kind": "vocab",
+   "summary": "Opposites are words with meanings that are very different, like hot and cold.",
+   "words": [
+    "hot",
+    "cold",
+    "fast",
+    "slow",
+    "near",
+    "far",
+    "wet",
+    "dry",
+    "loud",
+    "quiet"
+   ],
+   "tags": [
+    "opposites",
+    "antonyms",
+    "words"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-2-long-vowel-teams",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "Long vowel teams",
+   "kind": "topic",
+   "summary": "Two vowels can work together, like ai in rain, oa in boat, and ee in seed. The first one often says its name.",
+   "tags": [
+    "vowel",
+    "teams",
+    "long",
+    "vowels",
+    "ai",
+    "oa",
+    "ee"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-2-r-controlled-vowels",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "R-controlled vowels",
+   "kind": "topic",
+   "summary": "When r follows a vowel it changes the sound, like in car, bird, and corn.",
+   "tags": [
+    "r",
+    "controlled",
+    "ar",
+    "er",
+    "ir",
+    "or",
+    "ur"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-2-prefixes-and-suffixes",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "Prefixes and suffixes",
+   "kind": "topic",
+   "summary": "Add un- or re- to the start of a word, or -ful or -less to the end, and the meaning changes: careful, careless.",
+   "tags": [
+    "prefix",
+    "suffix",
+    "un",
+    "re",
+    "ful",
+    "less"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-2-who-what-where-when-why-how",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Who, what, where, when, why, how",
+   "kind": "topic",
+   "summary": "Ask these questions to show you understand a story. Look back in the book to find your answers.",
+   "tags": [
+    "questions",
+    "story",
+    "understand",
+    "details"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-2-stories-with-a-lesson",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Stories with a lesson",
+   "kind": "topic",
+   "summary": "Many stories, like fables, teach a lesson or message. Tell what the characters learned.",
+   "tags": [
+    "fable",
+    "moral",
+    "lesson",
+    "message",
+    "story"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-2-main-topic-of-a-text",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "reading informational",
+   "title": "Main topic of a text",
+   "kind": "topic",
+   "summary": "The main topic is what a whole passage is mostly about. Details give the facts that support it.",
+   "tags": [
+    "main",
+    "topic",
+    "details",
+    "nonfiction"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-2-opinion-informative-and-narrative-writing",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Opinion, informative, and narrative writing",
+   "kind": "topic",
+   "summary": "Second graders write opinions with reasons, facts about a topic, and stories with feelings and a clear ending.",
+   "tags": [
+    "write",
+    "opinion",
+    "informative",
+    "narrative"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-2-nouns-verbs-and-adjectives",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Nouns, verbs, and adjectives",
+   "kind": "topic",
+   "summary": "Nouns name things, verbs show action, and adjectives describe. In The red ball bounced, ball is a noun.",
+   "tags": [
+    "noun",
+    "verb",
+    "adjective",
+    "grammar"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-2-irregular-plurals-and-contractions",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Irregular plurals and contractions",
+   "kind": "topic",
+   "summary": "One mouse, two mice! Some plurals change completely. A contraction squeezes two words together: do not becomes don't.",
+   "tags": [
+    "plural",
+    "contractions",
+    "apostrophe",
+    "mice"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-2-sharing-in-a-group",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "speaking and listening",
+   "title": "Sharing in a group",
+   "kind": "topic",
+   "summary": "Take turns, build on what others say, and speak clearly when you tell a story or share facts.",
+   "tags": [
+    "group",
+    "talk",
+    "share",
+    "listen",
+    "story"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-2-english-learners-and-storytelling",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "ELD",
+   "title": "English learners and storytelling",
+   "kind": "topic",
+   "summary": "Practice telling what happened first, next, and last. Use new English words from books in your own sentences.",
+   "tags": [
+    "english",
+    "learner",
+    "retell",
+    "first",
+    "next",
+    "last"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-2-vowel-team-words",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Vowel team words",
+   "kind": "spelling",
+   "summary": "These long vowel sounds are spelled with two or more letters.",
+   "words": [
+    "rain",
+    "train",
+    "boat",
+    "road",
+    "team",
+    "beach",
+    "seed",
+    "green",
+    "light",
+    "night"
+   ],
+   "tags": [
+    "vowel",
+    "teams",
+    "spelling",
+    "long",
+    "vowel"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-2-r-controlled-words",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "R-controlled words",
+   "kind": "spelling",
+   "summary": "The r changes the vowel sound in these words.",
+   "words": [
+    "car",
+    "star",
+    "farm",
+    "bird",
+    "girl",
+    "corn",
+    "horse",
+    "her",
+    "turn",
+    "fern"
+   ],
+   "tags": [
+    "r",
+    "controlled",
+    "spelling"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-2-diphthong-words",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Diphthong words",
+   "kind": "spelling",
+   "summary": "Sounds like ow in cloud and oy in toy glide from one sound to another.",
+   "words": [
+    "cloud",
+    "house",
+    "out",
+    "town",
+    "brown",
+    "coin",
+    "boil",
+    "toy",
+    "boy",
+    "soil"
+   ],
+   "tags": [
+    "diphthong",
+    "ou",
+    "ow",
+    "oi",
+    "oy",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-2-contractions",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Contractions",
+   "kind": "spelling",
+   "summary": "An apostrophe shows where letters were left out.",
+   "words": [
+    "can't",
+    "don't",
+    "isn't",
+    "it's",
+    "I'm",
+    "we're",
+    "they're",
+    "didn't",
+    "won't",
+    "let's"
+   ],
+   "tags": [
+    "contractions",
+    "apostrophe",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-2-story-words",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Story words",
+   "kind": "vocab",
+   "summary": "These words show up in many stories. Can you use one in a sentence?",
+   "words": [
+    "curious",
+    "brave",
+    "enormous",
+    "whisper",
+    "gather",
+    "explore",
+    "tiny",
+    "nervous"
+   ],
+   "tags": [
+    "story",
+    "words",
+    "vocabulary"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-2-words-for-a-nonfiction-book",
+   "grade": 2,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Words for a nonfiction book",
+   "kind": "vocab",
+   "summary": "Learn the words that help you read true books about animals and nature.",
+   "words": [
+    "habitat",
+    "shelter",
+    "insect",
+    "nest",
+    "season",
+    "weather",
+    "soil",
+    "seed"
+   ],
+   "tags": [
+    "nonfiction",
+    "science",
+    "words"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-3-reading-long-words-by-parts",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "phonics",
+   "title": "Reading long words by parts",
+   "kind": "topic",
+   "summary": "Break long words into prefixes, roots, and endings to read them: un-happi-ness. Practice until reading flows smoothly.",
+   "tags": [
+    "multisyllabic",
+    "prefix",
+    "suffix",
+    "long",
+    "words",
+    "fluency"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-3-asking-and-answering-questions-about-a-text",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Asking and answering questions about a text",
+   "kind": "topic",
+   "summary": "Ask questions while you read, then point to the exact words and pictures in the text that answer them.",
+   "tags": [
+    "questions",
+    "evidence",
+    "text",
+    "details"
+   ],
+   "difficulty": 1
+  },
+  {
+   "id": "ela-3-central-message-and-character-traits",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Central message and character traits",
+   "kind": "topic",
+   "summary": "A central message is the big lesson of a story. Characters' actions and words show what they are like.",
+   "tags": [
+    "message",
+    "lesson",
+    "character",
+    "traits",
+    "fable",
+    "folktale"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-3-point-of-view",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Point of view",
+   "kind": "topic",
+   "summary": "Who is telling the story? Your point of view can be different from the narrator's or a character's.",
+   "tags": [
+    "point",
+    "of",
+    "view",
+    "narrator",
+    "first",
+    "person"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-3-text-features-and-main-idea",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "reading informational",
+   "title": "Text features and main idea",
+   "kind": "topic",
+   "summary": "Use headings, maps, and diagrams to find the main idea and key details of a nonfiction text.",
+   "tags": [
+    "main",
+    "idea",
+    "key",
+    "details",
+    "text",
+    "features",
+    "diagram"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-3-opinion-writing",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Opinion writing",
+   "kind": "topic",
+   "summary": "State your opinion, give reasons, link them with words like because and also, and end with a closing sentence.",
+   "tags": [
+    "opinion",
+    "writing",
+    "reasons",
+    "because"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-3-informative-and-narrative-writing",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Informative and narrative writing",
+   "kind": "topic",
+   "summary": "Introduce a topic and group related facts. For stories, use dialogue and describe what characters think and feel.",
+   "tags": [
+    "informative",
+    "narrative",
+    "dialogue",
+    "story"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-3-planning-revising-and-editing",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Planning, revising, and editing",
+   "kind": "topic",
+   "summary": "Good writers plan first, then revise with a friend or teacher, and finally check spelling and punctuation.",
+   "tags": [
+    "revise",
+    "edit",
+    "plan",
+    "draft",
+    "writing",
+    "process"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-3-parts-of-speech-and-verb-tenses",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Parts of speech and verb tenses",
+   "kind": "topic",
+   "summary": "Nouns, pronouns, verbs, adjectives, and adverbs have jobs. Verbs show past, present, or future: walked, walk, will walk.",
+   "tags": [
+    "adverb",
+    "pronoun",
+    "verb",
+    "tense",
+    "grammar"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-3-prefixes-suffixes-and-homophones",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Prefixes, suffixes, and homophones",
+   "kind": "topic",
+   "summary": "Prefixes like un- and re- and suffixes like -ful change meaning. Homophones sound alike but are spelled differently.",
+   "tags": [
+    "prefix",
+    "suffix",
+    "homophones",
+    "meaning"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-3-discussion-and-presenting",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "speaking and listening",
+   "title": "Discussion and presenting",
+   "kind": "topic",
+   "summary": "Come prepared, ask questions, stay on topic, and report on a topic with facts and a clear, strong voice.",
+   "tags": [
+    "discussion",
+    "presentation",
+    "speak",
+    "listen"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-3-english-learners-reading-nonfiction",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "ELD",
+   "title": "English learners reading nonfiction",
+   "kind": "topic",
+   "summary": "Use pictures, headings, and a word list to understand a true book. Retell the key ideas with new English words.",
+   "tags": [
+    "english",
+    "learner",
+    "nonfiction",
+    "retell"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-3-prefix-words",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Prefix words",
+   "kind": "spelling",
+   "summary": "A prefix at the start changes the meaning of the word.",
+   "words": [
+    "unhappy",
+    "unfair",
+    "rewrite",
+    "replay",
+    "preview",
+    "disagree",
+    "misspell",
+    "unlock",
+    "redo",
+    "dislike"
+   ],
+   "tags": [
+    "prefix",
+    "un",
+    "re",
+    "dis",
+    "mis",
+    "pre",
+    "spelling"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-3-suffix-words",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Suffix words",
+   "kind": "spelling",
+   "summary": "Suffixes like -ful, -ly, -ness, and -er go on the end of a word.",
+   "words": [
+    "careful",
+    "hopeful",
+    "quickly",
+    "slowly",
+    "kindness",
+    "happiness",
+    "teacher",
+    "farmer",
+    "helpless",
+    "endless"
+   ],
+   "tags": [
+    "suffix",
+    "ful",
+    "ly",
+    "ness",
+    "er",
+    "spelling"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-3-homophones",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Homophones",
+   "kind": "spelling",
+   "summary": "These words sound the same but have different spellings and meanings.",
+   "words": [
+    "their",
+    "there",
+    "they're",
+    "to",
+    "too",
+    "two",
+    "here",
+    "hear",
+    "write",
+    "right"
+   ],
+   "tags": [
+    "homophones",
+    "sound",
+    "alike",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-3-words-about-thinking",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Words about thinking",
+   "kind": "vocab",
+   "summary": "These words help you talk about reading and learning.",
+   "words": [
+    "predict",
+    "describe",
+    "compare",
+    "explain",
+    "detail",
+    "evidence",
+    "conclude",
+    "imagine"
+   ],
+   "tags": [
+    "academic",
+    "words",
+    "thinking",
+    "reading"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-3-words-that-describe-character",
+   "grade": 3,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Words that describe character",
+   "kind": "vocab",
+   "summary": "Use these to tell what a character is like.",
+   "words": [
+    "determined",
+    "generous",
+    "selfish",
+    "courageous",
+    "honest",
+    "clever",
+    "stubborn",
+    "thoughtful"
+   ],
+   "tags": [
+    "character",
+    "traits",
+    "words"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-4-theme-and-summarizing",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Theme and summarizing",
+   "kind": "topic",
+   "summary": "Find the theme, the big idea of a story, and write a short summary that includes the key events.",
+   "tags": [
+    "theme",
+    "summary",
+    "story",
+    "key",
+    "events"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-quoting-the-text-and-inferring",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Quoting the text and inferring",
+   "kind": "topic",
+   "summary": "Say what a text says directly, and what you can infer from clues, by quoting exact words as proof.",
+   "tags": [
+    "infer",
+    "quote",
+    "evidence",
+    "clues"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-first-person-and-third-person-narration",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "First-person and third-person narration",
+   "kind": "topic",
+   "summary": "Compare stories told by a character (I) with ones told by an outside narrator (he, she, they).",
+   "tags": [
+    "first",
+    "person",
+    "third",
+    "person",
+    "narrator",
+    "point",
+    "of",
+    "view"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-4-how-nonfiction-is-organized",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "reading informational",
+   "title": "How nonfiction is organized",
+   "kind": "topic",
+   "summary": "Authors organize facts by time order, cause and effect, comparison, or problem and solution.",
+   "tags": [
+    "text",
+    "structure",
+    "cause",
+    "effect",
+    "compare",
+    "sequence"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-opinion-writing-with-reasons",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Opinion writing with reasons",
+   "kind": "topic",
+   "summary": "State an opinion, support it with reasons and facts, and link ideas with words like for instance and in addition.",
+   "tags": [
+    "opinion",
+    "reasons",
+    "facts",
+    "linking",
+    "words"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-informative-writing-and-research",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Informative writing and research",
+   "kind": "topic",
+   "summary": "Write about a topic with facts, definitions, and details, and use a few sources to build your knowledge.",
+   "tags": [
+    "informative",
+    "research",
+    "report",
+    "sources",
+    "facts"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-narrative-writing",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Narrative writing",
+   "kind": "topic",
+   "summary": "Tell a story with a problem, vivid details, dialogue, and a satisfying ending.",
+   "tags": [
+    "narrative",
+    "story",
+    "dialogue",
+    "details"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-figurative-language",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Figurative language",
+   "kind": "topic",
+   "summary": "Similes compare using like or as, metaphors say one thing is another, and idioms like piece of cake mean something different from the words.",
+   "tags": [
+    "simile",
+    "metaphor",
+    "idiom",
+    "figurative"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-greek-and-latin-roots",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Greek and Latin roots",
+   "kind": "topic",
+   "summary": "Roots carry meaning: tele means far and scope means see, so a telescope helps you see far.",
+   "tags": [
+    "roots",
+    "greek",
+    "latin",
+    "word",
+    "parts"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-4-sentences-fragments-run-ons-and-punctuation",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Sentences: fragments, run-ons, and punctuation",
+   "kind": "topic",
+   "summary": "Fix fragments and run-ons, use commas in lists and before quotes, and capitalize titles and names.",
+   "tags": [
+    "fragment",
+    "run",
+    "on",
+    "comma",
+    "capitalization",
+    "quotation"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-relative-pronouns-and-prepositions",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Relative pronouns and prepositions",
+   "kind": "topic",
+   "summary": "Words like who, which, and that join ideas. Prepositional phrases like under the bridge tell where or when.",
+   "tags": [
+    "pronoun",
+    "preposition",
+    "grammar",
+    "who",
+    "which"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-4-presenting-with-evidence",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "speaking and listening",
+   "title": "Presenting with evidence",
+   "kind": "topic",
+   "summary": "Report on a topic in an organized way, speak clearly, and respond to questions with details.",
+   "tags": [
+    "presentation",
+    "speaking",
+    "listening",
+    "discussion"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-english-learners-and-academic-language",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "ELD",
+   "title": "English learners and academic language",
+   "kind": "topic",
+   "summary": "Practice words like because and therefore to explain your thinking in speaking and writing.",
+   "tags": [
+    "english",
+    "learner",
+    "academic",
+    "language",
+    "explain"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-greek-and-latin-root-words",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Greek and Latin root words",
+   "kind": "spelling",
+   "summary": "Learn the roots and you can spell and understand many long words.",
+   "words": [
+    "autograph",
+    "telephone",
+    "microscope",
+    "transport",
+    "portable",
+    "predict",
+    "dictionary",
+    "visible",
+    "television",
+    "biology"
+   ],
+   "tags": [
+    "roots",
+    "greek",
+    "latin",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-4-tion-and-sion-words",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "-tion and -sion words",
+   "kind": "spelling",
+   "summary": "The endings -tion and -sion both say shun.",
+   "words": [
+    "action",
+    "nation",
+    "question",
+    "mention",
+    "collection",
+    "decision",
+    "division",
+    "explosion",
+    "tension",
+    "invention"
+   ],
+   "tags": [
+    "tion",
+    "sion",
+    "suffix",
+    "spelling"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-commonly-confused-words",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Commonly confused words",
+   "kind": "spelling",
+   "summary": "These pairs trip up writers, so check the meaning before you pick a spelling.",
+   "words": [
+    "weather",
+    "whether",
+    "wear",
+    "where",
+    "break",
+    "brake",
+    "piece",
+    "peace",
+    "principal",
+    "principle"
+   ],
+   "tags": [
+    "homophones",
+    "confused",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-4-academic-words",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Academic words",
+   "kind": "vocab",
+   "summary": "Words you will meet in every subject.",
+   "words": [
+    "analyze",
+    "describe",
+    "evidence",
+    "conclude",
+    "contrast",
+    "summarize",
+    "interpret",
+    "structure"
+   ],
+   "tags": [
+    "academic",
+    "vocabulary",
+    "words"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-4-words-for-strong-writing",
+   "grade": 4,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Words for strong writing",
+   "kind": "vocab",
+   "summary": "Swap ordinary words for stronger ones: tired becomes exhausted.",
+   "words": [
+    "exhausted",
+    "enormous",
+    "delighted",
+    "ancient",
+    "fragile",
+    "grateful",
+    "reluctant",
+    "brilliant"
+   ],
+   "tags": [
+    "vocabulary",
+    "strong",
+    "words",
+    "synonyms"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-5-quoting-accurately-and-drawing-inferences",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Quoting accurately and drawing inferences",
+   "kind": "topic",
+   "summary": "Quote the exact words from a story to explain what it says and what you infer.",
+   "tags": [
+    "quote",
+    "infer",
+    "evidence",
+    "story"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-5-theme-and-summary",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Theme and summary",
+   "kind": "topic",
+   "summary": "Show how characters respond to challenges, and tell how a theme grows through the story.",
+   "tags": [
+    "theme",
+    "summary",
+    "character",
+    "challenge"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-5-comparing-stories-and-points-of-view",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Comparing stories and points of view",
+   "kind": "topic",
+   "summary": "Compare how narrators and characters see events, and how stories of the same kind treat similar themes.",
+   "tags": [
+    "compare",
+    "contrast",
+    "point",
+    "of",
+    "view",
+    "narrator"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-5-explaining-ideas-and-relationships",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "reading informational",
+   "title": "Explaining ideas and relationships",
+   "kind": "topic",
+   "summary": "Tell how events, ideas, or steps in a nonfiction text connect, with cause and effect or compare and contrast.",
+   "tags": [
+    "nonfiction",
+    "cause",
+    "effect",
+    "compare",
+    "relationships"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-5-comparing-multiple-accounts",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "reading informational",
+   "title": "Comparing multiple accounts",
+   "kind": "topic",
+   "summary": "Read two accounts of the same event and notice what each one stresses and where they agree.",
+   "tags": [
+    "multiple",
+    "accounts",
+    "sources",
+    "compare"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-5-opinion-writing-with-evidence",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Opinion writing with evidence",
+   "kind": "topic",
+   "summary": "Introduce a topic, state your opinion, support it with logical reasons and facts, and end with a conclusion.",
+   "tags": [
+    "opinion",
+    "argument",
+    "evidence",
+    "reasons"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-5-informative-writing-and-research",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Informative writing and research",
+   "kind": "topic",
+   "summary": "Organize ideas in paragraphs, use text features, quote or paraphrase sources, and list them.",
+   "tags": [
+    "research",
+    "informative",
+    "sources",
+    "paragraphs"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-5-narrative-writing",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Narrative writing",
+   "kind": "topic",
+   "summary": "Use dialogue, description, pacing, and transition words to tell an event sequence.",
+   "tags": [
+    "narrative",
+    "story",
+    "dialogue",
+    "description",
+    "transitions"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-5-conjunctions-interjections-and-perfect-tenses",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Conjunctions, interjections, and perfect tenses",
+   "kind": "topic",
+   "summary": "Conjunctions join ideas, interjections show feeling, and perfect tenses like I have walked show timing.",
+   "tags": [
+    "grammar",
+    "conjunction",
+    "interjection",
+    "perfect",
+    "tense"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-5-commas-and-punctuation",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Commas and punctuation",
+   "kind": "topic",
+   "summary": "Use commas in a series, to set off introductions, and in direct address. Underline or italicize titles.",
+   "tags": [
+    "commas",
+    "punctuation",
+    "titles",
+    "series"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-5-word-meaning-greek-and-latin-affixes",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Word meaning: Greek and Latin affixes",
+   "kind": "topic",
+   "summary": "Use roots and affixes to figure out new words, and use context and a dictionary to check.",
+   "tags": [
+    "affixes",
+    "roots",
+    "context",
+    "dictionary"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-5-figurative-language",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Figurative language",
+   "kind": "topic",
+   "summary": "Metaphors, similes, idioms, adages, and proverbs add color. A proverb like a stitch in time saves nine gives advice.",
+   "tags": [
+    "metaphor",
+    "simile",
+    "idiom",
+    "proverb"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-5-collaborative-discussions",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "speaking and listening",
+   "title": "Collaborative discussions",
+   "kind": "topic",
+   "summary": "Prepare, follow agreed rules, ask questions, and add your thoughts to build on what others say.",
+   "tags": [
+    "discussion",
+    "collaborate",
+    "present",
+    "speaking"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-5-english-learners-expanding-language",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "ELD",
+   "title": "English learners expanding language",
+   "kind": "topic",
+   "summary": "Use more precise verbs and connecting words to explain, compare, and persuade in English.",
+   "tags": [
+    "english",
+    "learner",
+    "expand",
+    "precise",
+    "language"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-5-able-and-ible-words",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "-able and -ible words",
+   "kind": "spelling",
+   "summary": "Both endings mean able to be. Usually -able is added to complete words.",
+   "words": [
+    "comfortable",
+    "reasonable",
+    "enjoyable",
+    "valuable",
+    "flexible",
+    "possible",
+    "terrible",
+    "visible",
+    "responsible",
+    "sensible"
+   ],
+   "tags": [
+    "able",
+    "ible",
+    "suffix",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-5-ance-and-ence-words",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "-ance and -ence words",
+   "kind": "spelling",
+   "summary": "These endings turn words into nouns, and they are easy to mix up.",
+   "words": [
+    "importance",
+    "distance",
+    "difference",
+    "absence",
+    "patience",
+    "evidence",
+    "silence",
+    "entrance",
+    "audience",
+    "experience"
+   ],
+   "tags": [
+    "ance",
+    "ence",
+    "suffix",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-5-tricky-words",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Tricky words",
+   "kind": "spelling",
+   "summary": "Silent letters and unusual patterns make these tricky to spell.",
+   "words": [
+    "knowledge",
+    "scissors",
+    "island",
+    "muscle",
+    "doubt",
+    "receive",
+    "separate",
+    "necessary",
+    "environment",
+    "government"
+   ],
+   "tags": [
+    "tricky",
+    "silent",
+    "letters",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-5-academic-words",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Academic words",
+   "kind": "vocab",
+   "summary": "Use these to talk about reading, science, and social studies.",
+   "words": [
+    "precise",
+    "analyze",
+    "evidence",
+    "perspective",
+    "summarize",
+    "reasoning",
+    "interpret",
+    "structure"
+   ],
+   "tags": [
+    "academic",
+    "vocabulary",
+    "words"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-5-words-for-strong-feelings-and-actions",
+   "grade": 5,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Words for strong feelings and actions",
+   "kind": "vocab",
+   "summary": "Choose just the right word for a character or a scene.",
+   "words": [
+    "reluctant",
+    "triumphant",
+    "anxious",
+    "determined",
+    "peculiar",
+    "graceful",
+    "ominous",
+    "humble"
+   ],
+   "tags": [
+    "vocabulary",
+    "feelings",
+    "strong",
+    "words"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-6-citing-evidence-and-theme",
+   "grade": 6,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Citing evidence and theme",
+   "kind": "topic",
+   "summary": "Support your ideas with strong textual evidence, and show how a theme develops through details.",
+   "tags": [
+    "evidence",
+    "theme",
+    "analysis",
+    "literature"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-6-central-idea-and-author-s-point-of-view",
+   "grade": 6,
+   "subject": "ela",
+   "strand": "reading informational",
+   "title": "Central idea and author's point of view",
+   "kind": "topic",
+   "summary": "Find the central idea of a text, and tell how the author's word choices show their point of view.",
+   "tags": [
+    "central",
+    "idea",
+    "author",
+    "point",
+    "of",
+    "view"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-6-argument-writing",
+   "grade": 6,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Argument writing",
+   "kind": "topic",
+   "summary": "State a clear claim, give logical reasons with relevant evidence, and use credible sources.",
+   "tags": [
+    "argument",
+    "claim",
+    "evidence",
+    "sources"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-6-informative-writing-and-research",
+   "grade": 6,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Informative writing and research",
+   "kind": "topic",
+   "summary": "Write to explain a topic using facts, definitions, and examples, with organized paragraphs and transitions.",
+   "tags": [
+    "informative",
+    "research",
+    "paragraph",
+    "transition"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-6-pronouns-and-sentence-variety",
+   "grade": 6,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Pronouns and sentence variety",
+   "kind": "topic",
+   "summary": "Use pronouns in the right case and mix sentence lengths so your writing flows.",
+   "tags": [
+    "pronoun",
+    "grammar",
+    "sentence",
+    "variety"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-6-word-roots-and-context",
+   "grade": 6,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Word roots and context",
+   "kind": "topic",
+   "summary": "Use Greek and Latin roots, context clues, and a dictionary to find the meaning of tough words.",
+   "tags": [
+    "roots",
+    "context",
+    "clues",
+    "dictionary"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-6-presenting-claims",
+   "grade": 6,
+   "subject": "ela",
+   "strand": "speaking and listening",
+   "title": "Presenting claims",
+   "kind": "topic",
+   "summary": "Organize a presentation with eye contact, clear volume, and evidence, and think about the speaker's reasons.",
+   "tags": [
+    "present",
+    "speaking",
+    "listening",
+    "evidence"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-6-english-learners-and-academic-writing",
+   "grade": 6,
+   "subject": "ela",
+   "strand": "ELD",
+   "title": "English learners and academic writing",
+   "kind": "topic",
+   "summary": "Use sentence frames and connecting words to write arguments and explanations in English.",
+   "tags": [
+    "english",
+    "learner",
+    "academic",
+    "writing"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-6-greek-and-latin-root-words",
+   "grade": 6,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Greek and Latin root words",
+   "kind": "spelling",
+   "summary": "Use roots to unlock spelling and meaning.",
+   "words": [
+    "geography",
+    "photograph",
+    "thermometer",
+    "hydrate",
+    "biography",
+    "telescope",
+    "democracy",
+    "chronological"
+   ],
+   "tags": [
+    "roots",
+    "greek",
+    "latin",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-6-words-often-misspelled",
+   "grade": 6,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Words often misspelled",
+   "kind": "spelling",
+   "summary": "Study these tricky words and note the part that gets mixed up.",
+   "words": [
+    "beginning",
+    "believe",
+    "calendar",
+    "library",
+    "tomorrow",
+    "immediately",
+    "weird",
+    "neighbor"
+   ],
+   "tags": [
+    "misspelled",
+    "tricky",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-6-academic-words-for-grade-6",
+   "grade": 6,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Academic words for grade 6",
+   "kind": "vocab",
+   "summary": "Words you will use every day in class.",
+   "words": [
+    "analyze",
+    "infer",
+    "claim",
+    "relevant",
+    "interpret",
+    "evidence",
+    "summarize",
+    "significant"
+   ],
+   "tags": [
+    "academic",
+    "vocabulary",
+    "words",
+    "school"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-7-theme-and-character-development",
+   "grade": 7,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Theme and character development",
+   "kind": "topic",
+   "summary": "Trace how a theme develops across a story and how characters change because of events.",
+   "tags": [
+    "theme",
+    "character",
+    "development",
+    "literature"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-7-analyzing-arguments",
+   "grade": 7,
+   "subject": "ela",
+   "strand": "reading informational",
+   "title": "Analyzing arguments",
+   "kind": "topic",
+   "summary": "Tell what claim an author makes and whether the reasons and evidence are relevant and enough.",
+   "tags": [
+    "argument",
+    "claim",
+    "evidence",
+    "analysis"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-7-argument-writing-with-counterclaims",
+   "grade": 7,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Argument writing with counterclaims",
+   "kind": "topic",
+   "summary": "Support a claim with reasons and evidence, and respond to opposing views in a fair, respectful way.",
+   "tags": [
+    "argument",
+    "counterclaim",
+    "evidence"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-7-narrative-writing",
+   "grade": 7,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Narrative writing",
+   "kind": "topic",
+   "summary": "Use pacing, description, and reflection to tell a real or imagined experience.",
+   "tags": [
+    "narrative",
+    "story",
+    "pacing",
+    "description"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-7-phrases-clauses-and-sentence-types",
+   "grade": 7,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Phrases, clauses, and sentence types",
+   "kind": "topic",
+   "summary": "Understand simple, compound, complex, and compound-complex sentences, and use commas correctly.",
+   "tags": [
+    "clauses",
+    "phrases",
+    "sentences",
+    "commas"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-7-word-choice-and-figurative-language",
+   "grade": 7,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Word choice and figurative language",
+   "kind": "topic",
+   "summary": "Consider denotation, connotation, and figurative meaning. Cool and chilly can feel different.",
+   "tags": [
+    "connotation",
+    "figurative",
+    "word",
+    "choice"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-7-discussion-and-evaluating-speakers",
+   "grade": 7,
+   "subject": "ela",
+   "strand": "speaking and listening",
+   "title": "Discussion and evaluating speakers",
+   "kind": "topic",
+   "summary": "Come prepared, build on others' ideas, and judge whether a speaker's reasoning is sound.",
+   "tags": [
+    "discussion",
+    "speaker",
+    "listening"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-7-english-learners-and-extended-discourse",
+   "grade": 7,
+   "subject": "ela",
+   "strand": "ELD",
+   "title": "English learners and extended discourse",
+   "kind": "topic",
+   "summary": "Practice longer, structured spoken and written responses using academic language.",
+   "tags": [
+    "english",
+    "learner",
+    "academic",
+    "discourse"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-7-words-often-misspelled",
+   "grade": 7,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Words often misspelled",
+   "kind": "spelling",
+   "summary": "These words are famous for tripping people up.",
+   "words": [
+    "necessary",
+    "definitely",
+    "occasion",
+    "embarrass",
+    "February",
+    "separate",
+    "receive",
+    "argument",
+    "restaurant",
+    "schedule"
+   ],
+   "tags": [
+    "misspelled",
+    "tricky",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-7-academic-words-for-grade-7",
+   "grade": 7,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Academic words for grade 7",
+   "kind": "vocab",
+   "summary": "Use these precise words in discussions and writing.",
+   "words": [
+    "assert",
+    "refute",
+    "rhetoric",
+    "inference",
+    "bias",
+    "paraphrase",
+    "credible",
+    "objective"
+   ],
+   "tags": [
+    "academic",
+    "vocabulary",
+    "words",
+    "school"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-8-analyzing-structure-and-theme",
+   "grade": 8,
+   "subject": "ela",
+   "strand": "reading literature",
+   "title": "Analyzing structure and theme",
+   "kind": "topic",
+   "summary": "Analyze how a text is built, including how a theme or character grows and how stories draw on myths and older works.",
+   "tags": [
+    "theme",
+    "structure",
+    "allusion",
+    "literature"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-8-evaluating-arguments-and-evidence",
+   "grade": 8,
+   "subject": "ela",
+   "strand": "reading informational",
+   "title": "Evaluating arguments and evidence",
+   "kind": "topic",
+   "summary": "Judge whether an argument is sound, and spot faulty reasoning or claims without enough evidence.",
+   "tags": [
+    "argument",
+    "evaluate",
+    "evidence",
+    "reasoning"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-8-argument-and-informative-writing",
+   "grade": 8,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Argument and informative writing",
+   "kind": "topic",
+   "summary": "Write arguments with clear claims, counterclaims, and organized evidence, and informative texts that develop a topic in depth.",
+   "tags": [
+    "argument",
+    "informative",
+    "research",
+    "essay"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-8-narrative-techniques",
+   "grade": 8,
+   "subject": "ela",
+   "strand": "writing",
+   "title": "Narrative techniques",
+   "kind": "topic",
+   "summary": "Use dialogue, pacing, description, and reflection to build a story that hooks readers.",
+   "tags": [
+    "narrative",
+    "technique",
+    "dialogue",
+    "pacing"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-8-verbals-and-voice",
+   "grade": 8,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Verbals and voice",
+   "kind": "topic",
+   "summary": "Understand gerunds, participles, and infinitives, and choose between active and passive voice on purpose.",
+   "tags": [
+    "verbals",
+    "gerund",
+    "participle",
+    "active",
+    "passive",
+    "voice"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-8-verb-mood-and-punctuation",
+   "grade": 8,
+   "subject": "ela",
+   "strand": "language",
+   "title": "Verb mood and punctuation",
+   "kind": "topic",
+   "summary": "Use indicative, imperative, interrogative, conditional, and subjunctive moods, and punctuate with ellipses and dashes.",
+   "tags": [
+    "mood",
+    "punctuation",
+    "ellipsis",
+    "dash",
+    "grammar"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-8-delivering-a-presentation",
+   "grade": 8,
+   "subject": "ela",
+   "strand": "speaking and listening",
+   "title": "Delivering a presentation",
+   "kind": "topic",
+   "summary": "Present claims in a focused order, with evidence and clear speech, and weigh the speaker's reasoning.",
+   "tags": [
+    "presentation",
+    "speaking",
+    "listening",
+    "claims"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-8-english-learners-and-academic-english",
+   "grade": 8,
+   "subject": "ela",
+   "strand": "ELD",
+   "title": "English learners and academic English",
+   "kind": "topic",
+   "summary": "Use varied sentence types and precise vocabulary to express complex ideas in English.",
+   "tags": [
+    "english",
+    "learner",
+    "academic",
+    "precision"
+   ],
+   "difficulty": 2
+  },
+  {
+   "id": "ela-8-latin-and-greek-root-words",
+   "grade": 8,
+   "subject": "ela",
+   "strand": "spelling",
+   "title": "Latin and Greek root words",
+   "kind": "spelling",
+   "summary": "Roots help you spell and define advanced words.",
+   "words": [
+    "inspect",
+    "transcribe",
+    "benevolent",
+    "audible",
+    "geology",
+    "manuscript",
+    "spectator",
+    "autonomy"
+   ],
+   "tags": [
+    "roots",
+    "latin",
+    "greek",
+    "spelling"
+   ],
+   "difficulty": 3
+  },
+  {
+   "id": "ela-8-academic-words-for-grade-8",
+   "grade": 8,
+   "subject": "ela",
+   "strand": "vocabulary",
+   "title": "Academic words for grade 8",
+   "kind": "vocab",
+   "summary": "Words for analyzing texts and arguments.",
+   "words": [
+    "allusion",
+    "rhetoric",
+    "bias",
+    "analogy",
+    "evaluate",
+    "inference",
+    "verify",
+    "controversial"
+   ],
+   "tags": [
+    "academic",
+    "vocabulary",
+    "words",
+    "school"
+   ],
+   "difficulty": 3
+  }
+ ]
+}

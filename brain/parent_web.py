@@ -19,6 +19,7 @@ import urllib.parse
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from . import curriculum_picks
 from . import parent as P
 from . import scripted
 
@@ -114,6 +115,8 @@ def make_handler(parent: P.Parent, director=None):
                         "gemma": bool(director and hasattr(director.llm, "complete"))})
                 if u.path == "/api/items":
                     return self._send(200, {"items": parent.view(q.get("child", ""))})
+                if u.path == "/api/curriculum":   # read-only: what the toys can teach at this child's grade, with the parent's picks
+                    return self._send(200, curriculum_picks.overview(parent, q.get("child", "")))
                 if u.path in ("/api/photo/status", "/api/sort/status"):
                     return self._send(200, parent.jobs.get(q.get("job", ""), {"status": "unknown"}))
             except P.Locked:
@@ -188,6 +191,9 @@ def make_handler(parent: P.Parent, director=None):
                 return self._send(200, {"ok": True})
             if path == "/api/items/clear":
                 parent.clear_child(str(b.get("child", "")), b.get("kinds") if isinstance(b.get("kinds"), list) else None)
+                return self._send(200, {"ok": True})
+            if path == "/api/curriculum/pick":   # boost / skip / clear one topic: stored as a normal Parent Board item
+                curriculum_picks.set_pick(parent, str(b.get("child", "")), str(b.get("id", "")), str(b.get("mode", "")))
                 return self._send(200, {"ok": True})
             if path == "/api/nowplaying":
                 parent.now_playing(b.get("child") or None)

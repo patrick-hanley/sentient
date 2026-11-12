@@ -79,6 +79,12 @@ details>div{margin-top:10px}
 </section>
 
 <section>
+ <details id=currdet style="border-top:0;padding-top:0"><summary id=currsum>What the toys can teach at this grade</summary><div>
+  <p class=mut id=currnote></p>
+  <div id=curr></div></div></details>
+</section>
+
+<section>
  <details open style="border-top:0;padding-top:0"><summary>Say it now</summary><div>
   <p class=mut>The toys react in their own words. Nothing is saved or logged.</p>
   <div class=chips id=cues style="margin-top:8px"></div>
@@ -137,8 +143,25 @@ function draw(){
  const d=$("cday");if(!d.options.length){DAYS.forEach((n,i)=>d.add(new Option(n,i)));for(let h=0;h<24;h++)$("chour").add(new Option(h+":00",h))}d.value=S.settings.checkin_day;$("chour").value=S.settings.checkin_hour;
  quick()}
 
+
+/* ---------- what the toys can teach at this grade (read-only list; More / Skip are saved as normal notes) ---------- */
+async function curr(){
+ const box=$("curr");box.textContent="";if(!kid)return;
+ const r=await api("/api/curriculum?child="+kid);
+ $("currsum").textContent="What the toys can teach in "+r.grade_label;
+ $("currnote").textContent=(r.grade_known?"":"No grade in the notes yet, so showing "+r.grade_label+". Add “in 3rd grade” above to change it. ")+"Topics from the California standards; the toys mention a few now and then, never as a quiz. “More” makes one come up more often, “Skip” stops it. Both appear under What the toys know.";
+ r.subjects.forEach(s=>{const d=el("details");d.append(el("summary",s.label+" ("+s.topics.length+")"));const w=el("div");
+  s.topics.forEach(t=>{const row=el("div","","card");const x=el("div","","txt");x.append(t.title);
+   if(t.state)x.append(el("span",t.state=="boost"?"more often":"skipped","tag"+(t.state=="skip"?" warn":" ai")));
+   x.append(el("p",t.summary+(t.words&&t.words.length?" ("+t.words.join(", ")+")":""),"mut"));
+   const a=el("div","","acts");
+   [["boost","More"],["skip","Skip"]].forEach(([m,l])=>{const b=el("button",l);b.setAttribute("aria-pressed",String(t.state==m));
+    b.onclick=async()=>{await api("/api/curriculum/pick",{child:kid,id:t.id,mode:t.state==m?"clear":m});await curr();await items()};a.append(b)});
+   row.append(x,a);w.append(row)});
+  d.append(w);box.append(d)})}
 /* ---------- what the toys know ---------- */
-async function items(){ALL=kid?(await api("/api/items?child="+kid)).items:[];renderItems()}
+$("currdet")&&($("currdet").ontoggle=()=>{if($("currdet").open)curr().catch(()=>{})});
+async function items(){if($("currdet")&&$("currdet").open)curr().catch(()=>{});ALL=kid?(await api("/api/items?child="+kid)).items:[];renderItems()}
 function renderItems(){
  const box=$("items"),f=$("filters");box.textContent="";f.textContent="";
  const counts={};ALL.forEach(i=>counts[i.category]=(counts[i.category]||0)+1);
