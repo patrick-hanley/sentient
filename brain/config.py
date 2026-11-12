@@ -182,5 +182,6 @@ QUIET_AFTER_S = (180, 600)   # no child contact (speech, tap, motion, someone se
 
 # ---- LLM ----
 VISION_MODE = os.environ.get("SENTIENT_VISION", "sage")   # sage | always | never
+VISION_MODEL = os.environ.get("SENTIENT_VISION_MODEL", "gemma")   # gemma (own vision, no extra model) | llamacpp | florence | none; see brain/vision_model.py
 RESET_AFTER_TURNS = 8
 MAX_LINES = 4                # e.g. dyno, sage, dyno, penny: toys may speak more than once
