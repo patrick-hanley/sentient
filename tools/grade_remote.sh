@@ -10,6 +10,6 @@ rsync -a --delete --exclude .venv --exclude __pycache__ --exclude offline --excl
 ssh $HOST "sudo systemctl stop sentient-brain; cd $DEST && PYTHONPATH=$DEST /data/sentient/.venv-brain/bin/python tools/grade_toys.py run --model litert --set $SET --reps $REPS --label $LABEL --out /tmp/grade-$LABEL.json --agg-out /tmp/grade-$LABEL.agg.json"
 RC=$?
 ssh $HOST "sudo systemctl start sentient-brain"
-sleep 20; ssh $HOST "curl -s -X POST localhost:8080/mute"
+ssh $HOST 'for i in $(seq 1 60); do curl -sf -X POST localhost:8080/mute >/dev/null 2>&1 && curl -s localhost:8080/state | grep -q "\"muted\": true" && echo muted-ok && exit 0; sleep 1; done; echo MUTE-FAILED'
 mkdir -p /tmp/grade-runs && scp $HOST:/tmp/grade-$LABEL.json $HOST:/tmp/grade-$LABEL.agg.json /tmp/grade-runs/ 2>/dev/null
 exit $RC
