@@ -26,13 +26,20 @@ SNORE_WORDS = {"shh", "shhh", "shhhh", "hush", "snore", "snores", "snoring", "sn
 YAWN_WORDS = {"yawn", "yawns", "yawning"}
 LAUGH_WORDS = {"laugh", "laughs", "laughing", "laughter", "giggle", "giggles", "giggling", "chuckle", "chuckles", "chuckling"}
 SIGH_WORDS = {"sigh", "sighs", "sighing"}
-SILENT_WORDS = {"cough", "coughs", "coughing", "sneeze", "sneezes", "sneezing", "breathing", "heavy breathing", "burp", "burps",
+SILENT_WORDS = {"psst", "pssst", "pst", "ahem", "achoo", "ah choo", "tsk", "pfft", "hmph", "cough", "coughs", "coughing", "sneeze", "sneezes", "sneezing", "breathing", "heavy breathing", "burp", "burps",
                 "clears throat", "clearing throat", "inaudible", "blank audio", "blank_audio", "silence", "noise", "music",
                 "background noise", "sniff", "sniffs", "sniffling", "gasp", "gasps", "groan", "groans"}
 VOCAL_TAG = {**{w: "snore" for w in SNORE_WORDS}, **{w: "yawn" for w in YAWN_WORDS},
              **{w: "giggle" for w in LAUGH_WORDS}, **{w: "sigh" for w in SIGH_WORDS}}
 BRACKET = re.compile(r"\[\s*([A-Za-z][A-Za-z _-]{1,24}?)\s*\]|\*\s*([A-Za-z][A-Za-z ]{1,20}?)\s*\*|\(\s*([A-Za-z][A-Za-z ]{1,20}?)\s*\)")
 SHH = re.compile(r"\b[Ss]h{2,}\b(?:[\s,-]+[Ss]h{2,}\b)*[!.\u2026,]*")   # "Shhh", "shh, shh": a hush is the recorded sound, never spelled
+# Other spelled-out noises: written as a bracketed tag and played only if a recording with that name exists (none do yet), else dropped.
+NOISES = ((re.compile(r"\bps{2,}t+\b[!.\u2026,]*|\bpst\b[!.\u2026,]*", re.I), "psst"),
+          (re.compile(r"\ba+h*e+h*m+\b[!.\u2026,]*", re.I), "ahem"),
+          (re.compile(r"\ba+h*[\s-]?choo+\b[!.\u2026,]*", re.I), "achoo"),
+          (re.compile(r"\bts+k(?:[\s,-]+ts+k)*\b[!.\u2026,]*", re.I), "tsk"),
+          (re.compile(r"\bp+f+t+\b[!.\u2026,]*|\bhmph\b[!.\u2026,]*", re.I), "pfft"))
+NOISE_WORDS = {"psst", "pssst", "pst", "ahem", "achoo", "ah choo", "tsk", "tsk tsk", "pfft", "hmph"}
 ZZZ = re.compile(r"\b[Zz]{2,}\b[.\u2026]*")
 LAUGH = re.compile(r"\b(?:hee|ha|heh|tee)(?:[\s,-]+(?:hee|ha|heh|tee))+\b[!.\u2026]*|\b(?:ha){2,}\b[!.]*|\b(?:he){2,}\b[!.]*|\bteehee\b[!.]*", re.I)
 YAWN = re.compile(r"\b[Yy]a+w+n+s?(?=\s*(?:\.{2,}|\u2026|[!,]))[\s.\u2026!,]*")
@@ -103,12 +110,16 @@ class Sounds:
             w = self._bracket_word(m)
             if w in VOCAL_TAG:
                 return " {%s} " % VOCAL_TAG[w]
+            if w in NOISE_WORDS:
+                return " %s " % w   # the NOISES patterns below turn it into its {tag}
             if w in SILENT_WORDS or (m.group(1) is not None and len(w.split()) <= 3):
                 return " "
             return m.group(0)
         text = BRACKET.sub(bracket, text)
         text = SHH.sub(" {snore} ", text)
         text = ZZZ.sub(" {snore} ", text)
+        for pat, tag in NOISES:
+            text = pat.sub(" {%s} " % tag, text)
         text = LAUGH.sub(" {giggle} ", text)
         text = YAWN.sub(" {yawn} ", text)
         text = SIGH.sub(" {sigh} ", text)
