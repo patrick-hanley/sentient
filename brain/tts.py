@@ -104,6 +104,14 @@ class Voices:
             except Exception as e:  # noqa: BLE001 — missing package/files: Piper for everyone
                 log.warning("Kokoro unavailable (%s) — using Piper voices", e)
 
+    def cached(self, toy: str, text: str) -> bytes | None:
+        """A fixed line's PCM if it is already rendered (memory or disk), never synthesising: the echo canceller needs
+        the sound of a clip that plays from the Atom's own flash."""
+        if (toy, text) in self._cache:
+            return self._cache[(toy, text)]
+        path = self._disk / (self._spec_hash(toy, text) + ".pcm")
+        return path.read_bytes() if path.exists() else None
+
     def render(self, toy: str, text: str, *, persist: bool = False) -> bytes:
         key = (toy, text)
         if key in self._cache:

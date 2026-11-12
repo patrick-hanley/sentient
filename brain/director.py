@@ -214,6 +214,7 @@ class Director:
         self.last_latency = 0.0
         self._turn_lock = threading.Lock()
         self._gen = 0                              # bumped by interrupt(): the running reply is dropped
+        self._barge_t = 0.0                        # wall time of the last barge-in: the child's words from then on survive _flush()
         self.cue_hold = threading.Event()          # set while a parent cue speaks: the reply waits at its next line boundary
         self._rotation = curriculum.Rotation()     # which grade topics were offered recently (rotates, no repeats)
         self.parent = None                         # brain.parent.Parent, set by main (profiles, cues; None = feature off)
@@ -394,6 +395,7 @@ class Director:
         """The child started talking over a toy: stop every toy and drop the rest of the running reply."""
         self.child_contact()
         self.live.barge()   # metrics: the child talked over a toy
+        self._barge_t = time.time()   # the child's utterance (already being heard) must outlive the cancelled turn's _flush()
         self.interrupt()
 
     def interrupt(self):
@@ -490,6 +492,7 @@ class Director:
             if self.paused:
                 continue
             u = arbitrate(u, self.utter_q, expected_toys=self.hub.online())
+            self._barge_t = 0.0   # the interrupting words are being answered now
             u.arbitrated = time.monotonic()
             self.child_contact()
             log.info("utterance: %s %.1fs rms=%.0f", u.toy, len(u.pcm) / config.SAMPLE_RATE, u.rms)
@@ -721,14 +724,22 @@ class Director:
             getattr(self.llm, "maybe_warm", lambda: None)()
 
     def _flush(self):
-        """Drop speech captured while we were busy (it is usually toy echo or stale)."""
+        """Drop speech captured while we were busy (it is usually toy echo or stale), except what the child said after
+        cutting the toy off (barge-in): that is the next turn."""
+        t = self._barge_t
+        keep = []
         while True:
             try:
-                self.utter_q.get_nowait()
+                u = self.utter_q.get_nowait()
             except queue.Empty:
                 break
+            if t and u.end >= t:
+                keep.append(u)
+        for u in keep:
+            self.utter_q.put(u)
         for s in self.segs.values():
-            s.reset()
+            if not (t and getattr(s, "active", False)):   # the child is still mid-sentence: let the segmenter finish it
+                s.reset()
 
     # ---------- helpers ----------
     # ---------- camera policy: look on request ----------
