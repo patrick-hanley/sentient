@@ -22,7 +22,7 @@ SLEEP_ONLY = ("snore_",)
 
 # Non-speech vocalizations are never spelled out for the voice to read ("zzz", "hee hee", "yawn..."): they become the recorded
 # sounds. A bracketed word ("[snoring]", "[laughs]") is the same request. Brackets we do not know are dropped, not spoken.
-SNORE_WORDS = {"snore", "snores", "snoring", "snoozing", "sleeping", "asleep", "zzz"}
+SNORE_WORDS = {"shh", "shhh", "shhhh", "hush", "snore", "snores", "snoring", "snoozing", "sleeping", "asleep", "zzz"}
 YAWN_WORDS = {"yawn", "yawns", "yawning"}
 LAUGH_WORDS = {"laugh", "laughs", "laughing", "laughter", "giggle", "giggles", "giggling", "chuckle", "chuckles", "chuckling"}
 SIGH_WORDS = {"sigh", "sighs", "sighing"}
@@ -32,12 +32,13 @@ SILENT_WORDS = {"cough", "coughs", "coughing", "sneeze", "sneezes", "sneezing", 
 VOCAL_TAG = {**{w: "snore" for w in SNORE_WORDS}, **{w: "yawn" for w in YAWN_WORDS},
              **{w: "giggle" for w in LAUGH_WORDS}, **{w: "sigh" for w in SIGH_WORDS}}
 BRACKET = re.compile(r"\[\s*([A-Za-z][A-Za-z _-]{1,24}?)\s*\]|\*\s*([A-Za-z][A-Za-z ]{1,20}?)\s*\*|\(\s*([A-Za-z][A-Za-z ]{1,20}?)\s*\)")
+SHH = re.compile(r"\b[Ss]h{2,}\b(?:[\s,-]+[Ss]h{2,}\b)*[!.\u2026,]*")   # "Shhh", "shh, shh": a hush is the recorded sound, never spelled
 ZZZ = re.compile(r"\b[Zz]{2,}\b[.\u2026]*")
 LAUGH = re.compile(r"\b(?:hee|ha|heh|tee)(?:[\s,-]+(?:hee|ha|heh|tee))+\b[!.\u2026]*|\b(?:ha){2,}\b[!.]*|\b(?:he){2,}\b[!.]*|\bteehee\b[!.]*", re.I)
 YAWN = re.compile(r"\b[Yy]a+w+n+s?(?=\s*(?:\.{2,}|\u2026|[!,]))[\s.\u2026!,]*")
 SIGH = re.compile(r"\b[Ss]ighs?(?=\s*(?:\.{2,}|\u2026|[!,]))[\s.\u2026!,]*")
 HONK = re.compile(r"\bhonk\b[!.,\u2026]*", re.I)
-VOCAL_PATTERNS = (ZZZ, LAUGH, YAWN, SIGH, HONK)
+VOCAL_PATTERNS = (SHH, ZZZ, LAUGH, YAWN, SIGH, HONK)
 GAP = np.zeros(int(0.08 * config.SAMPLE_RATE), "<i2").tobytes()
 
 
@@ -106,6 +107,7 @@ class Sounds:
                 return " "
             return m.group(0)
         text = BRACKET.sub(bracket, text)
+        text = SHH.sub(" {snore} ", text)
         text = ZZZ.sub(" {snore} ", text)
         text = LAUGH.sub(" {giggle} ", text)
         text = YAWN.sub(" {yawn} ", text)
