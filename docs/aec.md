@@ -65,6 +65,10 @@ Root cause, measured from RAM-only dumps of toy-vs-toy audio (deleted afterwards
 
 Also noted: a clip is only 1-2.4 s for typical lines, and the first lock needs ~0.65 s; warm starts need 0.45 s. Even when it works, the first part of each line falls back to the old detector.
 
+## Firmware 3.7 (built and committed; flashing waits for the Jetson brain)
+
+`firmware/toy-client` 3.7: every `M` packet is now 3 + 640 + 8 bytes, the last 8 being the `esp_timer` capture time of the frame's first sample (little-endian int64 us, same clock as `SYNCR`/`PLAYING`). The capture time chains slot to slot (20 ms apart) unless `record()` was called late, in which case the slot starts at the call time (the codec had nothing to fill). `mic_seq` advances by `round(dt / 20 ms)`, so dropped audio is a seq gap. `PLAYING <us>` is stamped queue time + one DMA buffer (`dma_buf_len / rate`, ~16 ms; an estimate, not measured). Brain: `atoms._handle` reads `data[3:643]` and the stamp if present (converted with `clock_off`); `Listener.frame(cap=...)` then places frames on capture time and skips the late-packet heuristic. Old 643-byte packets behave exactly as before. A brain without this change must not receive 3.7 packets (it reads 324 samples).
+
 ## Hardware measurement plan (re-run after the firmware change)
 
 Plan once it is this session's turn, with the room quiet and nobody talking:
