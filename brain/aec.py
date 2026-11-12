@@ -216,8 +216,10 @@ class Listener:
         self.noise2 = 150.0 ** 2                         # ambient power per sample while no known toy plays
         self.pairs: dict[str, "Pair"] = {}
 
-    def frame(self, seq: int, arrival: float, pcm: np.ndarray):
-        """Returns (n_start_sample, missing_frames) for this frame; resets the timeline on a resync."""
+    def frame(self, seq: int, arrival: float, pcm: np.ndarray, cap: float | None = None):
+        """Returns (n_start_sample, missing_frames) for this frame; resets the timeline on a resync.
+        `cap` (firmware 3.7+): brain time the frame's first sample was captured. Then `seq` already follows time (a stall
+        shows as a gap), the packet's arrival says nothing about the audio, and the timeline is exact."""
         missing = 0
         if self.last_seq is None:
             self.n = 0
@@ -234,7 +236,9 @@ class Listener:
                 self.n += gap
                 missing = gap - 1
         self.last_seq = seq
-        if arrival - self.last_arr > STALL_S and self.last_arr:
+        if cap is not None:
+            arrival = cap                                # place on capture time; the late-packet heuristic does not apply
+        elif arrival - self.last_arr > STALL_S and self.last_arr:
             # The Atom stalled (WiFi busy with a /play upload) and its mic ring overran: audio is lost WITHOUT a gap in `seq`
             # (measured on the real toys: 42-47 frames/s while a clip is sent). n/16000 no longer follows time across the
             # stall, so forget the old offset (it is re-learnt from the frames after it) and re-place any clip.
@@ -357,7 +361,7 @@ class AecManager:
                     break
 
     # ---- listener side
-    def feed(self, toy: str, pcm: np.ndarray, seq: int, arrival: float) -> Out:
+    def feed(self, toy: str, pcm: np.ndarray, seq: int, arrival: float, cap: float | None = None) -> Out:
         """One 20 ms mic frame. Returns the frame to use (residual when a locked pair is cancelling)."""
         if len(pcm) != B:
             return Out(pcm)
@@ -365,7 +369,7 @@ class AecManager:
             lst = self.listeners.get(toy)
             if lst is None:
                 lst = self.listeners[toy] = Listener(toy)
-            ns, missing = lst.frame(seq, arrival, pcm)
+            ns, missing = lst.frame(seq, arrival, pcm, cap)
             if ns is None:
                 return Out(pcm)
             if self.dump_dir:

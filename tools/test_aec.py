@@ -206,6 +206,69 @@ class BargeTests(unittest.TestCase):
         self.assertLess(np.sqrt(np.mean(extra ** 2)), 0.45 * np.sqrt(np.mean(child ** 2)) + 150)
 
 
+class CaptureStampTests(unittest.TestCase):
+    """Firmware 3.7: `M` packets carry the capture time (int64 us) after the 640 PCM bytes and `seq` follows time. Old packets still work."""
+
+    def make_hub(self):
+        hub = atoms.AtomHub.__new__(atoms.AtomHub)
+        hub.atoms, hub.by_ip, hub.by_addr = {}, {}, {}
+        hub.monitor, hub.aec = None, None
+        hub.mute_until, hub.force_mute, hub.talking, hub.play_id = 0.0, True, None, 0
+        hub.barge = atoms.BargeDetector()
+        hub._barged, hub._barge_toy, hub._barge_frames = False, None, []
+        hub.on_audio = hub.on_barge = hub.on_playback = None
+        a = atoms.Atom(mac="sage", ip="10.0.0.2", toy="sage", last_seen=time.time())
+        a.clock_off = 1000.0
+        hub.atoms["sage"], hub.by_ip["10.0.0.2"] = a, a
+        return hub, a
+
+    @staticmethod
+    def pkt(seq, pcm, us=None):
+        d = b"M" + seq.to_bytes(2, "little") + pcm.astype("<i2").tobytes()
+        return d if us is None else d + int(us).to_bytes(8, "little", signed=True)
+
+    def test_old_and_new_packets_both_parse(self):
+        hub, a = self.make_hub()
+        pcm = np.full(320, 100, np.int16)
+        got = []
+        hub.barge.feed = lambda toy, p, *x, **k: got.append(len(p))
+        hub._handle(self.pkt(1, pcm), "10.0.0.2", 0)
+        hub._handle(self.pkt(2, pcm, 5_000_000), "10.0.0.2", 0)
+        self.assertEqual(a.pkts, 2)
+        self.assertEqual(a.last_seq, 2)
+        self.assertLess(abs(a.rms - 36.0), 1.0)   # 0.2*100 + 0.8*(0.2*100): the 8 trailing bytes did not enter the PCM
+
+    def test_timeline_follows_the_stamps_not_the_arrivals(self):
+        pcm = np.zeros(320, np.int16)
+        lst = aec.Listener("sage")
+        # 50 frames at 20 ms capture spacing, but delivered with a 330 ms stall in the middle (4 packets at once)
+        arrivals = [k * 0.02 + (0.33 if k >= 20 else 0.0) for k in range(20)] + [0.40 + 0.33] * 4 + [k * 0.02 + 0.33 for k in range(24, 50)]
+        for k in range(50):
+            ns, missing = lst.frame(k, arrivals[k], pcm, cap=100.0 + k * 0.02)
+            self.assertEqual((ns, missing), (k * 320, 0))
+        self.assertEqual(lst.stalls, 0)                    # a late packet is not lost audio any more
+        self.assertAlmostEqual(lst.c, 100.0, places=6)     # sample 0 sits at its capture time
+
+    def test_dropped_audio_is_a_seq_gap_and_a_known_hole(self):
+        pcm = np.ones(320, np.int16)
+        lst = aec.Listener("sage")
+        t = 50.0
+        lst.frame(10, 0.0, pcm, cap=t)
+        ns, missing = lst.frame(11, 0.02, pcm, cap=t + 0.02)
+        self.assertEqual((ns, missing), (320, 0))
+        ns, missing = lst.frame(17, 0.4, pcm, cap=t + 0.14)   # the firmware lost 5 frames: seq jumped by 6, the stamp by 120 ms
+        self.assertEqual((ns, missing), (7 * 320, 5))
+        self.assertAlmostEqual(lst.c, t, places=6)            # still the same timeline: the hole is a hole, not a shift
+
+    def test_without_stamps_the_old_stall_heuristic_still_runs(self):
+        pcm = np.zeros(320, np.int16)
+        lst = aec.Listener("sage")
+        lst.frame(0, 0.0, pcm)
+        lst.frame(1, 0.02, pcm)
+        lst.frame(2, 0.45, pcm)                            # 430 ms late, no seq gap: old firmware
+        self.assertEqual(lst.stalls, 1)
+
+
 class HubGlueTests(unittest.TestCase):
     """AtomHub._handle with the real canceller on a virtual clock: gated while the toy talks, cut + hand-over on the child."""
 

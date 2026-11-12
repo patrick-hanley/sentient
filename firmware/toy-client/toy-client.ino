@@ -24,7 +24,7 @@
  * OTA:    POST /update with header X-OTA-Token (OTA_TOKEN in secrets.h) and the .ino.bin as the body; the Atom
  *         writes the spare app slot, verifies it, replies, and reboots. tools/ota.py does this for all Atoms.
  * Timing/control over UDP: brain "SYNC <n>" -> Atom "SYNCR <n> <us>" (esp_timer microseconds, for clock offset);
- * Atom sends "PLAYING <us>" right after playback is queued and "PLAYED <us>" when it ends;
+ * Atom sends "PLAYING <us>" stamped at the estimated first I2S sample (queue time + one DMA buffer) and "PLAYED <us>" when it ends;
  * brain "STOP" cuts playback at once (barge-in).
  * Mic packet: 'M' + uint16 seq (LE) + 320 int16 samples (20 ms) = 643 bytes.
  *
@@ -59,7 +59,7 @@ struct WifiCred { const char* ssid; const char* pass; int channel = 0; };  // ch
 #include "secrets.h"
 static constexpr uint16_t BRAIN_PORT = 5005;
 static constexpr uint16_t ATOM_PORT  = 5006;
-static constexpr const char* FW_VERSION = "toy-client-3.6";
+static constexpr const char* FW_VERSION = "toy-client-3.7";
 
 // ---------- GC0308 camera pins — AtomS3R-CAM ----------
 #define CAM_SIOD   12
@@ -87,6 +87,13 @@ static int16_t* mic_ring   = nullptr;
 static size_t   ring_idx   = 0;
 static size_t   frames_rec = 0;
 static uint16_t mic_seq    = 0;
+// 3.7: every mic frame carries the esp_timer time its first sample was captured, and `mic_seq` follows that time, so audio the
+// ring dropped while udp.endPacket() blocked shows up as a seq gap (it used to vanish: the frame count kept counting).
+static int64_t  ring_ts[RING];             // capture time (us) of the first sample of each ring slot
+static int64_t  chain_ts       = 0;        // start of the most recently queued slot
+static bool     chain_ok       = false;    // false until the first slot after mic_on()
+static int64_t  last_sent_ts   = 0;        // capture time of the last frame sent (0 = none yet)
+static constexpr int64_t FRAME_US = 20000;
 
 static int16_t*        play_buf     = nullptr;
 static volatile size_t play_len     = 0;      // samples
@@ -702,7 +709,7 @@ static void service_udp() {
 }
 
 // ---------- audio ----------
-static void mic_on()  { M5.Speaker.end(); M5.Mic.begin(); ensure_mic(); frames_rec = 0; }
+static void mic_on()  { M5.Speaker.end(); M5.Mic.begin(); ensure_mic(); frames_rec = 0; chain_ok = false; }
 static void spk_on()  { while (M5.Mic.isRecording()) M5.delay(1); M5.Mic.end(); M5.Speaker.begin(); ensure_speaker(); }
 
 static void do_playback() {
@@ -713,8 +720,11 @@ static void do_playback() {
   imu_snoring = imu_soft && imu_sleeping;
   M5.Speaker.playRaw(play_buf, play_len, play_rate, false, 1, 0);
   char t[40];
-  if (brain_known) {   // first sample is being clocked out now: the brain turns this into a latency mark
-    snprintf(t, sizeof(t), "PLAYING %lld", (long long)esp_timer_get_time());
+  if (brain_known) {   // the brain turns this into a latency mark and places the clip on the listeners' timelines
+    // 3.7: playRaw() only queues the clip; the speaker task copies it into the I2S DMA one buffer at a time, so the first
+    // sample leaves about one DMA buffer later (dma_buf_len samples at the play rate). Estimate, not yet measured on hardware.
+    int64_t first_us = esp_timer_get_time() + (int64_t)M5.Speaker.config().dma_buf_len * 1000000LL / (play_rate ? play_rate : SAMPLE_RATE);
+    snprintf(t, sizeof(t), "PLAYING %lld", (long long)first_us);
     send_text(brain_ip, t);
   }
   while (M5.Speaker.isPlaying()) {
@@ -735,20 +745,34 @@ static void do_playback() {
 static void stream_mic() {
   if (!M5.Mic.isEnabled()) { delay(5); return; }
   int16_t* slot = &mic_ring[ring_idx * FRAME];
+  // Capture time of this slot's first sample: it follows the previous slot back to back (the codec never stops), unless
+  // we were late calling record(): then the codec had nothing to fill, audio was lost, and the slot starts when we asked.
+  int64_t t_call = esp_timer_get_time();
+  int64_t t_start = (chain_ok && chain_ts + FRAME_US > t_call) ? chain_ts + FRAME_US : t_call;
   if (!M5.Mic.record(slot, FRAME, SAMPLE_RATE)) return;
+  chain_ts = t_start;
+  chain_ok = true;
+  ring_ts[ring_idx] = t_start;
   // record() only returns once a queue slot frees, so the frame two
   // behind this one is complete.
   if (++frames_rec > 2 && brain_known && !rx_busy) {
     size_t done = (ring_idx + RING - 2) % RING;
-    uint8_t pkt[3 + FRAME * 2];
+    int64_t ts = ring_ts[done];
+    // seq follows time: 1 per 20 ms, so lost audio is a gap (>=1 even if the stamps are a hair early)
+    if (last_sent_ts) {
+      int64_t gap = (ts - last_sent_ts + FRAME_US / 2) / FRAME_US;
+      mic_seq += (uint16_t)(gap < 1 ? 1 : (gap > 0x7FFF ? 0x7FFF : gap));
+    }
+    last_sent_ts = ts;
+    uint8_t pkt[3 + FRAME * 2 + 8];
     pkt[0] = 'M';
     pkt[1] = mic_seq & 0xFF;
     pkt[2] = mic_seq >> 8;
     memcpy(pkt + 3, &mic_ring[done * FRAME], FRAME * 2);
+    memcpy(pkt + 3 + FRAME * 2, &ts, 8);           // little-endian int64 microseconds, same clock as SYNCR/PLAYING
     udp.beginPacket(brain_ip, BRAIN_PORT);
     udp.write(pkt, sizeof(pkt));
     udp.endPacket();
-    ++mic_seq;
   }
   ring_idx = (ring_idx + 1) % RING;
 }

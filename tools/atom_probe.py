@@ -62,7 +62,7 @@ while time.time() < end:
             print(f"NEW TOY {parts[1]} at {ip}: {' '.join(parts[2:])}")
             threading.Thread(target=probe, args=(ip,), daemon=True).start()
     elif data[:1] == b"M" and ip in toys:
-        s = np.frombuffer(data[3:], "<i2").astype(np.float32)
+        s = np.frombuffer(data[3:643], "<i2").astype(np.float32)
         toys[ip]["rms"] = 0.8 * toys[ip]["rms"] + 0.2 * float(np.sqrt(np.mean(s * s)))
         toys[ip]["pkts"] += 1
     elif ip in toys:

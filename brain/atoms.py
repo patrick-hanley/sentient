@@ -211,7 +211,11 @@ class AtomHub:
                 a = self.by_addr.get((ip, port)) or self.by_ip.get(ip)
                 if a is None or len(data) < 5:
                     return
-                pcm = np.frombuffer(data[3:], "<i2")
+                # fw <3.7: 3 + 640 bytes. fw 3.7+: the same plus the capture esp_timer time (int64 us) of the first sample.
+                pcm = np.frombuffer(data[3:643], "<i2") if len(data) >= 643 else np.frombuffer(data[3:], "<i2")
+                cap = None
+                if len(data) >= 651 and a.clock_off is not None:
+                    cap = int.from_bytes(data[643:651], "little", signed=True) / 1e6 - a.clock_off   # brain time
                 a.last_seen, a.pkts = now, a.pkts + 1
                 seq = data[1] | data[2] << 8
                 if a.last_seq >= 0:
@@ -225,7 +229,7 @@ class AtomHub:
                 out = None
                 if self.aec is not None:   # while a toy talks: the residual (its voice subtracted); else the frame as it came
                     try:
-                        out = self.aec.feed(a.toy, pcm, seq, time.monotonic())
+                        out = self.aec.feed(a.toy, pcm, seq, time.monotonic(), cap)
                     except Exception:  # noqa: BLE001 — a canceller bug must never silence the ears
                         log.exception("echo canceller failed; falling back to the loudness barge-in detector")
                         self.aec = None
