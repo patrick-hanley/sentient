@@ -111,7 +111,7 @@ class Harness(unittest.TestCase):
             self.assertFalse(run["failed"], kind)
             self.assertEqual(run["lines"][0]["toy"], "sage")          # the lead opens (plan_order pinned)
             self.assertTrue(run["grade_block"])                         # the curriculum block reached the model
-            self.assertIn("[ORDER]" if kind in ("curriculum", "topic", "free") else "is looking at", llm.prompts[-1])
+            self.assertIn("[ORDER]" if kind in ("curriculum", "topic", "free") else "is looking at", llm.prompts[-G.TURNS])
             starts = [l["s"] for l in run["lines"]]
             self.assertEqual(starts, sorted(starts))
             for a, b in zip(run["lines"], run["lines"][1:]):
