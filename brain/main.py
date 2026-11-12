@@ -81,6 +81,8 @@ def make_handler(hub, eyes, director, rec, voices):
                     w.setnchannels(1); w.setsampwidth(2); w.setframerate(config.SAMPLE_RATE)
                     w.writeframes(hub.monitor.tap(q["toy"], float(q.get("sec", 5))))
                 return self._send(200, buf.getvalue(), "audio/wav")
+            if u.path == "/metrics":   # anonymous live conversation counters (no child identity, no text); docs/metrics.md
+                return self._send(200, json.dumps(director.live.dashboard()), "application/json")
             if u.path == "/latency":
                 return self._send(200, json.dumps(director.turn_log.summary()), "application/json")
             if u.path == "/state":

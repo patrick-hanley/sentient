@@ -835,6 +835,7 @@ class Parent:
             self.index["children"] = [c for c in self.index["children"] if c["id"] != cid]
             self.items.pop(cid, None)
             _wipe_file(self._file(f"child-{cid}.enc"))
+            _wipe_file(self._file(f"progress-{cid}.enc"))   # session scores + coaching state (brain/progress.py)
             if self.bound == cid:
                 self.bound = None
             self._write_index()

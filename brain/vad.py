@@ -25,6 +25,7 @@ class Utterance:
     emitted: float | None = None
     arbitrated: float | None = None
     speech_ms: float = 0.0   # first voiced pre-roll to last voiced frame, host clock
+    start_mono: float | None = None   # monotonic onset of the first voiced frame; the metrics' response latency starts here
 
 
 class Segmenter:
@@ -63,6 +64,8 @@ class Segmenter:
                 self.voiced, self.voiced_rms, self.silence = sum(self.hist), rms * sum(self.hist), 0
                 self.last_voiced_received = time.monotonic()
                 self.start_mono = self.last_voiced_received - len(self.pre) * FRAME_MS / 1000
+                h = list(self.hist)   # onset = first voiced frame still in the detection window (the pre-roll also holds silence)
+                self.onset_mono = self.last_voiced_received - (len(h) - h.index(True)) * FRAME_MS / 1000 if True in h else self.start_mono
             return
         self.buf.append(pcm)
         if speech:
@@ -79,7 +82,7 @@ class Segmenter:
                 self.out.put(Utterance(self.toy, self.start, time.time(), pcm_all,
                                        self.voiced_rms / max(1, self.voiced),
                                        self.last_voiced_received, time.monotonic(), None,
-                                       (self.last_voiced_received - self.start_mono) * 1000))
+                                       (self.last_voiced_received - self.start_mono) * 1000, self.onset_mono))
             self.reset()
 
 

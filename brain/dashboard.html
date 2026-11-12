@@ -134,6 +134,15 @@ pre{margin:0;font:12px/1.5 var(--mono);white-space:pre-wrap;overflow-x:auto;colo
   .ctrls button{flex:1 1 30%}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* metrics:css begin (Conversation panel; numbers only) */
+.mx{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-top:14px;display:grid;gap:8px}
+.mx-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.mx-h h2{margin:0;font-size:13px}
+.mx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px 12px}
+.mx-grid div{display:grid;gap:0}.mx-grid dt{font-size:11px;color:var(--dim)}.mx-grid dd{margin:0;font:600 14px var(--mono)}.mx-grid small{font:11px var(--mono);color:var(--dim);font-weight:400}
+.mx .ok{color:var(--ok)}.mx .near{color:var(--warn)}.mx .na{color:var(--dim)}
+.mx-sc{display:flex;gap:6px;flex-wrap:wrap}.mx-sc .chip b{font:600 12px var(--mono)}
+.mx-rec{display:flex;gap:4px;flex-wrap:wrap;align-items:center;font:11px var(--mono);color:var(--dim)}.mx-rec span{padding:0 6px;border:1px solid var(--line);border-radius:4px}
+/* metrics:css end */
 </style>
 </head>
 <body>
@@ -156,6 +165,15 @@ pre{margin:0;font:12px/1.5 var(--mono);white-space:pre-wrap;overflow-x:auto;colo
   <div><dt>Said</dt><dd id="said">&nbsp;</dd></div>
   <div class="dim" id="lat"></div>
 </dl>
+
+<!-- metrics:begin -->
+<section class="mx" id="mx" aria-label="Conversation metrics">
+  <div class="mx-h"><h2>Conversation</h2><span class="chip" id="mx-state">idle</span><span class="chip ok" id="mx-coach" hidden><i></i>coaching active</span><span class="dim mono" id="mx-meta"></span></div>
+  <dl class="mx-grid" id="mx-grid"></dl>
+  <div class="mx-sc" id="mx-sc"></div>
+  <div class="mx-rec" id="mx-rec"></div>
+</section>
+<!-- metrics:end -->
 
 <section class="tools" aria-label="Quick actions">
   <form class="tool" id="sayform">
@@ -337,6 +355,44 @@ async function loadWf(){try{const d=await (await fetch('/latency')).json();
 $('wfr').onclick=loadWf;
 
 loadVoices();loadCanned();loadSfx();tick();
+/* metrics:js begin (Conversation panel, GET /metrics; numbers only, no child identity, no text) */
+const MXC={T_R:'Turn-taking',IR:'Initiation',C_R:'Maintenance',latency:'Latency',turn_taking:'Turns',initiation:'Initiate',maintenance:'Maintain',joint:'Joint'};
+const dash='\u2013';
+function mxFmt(v,d){return v==null||isNaN(v)?dash:(+v).toFixed(d)}
+/* cls: ok when on target, near when close, na when null */
+function mxCls(v,kind){if(v==null||isNaN(v))return 'na';
+  if(kind==='ratio'){const e=Math.abs(v-1);return e<=0.25?'ok':e<=0.6?'near':''}
+  if(kind==='c')return v>=5?'ok':v>=3.5?'near':'';
+  if(kind==='lat')return v>=1&&v<=2?'ok':(v>=0.6&&v<=2.8)?'near':'';return ''}
+function mxCell(label,val,cls,sub){return el('div',{},el('dt',{text:label}),el('dd',{class:cls},val,sub?el('small',{text:' '+sub}):null))}
+function renderMetrics(m){
+  const on=!!(m&&m.enabled!==false),act=on&&m.active,r=on?m.result:null;
+  $('mx').hidden=!m;if(!m)return;
+  const st=$('mx-state');st.textContent=!on?'off':act?'active':'idle';st.className='chip'+(act?' ok':'');
+  $('mx-coach').hidden=!(m.coaching_on_for_current);
+  const g=$('mx-grid'),sc=$('mx-sc'),rec=$('mx-rec');
+  $('mx-meta').textContent=r?(r.duration_s!=null?Math.round(r.duration_s)+' s':'')+(m.consec_unanswered?' \u00b7 '+m.consec_unanswered+' unanswered in a row':''):'';
+  if(!r){g.replaceChildren(el('div',{class:'dim',text:on?'idle: no conversation measured yet':'metrics off'}));sc.replaceChildren()}
+  else{const c=r.counts||{},x=r.metrics||{},s=r.scores||{};
+    const lat=x.L_med,band=x.L_p25!=null&&x.L_p75!=null?mxFmt(x.L_p25,1)+dash+mxFmt(x.L_p75,1)+' s IQR':'';
+    g.replaceChildren(
+      mxCell('Turns T / R / I',[c.N_T,c.N_R,c.N_I].map(v=>v==null?dash:v).join(' / '),'',''),
+      mxCell('T:R (1.0)',mxFmt(x.T_R,2),mxCls(x.T_R,'ratio')),
+      mxCell('I:R (1.0)',mxFmt(x.IR,2),mxCls(x.IR,'ratio')),
+      mxCell('Loop depth C:R (\u22655)',mxFmt(x.C_R,1),mxCls(x.C_R,'c')),
+      mxCell('Median latency (1\u20132 s)',lat==null?dash:mxFmt(lat,2)+' s',mxCls(lat,'lat'),band+(x.L_n!=null?' n='+x.L_n:'')),
+      mxCell('Barges / overlaps',(c.barges??dash)+' / '+(c.overlaps??dash),'',''),
+      mxCell('Total',r.total==null?dash:r.total+'/'+(r.of??dash),'',''));
+    sc.replaceChildren(...['latency','turn_taking','initiation','maintenance','joint'].map(k=>{const v=s[k];
+      return el('span',{class:'chip '+(v==null?'':v>=3?'ok':v>=2?'warn':'bad'),title:MXC[k]},MXC[k]+' ',el('b',{text:v==null?dash:v}))}))}
+  rec.replaceChildren(...((m.recent&&m.recent.length)?[el('span',{style:'border:0',text:'recent'}),...m.recent.slice(-8).map(x=>el('span',{title:Math.round(x.duration_s||0)+' s',text:x.total+'/'+x.of}))]:[]));
+}
+let mxFails=0;
+async function mxTick(){try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),4000);const r=await fetch('/metrics',{signal:ctl.signal});clearTimeout(to);
+  if(!r.ok)throw new Error(r.status);renderMetrics(await r.json());mxFails=0}catch(e){mxFails++;if(mxFails>2)$('mx').hidden=true}
+  setTimeout(mxTick,document.hidden?5000:2000)}
+mxTick();
+/* metrics:js end */
 </script>
 </body>
 </html>

@@ -180,3 +180,11 @@ QUIET_AFTER_S = (180, 600)   # no child contact (speech, tap, motion, someone se
 VISION_MODE = os.environ.get("SENTIENT_VISION", "sage")   # sage | always | never
 RESET_AFTER_TURNS = 8
 MAX_LINES = 4                # e.g. dyno, sage, dyno, penny: toys may speak more than once
+
+# ---- conversation metrics + coaching (brain/metrics.py, brain/coaching.py, docs/metrics.md) ----
+METRICS_ON = os.environ.get("SENTIENT_METRICS", "1") != "0"
+METRICS_IDLE_GAP_S = 180     # a pause this long ends a session (the rubric samples 5-10 minute windows)
+METRICS_MAX_SESSION_S = 600  # ...and a session never runs longer than this, so every session is a 5-10 minute sample
+METRICS_MIN_SESSION_S = 60   # shorter sessions are counted but not scored
+METRICS_MIN_CHILD_UTTS = 3
+METRICS_JUDGE = os.environ.get("SENTIENT_METRICS_JUDGE", "0") == "1"   # local-Gemma second opinion, off by default (needs RAM-only text)
