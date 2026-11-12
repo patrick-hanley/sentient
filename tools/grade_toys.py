@@ -34,7 +34,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tools"))
 
 import trio  # noqa: E402
-from brain import config, coaching  # noqa: E402
+from brain import config, coaching, toytalk  # noqa: E402
 
 TOYS = trio.NAMES
 WPS = 2.6                 # toy speech rate, words per second
@@ -219,7 +219,7 @@ def run_scene(sc: dict, llm, notes="", knobs=None) -> dict:
     if sc["kind"] == "free":
         order = ", ".join(D.NAMES[t] for t in D.plan_order(list(TOYS)))
         event, topic = (f"Nobody has talked for a while. The toys chat with each other about anything they like to learn about. "
-                        f"[ORDER] {order}. One short line each, each reacting to the one before."), ""
+                        f"[ORDER] {order}. One short line each, each reacting to the one before." + (" " + toytalk.block(config.TOY_TALK) if config.TOY_TALK else "")), ""
     else:
         event = d._idle_event()
         if sc["kind"] == "curriculum":
@@ -336,6 +336,7 @@ def main(argv=None):
     r.add_argument("--reps", type=int, default=1)
     r.add_argument("--n-per", type=int, default=3)
     r.add_argument("--label", default="run")
+    r.add_argument("--toytalk", type=int, default=0, help="idle-banter advice level to grade (brain/toytalk.py)")
     r.add_argument("--out"); r.add_argument("--agg-out")
     for n in ("report", "sample"):
         sub.add_parser(n).add_argument("file")
@@ -349,9 +350,10 @@ def main(argv=None):
     if a.cmd == "compare":
         b, af = evaluate(load(a.before)), evaluate(load(a.after))
         print(table(b, "before")); print(table(af, "after")); print(decide(b, af)); return
+    config.TOY_TALK = a.toytalk
     llm = StubToyLLM() if a.model == "stub" else LiteRTText(gpu=a.model == "litert")
     run = run_batch(a.set, llm, a.reps, a.n_per)
-    run["label"], run["model"] = a.label, a.model
+    run["label"], run["model"], run["toytalk"] = a.label, a.model, a.toytalk
     agg = evaluate(run)
     print(table(agg, f"{a.label} [{a.set}, {a.model}; toy-to-toy, simulated clock; a regression signal, not a clinical assessment]"))
     if a.out:
