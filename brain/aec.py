@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import collections
 import logging
+import os
 import threading
 from dataclasses import dataclass, field
 
@@ -40,6 +41,7 @@ FS = 16000
 B = 320                    # one mic packet = 20 ms = one filter block
 NB = B + 1                 # rfft bins of a 2B overlap-save block
 PRE = 160                  # filter taps kept before the expected main peak (10 ms): alignment slack
+STALL_S = 0.15             # a mic packet this much later than the last one: the Atom lost audio that `seq` does not show
 PASSES = 6                 # retrospective adaptation passes over the first heard part of a clip
 
 
@@ -205,6 +207,8 @@ class Listener:
     def __init__(self, toy: str):
         self.toy = toy
         self.last_seq: int | None = None
+        self.last_arr = 0.0
+        self.stalls = 0
         self.n = 0                                       # unwrapped frame counter
         self.off = collections.deque(maxlen=400)         # arrival - n*0.02 over the last 8 s
         self.c: float | None = None                      # brain time of sample 0 of this timeline (lower envelope)
@@ -230,6 +234,17 @@ class Listener:
                 self.n += gap
                 missing = gap - 1
         self.last_seq = seq
+        if arrival - self.last_arr > STALL_S and self.last_arr:
+            # The Atom stalled (WiFi busy with a /play upload) and its mic ring overran: audio is lost WITHOUT a gap in `seq`
+            # (measured on the real toys: 42-47 frames/s while a clip is sent). n/16000 no longer follows time across the
+            # stall, so forget the old offset (it is re-learnt from the frames after it) and re-place any clip.
+            self.off.clear()
+            self.c = None
+            self.stalls += 1
+            for p in self.pairs.values():
+                p.s0.clear()
+                p.next_n = None
+        self.last_arr = arrival
         ns = self.n * B
         self.off.append(arrival - ns / FS)
         c = min(self.off)
@@ -275,6 +290,7 @@ class Pair:
         self.audible = 0                     # blocks of this clip with audible echo, while placing
         self.eps = 0.0                       # relative clock rate error (samples per sample) of the talker's speaker vs this mic
         self.anchor: dict[int, tuple] = {}   # id(clip) -> (n, extra delay at n)
+        self.sum_m, self.n_m = 0.0, 0         # mic power while the clip is audibly playing (is the echo even there?)
         self.sum_d = self.sum_e = 0.0         # echo-audible power in / out while no child was detected: the clip's ERLE
         self.snap = None                     # (n, filter frequency response) at the start of the current drift measurement
         self.stats = dict(erle_db=0.0, locks=0, places=0, mismatch=0, barges=0, lag_ms=0.0)
@@ -301,6 +317,8 @@ class AecManager:
         self.clips: dict[str, list[Clip]] = {}
         self.listeners: dict[str, Listener] = {}
         self.stop_latency = config.AEC_STOP_LATENCY_S if stop_latency_s is None else stop_latency_s
+        self.dump_dir = os.environ.get("SENTIENT_AEC_DUMP")      # bench only: toy-vs-toy frames to a RAM disk, for offline replay
+        self.dumps: dict = {}
 
     # ---- talker side
     def begin(self, toy: str, pcm: np.ndarray, dispatch: float, t0: float | None = None) -> Clip:
@@ -350,6 +368,8 @@ class AecManager:
             ns, missing = lst.frame(seq, arrival, pcm)
             if ns is None:
                 return Out(pcm)
+            if self.dump_dir:
+                self._dump_frame(lst, ns, arrival, pcm)
             active = self._active_pair(lst, toy, ns)
             if active is None:
                 p2 = float(np.mean(pcm.astype(np.float32) ** 2))
@@ -413,7 +433,13 @@ class AecManager:
 
     def _run_pair(self, pair: Pair, clips: list[Clip], ns: int, missing: int, pcm: np.ndarray) -> Out:
         clip = clips[-1]
+        lst = pair.l
         out = Out(pcm, False, pair.talker)
+        if clip.t0 is not None and lst.c is not None:       # bookkeeping only: how loud is this mic while the clip plays?
+            k = int(ns - (clip.t0 - lst.c) * FS) - 1300     # ~80 ms of typical lag
+            if 0 <= k < clip.n - B and rms(clip.pcm[k:k + B]) > 300:
+                pair.sum_m += float(np.mean(pcm.astype(np.float32) ** 2))
+                pair.n_m += 1
         if pair.state == "locked" and id(clip) not in pair.s0:
             pair.state, pair.audible = "place", 0       # a new clip: the filter is the room's, the placement is new
             pair.mdf.reset_history()
@@ -470,6 +496,8 @@ class AecManager:
         if rms(r[max(0, off + max(lo, 0)):]) < 50.0:
             return False                      # the clip has not said much yet (or ended)
         lag, peak, score = gcc_phat(m, r, lo, hi)
+        log.debug("aec search %s->%s: %s lag %.0f ms score %.1f peak %.3f, mic rms %.0f (noise %.0f), ref rms %.0f", pair.talker, lst.toy,
+                 "local" if local else "wide", lag / FS * 1000, score, peak, rms(m), lst.noise2 ** .5, rms(r))
         if score < (config.AEC_MIN_SCORE_PLACE if local else config.AEC_MIN_SCORE):
             pair.stats["weak"] = pair.stats.get("weak", 0) + 1
             if local and pair.audible > 0.8 * FS / B:
@@ -659,19 +687,39 @@ class AecManager:
     def _live_anchor_clips(self, pair: Pair):
         return [c for cl in self.clips.values() for c in cl if id(c) in pair.s0]
 
+    def _dump_frame(self, lst, ns, arrival, pcm):
+        for talker, cl in self.clips.items():
+            if talker != lst.toy and cl and not cl[-1].ended and arrival > cl[-1].dispatch - 0.6 and arrival < cl[-1].dispatch + len(cl[-1].pcm) / FS + 2.5:
+                d = self.dumps.setdefault((talker, lst.toy), [])
+                d.append((ns, arrival, pcm.copy()))
+
+    def _write_dump(self, talker):
+        for (t, toy), fr in list(self.dumps.items()):
+            if t != talker or not fr:
+                continue
+            cl = self.clips[talker][-1]
+            lst = self.listeners[toy]
+            np.savez(f"{self.dump_dir}/aec_{talker}_{toy}_{int(cl.dispatch)}.npz", ns=[f[0] for f in fr], arr=[f[1] for f in fr],
+                     mic=np.concatenate([f[2] for f in fr]), ref=cl.pcm, t0=cl.t0 or -1.0, dispatch=cl.dispatch, c=lst.c or 0.0)
+            del self.dumps[(t, toy)]
+
     # ---- reporting
     def finish(self, talker: str) -> list[str]:
         """The talker has finished (or was cut): one summary line per listener, numbers only, then reset the counters."""
         out = []
         with self.lock:
+            if self.dump_dir:
+                self._write_dump(talker)
             for toy, l in self.listeners.items():
                 p = l.pairs.get(talker)
-                if p is None or p.sum_d <= 0:
+                if p is None or (p.sum_d <= 0 and not p.n_m):
                     continue
-                out.append(f"aec {talker}->{toy}: ERLE {10 * np.log10(p.sum_d / max(p.sum_e, 1e-3)):.1f} dB over the clip, lag "
+                out.append(f"aec {talker}->{toy}: state {p.state}, mic rms {np.sqrt(p.sum_m / max(p.n_m, 1)):.0f} while the toy talks (room noise {l.noise2 ** .5:.0f}), "
+                           f"ERLE {10 * np.log10(max(p.sum_d, 1e-3) / max(p.sum_e, 1e-3)):.1f} dB over the clip, lag "
                            f"{p.stats['lag_ms']:.0f} ms, residual/echo q={p.q:.3f}, drift {p.eps * 1e6:+.0f} ppm, "
                            f"barges {p.stats['barges']}, echo-path resets {p.stats['mismatch']}")
-                p.sum_d = p.sum_e = 0.0
+                p.sum_d = p.sum_e = p.sum_m = 0.0
+                p.n_m = 0
         return out
 
     def snapshot(self) -> dict:

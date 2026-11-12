@@ -1,6 +1,6 @@
 # Cross-toy echo cancellation and barge-in
 
-Status: implemented and tested in simulation (`tools/test_aec.py`, 20 tests). **Not yet measured on the real toys**; see "Hardware measurement" below. Code: `brain/aec.py` (new), small hooks in `brain/atoms.py`, `brain/director.py`, `brain/tts.py`, constants in `brain/config.py` (`AEC_*`), simulator `tools/aec_sim.py`.
+**Status (Nov 12): works in simulation, does NOT yet work on the real toys; off by default (`SENTIENT_AEC=1` enables it). See "Hardware findings".** Implemented and tested in simulation (`tools/test_aec.py`, 20 tests). **Not yet measured on the real toys**; see "Hardware measurement" below. Code: `brain/aec.py` (new), small hooks in `brain/atoms.py`, `brain/director.py`, `brain/tts.py`, constants in `brain/config.py` (`AEC_*`), simulator `tools/aec_sim.py`.
 
 ## What it does
 
@@ -55,7 +55,17 @@ The brain currently estimates where a mic frame sits in time from packet arrival
 
 Neither is needed for the current implementation. Ask before flashing.
 
-## Hardware measurement (waiting for permission: Jetson and toys are shared)
+## Hardware findings (Nov 12, Jetson + Dyno, Sage, Penny, volumes 255, quiet room, mics muted so nothing could cut)
+
+ERLE per pair over one clip, from the brain's own log line (`aec dyno->sage: ... ERLE x dB`), ~35 clips of 1-2.4 s: **between -36 dB and +3.6 dB, i.e. no useful cancellation.** Mic level while the talker plays: Dyno -> Sage 450-570 RMS and Dyno/Penny -> others 80-240 (room noise 10-16, so the echo is audible), Sage as talker is almost inaudible at the others (RMS 10-15). The lag the search found for the same pair changed from clip to clip (Dyno -> Sage: 67, 148, 33, 21 ms), which a fixed room cannot do. False-trigger rate and barge-in latency were not measured: with ERLE ~0 there is nothing to measure (the old loudness detector would have been tested, not this), and I did not ask for the voice test.
+
+Root cause, measured from RAM-only dumps of toy-vs-toy audio (deleted afterwards, no person was talking): **while a clip is being sent to the talker, the listening Atoms lose mic audio without any gap in `seq`.** The mic streams ran at 42-47 packets/s instead of 50 (sample time advanced 0.82-0.92 s per wall second) with zero sequence gaps, and the arrival times show the stall: a 330 ms silence followed by 4 packets at once. The firmware sends every captured frame and only then increments `mic_seq`; when `udp.endPacket()` blocks on a busy WiFi, `M5.Mic.record()` overruns and frames are dropped silently. So `seq x 320` is not a sample clock during exactly the period we need, and the packet count between the clip start and the echo is wrong by up to 250 ms, which is more than the filter can absorb. Brain-side mitigation added (`Listener.frame`, `STALL_S`): a packet later than 150 ms forgets the offset estimate and re-places the clip; it helps but did not rescue the pairs.
+
+**Firmware change needed (not flashed, awaiting approval):** make `mic_seq` follow time: before sending a frame, `seq += max(1, round((now_us - last_send_us) / 20000))` style catch-up, or better append the capture `esp_timer_get_time()` of the frame to each `M` packet (see the proposal above; the brain reads `data[3:]`, so the brain side must accept 8 extra bytes first). Either makes the timeline exact, lost audio shows up as a known gap, and the existing canceller then only has the within-run alignment to do, which the simulation shows it can. A second improvement: stamp `PLAYING` when the first sample is written to I2S.
+
+Also noted: a clip is only 1-2.4 s for typical lines, and the first lock needs ~0.65 s; warm starts need 0.45 s. Even when it works, the first part of each line falls back to the old detector.
+
+## Hardware measurement plan (re-run after the firmware change)
 
 Plan once it is this session's turn, with the room quiet and nobody talking:
 1. Deploy `brain/` and `tools/`, restart `sentient-brain`, `POST /mute` on localhost:8080 right after.

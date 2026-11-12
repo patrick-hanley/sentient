@@ -214,7 +214,7 @@ class HubGlueTests(unittest.TestCase):
         hub.atoms, hub.by_ip, hub.by_addr = {}, {}, {}
         hub.monitor = None
         hub.mute_until, hub.force_mute, hub.talking, hub.play_id = 0.0, False, None, 0
-        hub.barge, hub.aec = atoms.BargeDetector(), aec.AecManager()
+        hub.barge, hub.aec = atoms.BargeDetector(), aec.AecManager()   # (config.AEC is off by default: the hub is built by hand)
         self.fallback_calls = 0
         hub.barge.feed = lambda *a, **k: setattr(self, "fallback_calls", self.fallback_calls + 1)   # the loudness detector: counted, silent
         hub._barged, hub._barge_toy, hub._barge_frames = False, None, []
