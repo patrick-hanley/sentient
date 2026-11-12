@@ -101,6 +101,20 @@ details>div{margin-top:10px}
   <div id=curr></div></div></details>
 </section>
 
+<section aria-labelledby=tc_h>
+ <details style="border-top:0;padding-top:0"><summary id=tc_h>Teach the camera</summary><div>
+  <p class=mut>The toys' cameras are off. A toy looks only when the child asks what it sees. Here you can teach the toys who is who and what things are called. Only a numeric fingerprint is kept: no photos are saved, it is encrypted on the brain and you can delete any of it. A camera is on only while you press the button.</p>
+  <div class=panel style="margin-top:10px;display:grid;gap:8px">
+   <div class=row><select id=tc_kind aria-label="What to teach" style="width:auto"><option value=person>A parent or family member</option><option value=child>The child</option><option value=toy>A toy (how it looks)</option><option value=item>A household item</option></select>
+    <input id=tc_name placeholder="Name" aria-label="Name"><select id=tc_toy aria-label="Which toy" hidden style="width:auto"></select></div>
+   <p class=mut id=tc_tip></p>
+   <div class=row><span class=mut>Photos from:</span><select id=tc_cam aria-label="Photo source" style="width:auto"></select><input type=file id=tc_files accept="image/*" multiple hidden></div>
+   <label class=mut style="display:block"><input type=checkbox id=tc_ok style="width:auto"> I am a parent or guardian and I agree to the toys remembering this fingerprint (encrypted, deletable below).</label>
+   <div class=row><button class=p id=tc_go disabled>Teach</button><span class=mut id=tc_msg role=status></span></div>
+  </div>
+  <div id=tc_list style="margin-top:10px"></div></div></details>
+</section>
+
 <section>
  <details open style="border-top:0;padding-top:0"><summary>Say it now</summary><div>
   <p class=mut>The toys react in their own words. Nothing is saved or logged.</p>
@@ -143,7 +157,7 @@ $("lockNow").onclick=async()=>{await api("/api/lock",{});showLock()};
 
 /* ---------- children and state ---------- */
 const child=()=>S&&S.children.find(c=>c.id==kid);
-async function load(){S=await api("/api/state");$("app").hidden=false;bump();if(!kid||!child())kid=S.bound||(S.children[0]||{}).id||null;draw();await items();progress()}
+async function load(){S=await api("/api/state");$("app").hidden=false;bump();if(!kid||!child())kid=S.bound||(S.children[0]||{}).id||null;draw();await items();progress();teachList()}
 function draw(){
  const k=$("kids");k.textContent="";
  S.children.forEach(c=>{const b=el("button");const d=el("span","","dot");d.style.background=c.color;b.append(d,c.name+(S.bound==c.id?" · playing":""));b.setAttribute("aria-pressed",String(c.id==kid));b.onclick=()=>{kid=c.id;filter="all";draw();items();progress()};k.append(b)});
@@ -179,6 +193,33 @@ async function curr(){
 /* ---------- what the toys know ---------- */
 $("currdet")&&($("currdet").ontoggle=()=>{if($("currdet").open)curr().catch(()=>{})});
 async function items(){if($("currdet")&&$("currdet").open)curr().catch(()=>{});ALL=kid?(await api("/api/items?child="+kid)).items:[];renderItems()}
+/* ---------- teach the camera (brain/teach.py): embeddings only, consent required, encrypted, deletable ---------- */
+let TC={entries:[],toys:[]};
+const TIPS={person:"Face the camera about an arm's length away, well lit. 3 to 6 photos, turning your head a little each time.",child:"The child faces the camera, well lit, a little closer than an arm's length. 3 to 6 photos. Only a parent should do this.",toy:"Hold the toy in the middle of ANOTHER toy's camera (a toy cannot see itself). Take a few photos, turning it a bit each time.",item:"Hold the item in the middle of the camera, plain background if you can. Give it a short name like “red cup”. A few photos from different sides."};
+const KIND_LABEL={person:"parent or family",child:"the child",toy:"toy",item:"item"};
+async function teachList(){try{TC=await api("/api/teach/list");drawTeach()}catch(e){if(e.message!="locked"){$("tc_msg").textContent=e.message}}}
+function drawTeach(){
+ const k=$("tc_kind").value,tsel=$("tc_toy");$("tc_name").hidden=k=="toy"||k=="child";tsel.hidden=k!="toy";$("tc_tip").textContent=TIPS[k];
+ if(!tsel.options.length)TC.toys.forEach(t=>tsel.add(new Option(t.name,t.id)));
+ const cam=$("tc_cam"),cur=cam.value;cam.textContent="";TC.toys.filter(t=>t.cam&&t.online&&!(k=="toy"&&tsel.value==t.id)).forEach(t=>cam.add(new Option(t.name+"'s camera",t.id)));cam.add(new Option("Upload photos","upload"));if([...cam.options].some(o=>o.value==cur))cam.value=cur;
+ $("tc_go").textContent=cam.value=="upload"?"Choose photos":"Take 6 photos";$("tc_go").disabled=!$("tc_ok").checked;
+ const box=$("tc_list");box.textContent="";
+ if(!TC.entries.length){box.append(el("p","Nothing taught yet.","mut"));return}
+ TC.entries.forEach(e=>{const row=el("div","","card"),t=el("div","","txt");t.append(e.kind=="child"?"The child":e.kind=="toy"?(TC.toys.find(x=>x.id==e.name)||{name:e.name}).name:e.name,el("span",KIND_LABEL[e.kind]+" · "+e.photos+" photo"+(e.photos==1?"":"s"),"tag"));
+  const a=el("div","","acts"),x=el("button","Delete","q danger");x.setAttribute("aria-label","Delete "+e.name);x.onclick=async()=>{await api("/api/teach/delete",{id:e.id});await teachList()};a.append(x);row.append(t,a);box.append(row)})}
+["tc_kind","tc_toy","tc_cam","tc_ok"].forEach(i=>$(i).onchange=drawTeach);
+async function teachSend(files){
+ const k=$("tc_kind").value,name=k=="toy"?$("tc_toy").value:$("tc_name").value.trim(),msg=$("tc_msg");
+ if(k!="child"&&!name){msg.textContent="Give it a name first.";return}
+ const q=new URLSearchParams({kind:k,name:name,consent:"1"});if(k=="child"&&kid)q.set("child",kid);if(k=="person")q.set("role","parent");
+ $("tc_go").disabled=true;msg.textContent="Working… the camera is on only for this.";
+ try{let r;
+  if(files){let n=0,last;for(const f of files){last=await api("/api/teach/photo?"+q,undefined,f);n+=last.used}r=last;r.used=n}
+  else r=await api("/api/teach/capture",{kind:k,name:name,toy:$("tc_cam").value,consent:true,child:(k=="child"&&kid)?kid:undefined,role:k=="person"?"parent":undefined});
+  msg.textContent="Learned from "+r.used+" of "+r.frames+" photo"+(r.frames==1?"":"s")+(r.used?". The camera is off again.":": nothing usable, try closer and brighter.");$("tc_name").value="";await teachList()}
+ catch(e){msg.textContent=e.message}$("tc_go").disabled=!$("tc_ok").checked;$("tc_files").value=""}
+$("tc_go").onclick=()=>{if($("tc_cam").value=="upload")$("tc_files").click();else teachSend(null)};
+$("tc_files").onchange=()=>{const f=[...$("tc_files").files].slice(0,10);if(f.length)teachSend(f)};
 function renderItems(){
  const box=$("items"),f=$("filters");box.textContent="";f.textContent="";
  const counts={};ALL.forEach(i=>counts[i.category]=(counts[i.category]||0)+1);

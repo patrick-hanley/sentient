@@ -169,7 +169,11 @@ def pin(cores) -> None:
 
 
 # ---- perception ----
-CAPTURE_FPS = 0.5            # one snapshot per toy every 2 s; paused entirely during a turn
+# Camera policy (brain/camera.py): the cameras are OFF. A toy takes ONE picture only when the child asks what it sees
+# ("what do you see", "look at this", "what is this"), from the toy that heard the child, and the camera is off again after.
+# Continuous capture (the old behaviour: greet familiar faces, always-fresh [SCENE]) is opt-in: SENTIENT_CAMERA_CONTINUOUS=1.
+CAPTURE_CONTINUOUS = os.environ.get("SENTIENT_CAMERA_CONTINUOUS", "0") == "1"
+CAPTURE_FPS = 0.5            # continuous mode only: one snapshot per toy every 2 s; paused entirely during a turn
 FACE_MATCH = 0.40            # SFace cosine; OpenCV suggests 0.363
 PET_MATCH = 0.60
 GREET_COOLDOWN_S = 120
@@ -178,6 +182,7 @@ QUIET_AFTER_S = (180, 600)   # no child contact (speech, tap, motion, someone se
 
 # ---- LLM ----
 VISION_MODE = os.environ.get("SENTIENT_VISION", "sage")   # sage | always | never
+VISION_MODEL = os.environ.get("SENTIENT_VISION_MODEL", "gemma")   # gemma (own vision, no extra model) | llamacpp | florence | none; see brain/vision_model.py
 RESET_AFTER_TURNS = 8
 MAX_LINES = 4                # e.g. dyno, sage, dyno, penny: toys may speak more than once
 

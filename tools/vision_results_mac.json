@@ -1,0 +1,1595 @@
+{
+ "device": "patricks-MacBook-Pro.local x86_64 CPU",
+ "results": [
+  {
+   "model": "smolvlm-256m",
+   "label": "SmolVLM-256M Q8",
+   "params": "0.26B",
+   "n": 36,
+   "hits": 32,
+   "hit_rate": 0.8888888888888888,
+   "median_s": 2.7858690624998417,
+   "p90_s": 3.0168702689989004,
+   "peak_rss_mb": 578,
+   "rows": [
+    {
+     "file": "00_apple.jpg",
+     "label": "apple",
+     "answer": "An apple.",
+     "hit": true,
+     "s": 2.912
+    },
+    {
+     "file": "01_backpack.jpg",
+     "label": "backpack",
+     "answer": "A backpack.",
+     "hit": true,
+     "s": 2.784
+    },
+    {
+     "file": "02_banana.jpg",
+     "label": "banana",
+     "answer": "Bananas.",
+     "hit": true,
+     "s": 2.559
+    },
+    {
+     "file": "03_blueberries.jpg",
+     "label": "blueberries",
+     "answer": "The main object is a bowl filled with blueberries.",
+     "hit": true,
+     "s": 2.74
+    },
+    {
+     "file": "04_book.jpg",
+     "label": "book",
+     "answer": "The image shows a wooden table with a few books on it. The books are arranged in a row, with the largest book on the left and the smallest book on the right. The books are bound in dark brown paper, and the pages",
+     "hit": true,
+     "s": 2.973
+    },
+    {
+     "file": "05_cake.jpg",
+     "label": "cake",
+     "answer": "The main object is a cake.",
+     "hit": true,
+     "s": 2.446
+    },
+    {
+     "file": "06_chair.jpg",
+     "label": "chair",
+     "answer": "The table.",
+     "hit": true,
+     "s": 2.475
+    },
+    {
+     "file": "07_clock.jpg",
+     "label": "clock",
+     "answer": "The image features a large, ornate clock with intricate designs and ornate carvings. The clock face is round and has a white background with black numerals. The design of the clock includes leaves and vines, which add a touch of elegance and sophistication to",
+     "hit": true,
+     "s": 2.785
+    },
+    {
+     "file": "08_cup.jpg",
+     "label": "cup",
+     "answer": "A coffee cup.",
+     "hit": true,
+     "s": 2.573
+    },
+    {
+     "file": "09_fork.jpg",
+     "label": "fork",
+     "answer": "A fork and spoon.",
+     "hit": true,
+     "s": 2.596
+    },
+    {
+     "file": "10_hairbrush.jpg",
+     "label": "hairbrush",
+     "answer": "The main object is a brush.",
+     "hit": true,
+     "s": 2.787
+    },
+    {
+     "file": "11_kettle.jpg",
+     "label": "kettle",
+     "answer": "The white object is a hair dryer.",
+     "hit": false,
+     "s": 3.021
+    },
+    {
+     "file": "12_keys.jpg",
+     "label": "keys",
+     "answer": "The main object is a key.",
+     "hit": true,
+     "s": 3.013
+    },
+    {
+     "file": "13_lamp.jpg",
+     "label": "lamp",
+     "answer": "Lamp.",
+     "hit": true,
+     "s": 2.927
+    },
+    {
+     "file": "14_laptop.jpg",
+     "label": "laptop",
+     "answer": "A laptop.",
+     "hit": true,
+     "s": 2.973
+    },
+    {
+     "file": "15_lego.jpg",
+     "label": "lego",
+     "answer": "The main object in one short sentence is a toy.",
+     "hit": false,
+     "s": 2.975
+    },
+    {
+     "file": "16_mug.jpg",
+     "label": "mug",
+     "answer": "The main object is a cup.",
+     "hit": true,
+     "s": 2.944
+    },
+    {
+     "file": "17_orange.jpg",
+     "label": "orange",
+     "answer": "The main object is an orange and a red fruit.",
+     "hit": true,
+     "s": 2.555
+    },
+    {
+     "file": "18_pencils.jpg",
+     "label": "pencils",
+     "answer": "The main object is a colored pencils.",
+     "hit": true,
+     "s": 2.567
+    },
+    {
+     "file": "19_phone.jpg",
+     "label": "phone",
+     "answer": "The main object is a mobile phone.",
+     "hit": true,
+     "s": 3.044
+    },
+    {
+     "file": "20_pillow.jpg",
+     "label": "pillow",
+     "answer": "The main object in one short sentence is a pillow.",
+     "hit": true,
+     "s": 2.668
+    },
+    {
+     "file": "21_remote.jpg",
+     "label": "remote",
+     "answer": "It is a remote.",
+     "hit": true,
+     "s": 2.52
+    },
+    {
+     "file": "22_rubber_duck.jpg",
+     "label": "rubber duck",
+     "answer": "A duck.",
+     "hit": true,
+     "s": 2.596
+    },
+    {
+     "file": "23_scissors.jpg",
+     "label": "scissors",
+     "answer": "A scissor.",
+     "hit": true,
+     "s": 2.658
+    },
+    {
+     "file": "24_shoe.jpg",
+     "label": "shoe",
+     "answer": "The main object in one short sentence is a pair of shoes.",
+     "hit": true,
+     "s": 2.96
+    },
+    {
+     "file": "25_soccer_ball.jpg",
+     "label": "soccer ball",
+     "answer": "The child would understand that there is a ball on the ground.",
+     "hit": true,
+     "s": 2.988
+    },
+    {
+     "file": "26_spoon.jpg",
+     "label": "spoon",
+     "answer": "A spoon and fork are in the image.",
+     "hit": true,
+     "s": 3.017
+    },
+    {
+     "file": "27_stapler.jpg",
+     "label": "stapler",
+     "answer": "The main object is a binder.",
+     "hit": false,
+     "s": 2.972
+    },
+    {
+     "file": "28_teddy_bear.jpg",
+     "label": "teddy bear",
+     "answer": "The teddy bear.",
+     "hit": true,
+     "s": 2.824
+    },
+    {
+     "file": "29_tennis_ball.jpg",
+     "label": "tennis ball",
+     "answer": "The main object is a ball.",
+     "hit": true,
+     "s": 2.478
+    },
+    {
+     "file": "30_toothbrush.jpg",
+     "label": "toothbrush",
+     "answer": "Toothbrush.",
+     "hit": true,
+     "s": 2.465
+    },
+    {
+     "file": "31_toy_car.jpg",
+     "label": "toy car",
+     "answer": "A red car.",
+     "hit": true,
+     "s": 2.556
+    },
+    {
+     "file": "32_umbrella.jpg",
+     "label": "umbrella",
+     "answer": "The main object is a pink lace.",
+     "hit": false,
+     "s": 2.606
+    },
+    {
+     "file": "33_vase.jpg",
+     "label": "vase",
+     "answer": "The main object is a flower vase.",
+     "hit": true,
+     "s": 2.998
+    },
+    {
+     "file": "34_watch.jpg",
+     "label": "watch",
+     "answer": "It is a watch.",
+     "hit": true,
+     "s": 2.969
+    },
+    {
+     "file": "35_water_bottle.jpg",
+     "label": "water bottle",
+     "answer": "A bottle.",
+     "hit": true,
+     "s": 3.036
+    }
+   ]
+  },
+  {
+   "model": "smolvlm-500m",
+   "label": "SmolVLM-500M Q8",
+   "params": "0.5B",
+   "n": 36,
+   "hits": 30,
+   "hit_rate": 0.8333333333333334,
+   "median_s": 3.2638083019992337,
+   "p90_s": 3.559184296987951,
+   "peak_rss_mb": 1002,
+   "rows": [
+    {
+     "file": "00_apple.jpg",
+     "label": "apple",
+     "answer": "Apple.",
+     "hit": true,
+     "s": 3.14
+    },
+    {
+     "file": "01_backpack.jpg",
+     "label": "backpack",
+     "answer": "Backpack.",
+     "hit": true,
+     "s": 3.017
+    },
+    {
+     "file": "02_banana.jpg",
+     "label": "banana",
+     "answer": "Bananas.",
+     "hit": true,
+     "s": 3.44
+    },
+    {
+     "file": "03_blueberries.jpg",
+     "label": "blueberries",
+     "answer": "Blueberries.",
+     "hit": true,
+     "s": 3.467
+    },
+    {
+     "file": "04_book.jpg",
+     "label": "book",
+     "answer": "Bible.",
+     "hit": false,
+     "s": 3.559
+    },
+    {
+     "file": "05_cake.jpg",
+     "label": "cake",
+     "answer": "Plate.",
+     "hit": false,
+     "s": 3.637
+    },
+    {
+     "file": "06_chair.jpg",
+     "label": "chair",
+     "answer": "Table.",
+     "hit": true,
+     "s": 2.947
+    },
+    {
+     "file": "07_clock.jpg",
+     "label": "clock",
+     "answer": "Clock.",
+     "hit": true,
+     "s": 2.9
+    },
+    {
+     "file": "08_cup.jpg",
+     "label": "cup",
+     "answer": "Cup.",
+     "hit": true,
+     "s": 3.323
+    },
+    {
+     "file": "09_fork.jpg",
+     "label": "fork",
+     "answer": "Fork.",
+     "hit": true,
+     "s": 2.996
+    },
+    {
+     "file": "10_hairbrush.jpg",
+     "label": "hairbrush",
+     "answer": "Brush.",
+     "hit": true,
+     "s": 3.08
+    },
+    {
+     "file": "11_kettle.jpg",
+     "label": "kettle",
+     "answer": "Water filter.",
+     "hit": false,
+     "s": 3.204
+    },
+    {
+     "file": "12_keys.jpg",
+     "label": "keys",
+     "answer": "Keys.",
+     "hit": true,
+     "s": 3.114
+    },
+    {
+     "file": "13_lamp.jpg",
+     "label": "lamp",
+     "answer": "Lamp.",
+     "hit": true,
+     "s": 3.032
+    },
+    {
+     "file": "14_laptop.jpg",
+     "label": "laptop",
+     "answer": "Laptop.",
+     "hit": true,
+     "s": 3.077
+    },
+    {
+     "file": "15_lego.jpg",
+     "label": "lego",
+     "answer": "Bags.",
+     "hit": false,
+     "s": 3.35
+    },
+    {
+     "file": "16_mug.jpg",
+     "label": "mug",
+     "answer": "Mug.",
+     "hit": true,
+     "s": 2.996
+    },
+    {
+     "file": "17_orange.jpg",
+     "label": "orange",
+     "answer": "Orange.",
+     "hit": true,
+     "s": 2.945
+    },
+    {
+     "file": "18_pencils.jpg",
+     "label": "pencils",
+     "answer": "Pencil.",
+     "hit": true,
+     "s": 3.481
+    },
+    {
+     "file": "19_phone.jpg",
+     "label": "phone",
+     "answer": "Phone.",
+     "hit": true,
+     "s": 3.695
+    },
+    {
+     "file": "20_pillow.jpg",
+     "label": "pillow",
+     "answer": "Pillow.",
+     "hit": true,
+     "s": 3.516
+    },
+    {
+     "file": "21_remote.jpg",
+     "label": "remote",
+     "answer": "Remote.",
+     "hit": true,
+     "s": 3.43
+    },
+    {
+     "file": "22_rubber_duck.jpg",
+     "label": "rubber duck",
+     "answer": "Duck.",
+     "hit": true,
+     "s": 3.226
+    },
+    {
+     "file": "23_scissors.jpg",
+     "label": "scissors",
+     "answer": "Scissors.",
+     "hit": true,
+     "s": 3.493
+    },
+    {
+     "file": "24_shoe.jpg",
+     "label": "shoe",
+     "answer": "Shoe.",
+     "hit": true,
+     "s": 3.534
+    },
+    {
+     "file": "25_soccer_ball.jpg",
+     "label": "soccer ball",
+     "answer": "Ball.",
+     "hit": true,
+     "s": 3.008
+    },
+    {
+     "file": "26_spoon.jpg",
+     "label": "spoon",
+     "answer": "Fork.",
+     "hit": true,
+     "s": 3.554
+    },
+    {
+     "file": "27_stapler.jpg",
+     "label": "stapler",
+     "answer": "Scissors.",
+     "hit": false,
+     "s": 3.519
+    },
+    {
+     "file": "28_teddy_bear.jpg",
+     "label": "teddy bear",
+     "answer": "Teddy bear.",
+     "hit": true,
+     "s": 3.294
+    },
+    {
+     "file": "29_tennis_ball.jpg",
+     "label": "tennis ball",
+     "answer": "Ball.",
+     "hit": true,
+     "s": 3.377
+    },
+    {
+     "file": "30_toothbrush.jpg",
+     "label": "toothbrush",
+     "answer": "Toothbrush.",
+     "hit": true,
+     "s": 3.087
+    },
+    {
+     "file": "31_toy_car.jpg",
+     "label": "toy car",
+     "answer": "Car.",
+     "hit": true,
+     "s": 3.04
+    },
+    {
+     "file": "32_umbrella.jpg",
+     "label": "umbrella",
+     "answer": "Moth.",
+     "hit": false,
+     "s": 3.233
+    },
+    {
+     "file": "33_vase.jpg",
+     "label": "vase",
+     "answer": "Vase.",
+     "hit": true,
+     "s": 3.08
+    },
+    {
+     "file": "34_watch.jpg",
+     "label": "watch",
+     "answer": "Watch.",
+     "hit": true,
+     "s": 3.432
+    },
+    {
+     "file": "35_water_bottle.jpg",
+     "label": "water bottle",
+     "answer": "Bottle.",
+     "hit": true,
+     "s": 3.566
+    }
+   ]
+  },
+  {
+   "model": "florence2-base",
+   "label": "Florence-2-base (fp32)",
+   "params": "0.23B",
+   "n": 36,
+   "hits": 32,
+   "hit_rate": 0.8888888888888888,
+   "median_s": 4.150741695004399,
+   "p90_s": 4.352679486997658,
+   "peak_rss_mb": 1766,
+   "rows": [
+    {
+     "file": "00_apple.jpg",
+     "label": "apple",
+     "answer": "a red apple sitting on top of a table",
+     "hit": true,
+     "s": 3.516
+    },
+    {
+     "file": "01_backpack.jpg",
+     "label": "backpack",
+     "answer": "a black bag sitting on the floor next to a door",
+     "hit": true,
+     "s": 4.158
+    },
+    {
+     "file": "02_banana.jpg",
+     "label": "banana",
+     "answer": "a pile of bananas sitting on top of each other",
+     "hit": true,
+     "s": 4.075
+    },
+    {
+     "file": "03_blueberries.jpg",
+     "label": "blueberries",
+     "answer": "blueberries in a bowl on a table",
+     "hit": true,
+     "s": 4.069
+    },
+    {
+     "file": "04_book.jpg",
+     "label": "book",
+     "answer": "an open book sitting on top of a wooden table",
+     "hit": true,
+     "s": 4.646
+    },
+    {
+     "file": "05_cake.jpg",
+     "label": "cake",
+     "answer": "a piece of cake on a plate with chocolate sauce",
+     "hit": true,
+     "s": 4.191
+    },
+    {
+     "file": "06_chair.jpg",
+     "label": "chair",
+     "answer": "a table and chairs on the roof of a building",
+     "hit": true,
+     "s": 4.313
+    },
+    {
+     "file": "07_clock.jpg",
+     "label": "clock",
+     "answer": "an old clock hanging on the wall in a room",
+     "hit": true,
+     "s": 4.118
+    },
+    {
+     "file": "08_cup.jpg",
+     "label": "cup",
+     "answer": "a small cup sitting on top of a table",
+     "hit": true,
+     "s": 3.72
+    },
+    {
+     "file": "09_fork.jpg",
+     "label": "fork",
+     "answer": "a fork and spoon sitting on top of a pile of hay",
+     "hit": true,
+     "s": 4.33
+    },
+    {
+     "file": "10_hairbrush.jpg",
+     "label": "hairbrush",
+     "answer": "a black brush with a wooden handle on a white surface",
+     "hit": true,
+     "s": 4.218
+    },
+    {
+     "file": "11_kettle.jpg",
+     "label": "kettle",
+     "answer": "a white electric kettle sitting on top of a table",
+     "hit": true,
+     "s": 4.119
+    },
+    {
+     "file": "12_keys.jpg",
+     "label": "keys",
+     "answer": "a set of keys with the words safe driving on them",
+     "hit": true,
+     "s": 4.18
+    },
+    {
+     "file": "13_lamp.jpg",
+     "label": "lamp",
+     "answer": "a lamp that is sitting on top of a table",
+     "hit": true,
+     "s": 4.394
+    },
+    {
+     "file": "14_laptop.jpg",
+     "label": "laptop",
+     "answer": "a laptop computer sitting on top of a white table",
+     "hit": true,
+     "s": 4.364
+    },
+    {
+     "file": "15_lego.jpg",
+     "label": "lego",
+     "answer": "a pile of black plastic parts",
+     "hit": false,
+     "s": 4.177
+    },
+    {
+     "file": "16_mug.jpg",
+     "label": "mug",
+     "answer": "a white coffee mug with a green logo on it",
+     "hit": true,
+     "s": 4.324
+    },
+    {
+     "file": "17_orange.jpg",
+     "label": "orange",
+     "answer": "an orange cut in half on a table",
+     "hit": true,
+     "s": 4.116
+    },
+    {
+     "file": "18_pencils.jpg",
+     "label": "pencils",
+     "answer": "a group of colored pencils in a circle",
+     "hit": true,
+     "s": 4.062
+    },
+    {
+     "file": "19_phone.jpg",
+     "label": "phone",
+     "answer": "a close up of a cell phone with a clock on it",
+     "hit": true,
+     "s": 3.788
+    },
+    {
+     "file": "20_pillow.jpg",
+     "label": "pillow",
+     "answer": "a blue and white pillow on a wall",
+     "hit": true,
+     "s": 3.808
+    },
+    {
+     "file": "21_remote.jpg",
+     "label": "remote",
+     "answer": "a remote control sitting on top of a table",
+     "hit": true,
+     "s": 3.768
+    },
+    {
+     "file": "22_rubber_duck.jpg",
+     "label": "rubber duck",
+     "answer": "a yellow rubber duck sitting on top of a table",
+     "hit": true,
+     "s": 3.773
+    },
+    {
+     "file": "23_scissors.jpg",
+     "label": "scissors",
+     "answer": "a pair of scissors sitting on top of a table",
+     "hit": true,
+     "s": 3.635
+    },
+    {
+     "file": "24_shoe.jpg",
+     "label": "shoe",
+     "answer": "adidas yeezy boost 350 v2 beluga",
+     "hit": false,
+     "s": 4.137
+    },
+    {
+     "file": "25_soccer_ball.jpg",
+     "label": "soccer ball",
+     "answer": "a soccer ball sitting on top of a field",
+     "hit": true,
+     "s": 4.345
+    },
+    {
+     "file": "26_spoon.jpg",
+     "label": "spoon",
+     "answer": "a set of four forks and spoons on a table",
+     "hit": true,
+     "s": 4.175
+    },
+    {
+     "file": "27_stapler.jpg",
+     "label": "stapler",
+     "answer": "a green stapler sitting on top of a table",
+     "hit": true,
+     "s": 3.696
+    },
+    {
+     "file": "28_teddy_bear.jpg",
+     "label": "teddy bear",
+     "answer": "two teddy bears are sitting next to each other",
+     "hit": true,
+     "s": 3.668
+    },
+    {
+     "file": "29_tennis_ball.jpg",
+     "label": "tennis ball",
+     "answer": "a tennis ball sitting on top of a tennis court",
+     "hit": true,
+     "s": 4.111
+    },
+    {
+     "file": "30_toothbrush.jpg",
+     "label": "toothbrush",
+     "answer": "three toothbrushes sitting next to each other on a table",
+     "hit": true,
+     "s": 4.29
+    },
+    {
+     "file": "31_toy_car.jpg",
+     "label": "toy car",
+     "answer": "a red toy car on a white surface",
+     "hit": true,
+     "s": 4.34
+    },
+    {
+     "file": "32_umbrella.jpg",
+     "label": "umbrella",
+     "answer": "a brown paper lantern hanging from a string next to a ruler",
+     "hit": false,
+     "s": 4.157
+    },
+    {
+     "file": "33_vase.jpg",
+     "label": "vase",
+     "answer": "a vase filled with flowers sitting on top of a table",
+     "hit": true,
+     "s": 4.353
+    },
+    {
+     "file": "34_watch.jpg",
+     "label": "watch",
+     "answer": "a watch with a white dial on a metal bracelet",
+     "hit": true,
+     "s": 4.144
+    },
+    {
+     "file": "35_water_bottle.jpg",
+     "label": "water bottle",
+     "answer": "a red vase sitting on top of a wooden floor",
+     "hit": false,
+     "s": 4.323
+    }
+   ]
+  },
+  {
+   "model": "moondream2",
+   "label": "Moondream2 (fp32)",
+   "params": "1.9B",
+   "n": 36,
+   "hits": 35,
+   "hit_rate": 0.9722222222222222,
+   "median_s": 24.736271231493447,
+   "p90_s": 49.40724387697992,
+   "peak_rss_mb": 7863,
+   "rows": [
+    {
+     "file": "00_apple.jpg",
+     "label": "apple",
+     "answer": "Apple",
+     "hit": true,
+     "s": 12.81
+    },
+    {
+     "file": "01_backpack.jpg",
+     "label": "backpack",
+     "answer": "A black backpack with red and blue accents is leaning against a white wall in a hallway.",
+     "hit": true,
+     "s": 21.986
+    },
+    {
+     "file": "02_banana.jpg",
+     "label": "banana",
+     "answer": "Bananas",
+     "hit": true,
+     "s": 10.97
+    },
+    {
+     "file": "03_blueberries.jpg",
+     "label": "blueberries",
+     "answer": "A white bowl holds a pile of dark blueberries, with four more scattered around the bowl.",
+     "hit": true,
+     "s": 22.792
+    },
+    {
+     "file": "04_book.jpg",
+     "label": "book",
+     "answer": "Book",
+     "hit": true,
+     "s": 10.439
+    },
+    {
+     "file": "05_cake.jpg",
+     "label": "cake",
+     "answer": "A slice of chocolate cake with white frosting and chocolate drizzle sits on a white plate.",
+     "hit": true,
+     "s": 24.575
+    },
+    {
+     "file": "06_chair.jpg",
+     "label": "chair",
+     "answer": "A blue chair and a white chair face each other on a patio, accompanied by a blue table and a white wall.",
+     "hit": true,
+     "s": 26.477
+    },
+    {
+     "file": "07_clock.jpg",
+     "label": "clock",
+     "answer": "A clock with a white face, black numbers, and gold leaves is mounted on a wall, displaying the time as 12:00.",
+     "hit": true,
+     "s": 28.384
+    },
+    {
+     "file": "08_cup.jpg",
+     "label": "cup",
+     "answer": "A small white cup with a brown rim sits on a white table, filled with a light brown liquid and topped with a white foam.",
+     "hit": true,
+     "s": 29.525
+    },
+    {
+     "file": "09_fork.jpg",
+     "label": "fork",
+     "answer": "Fork and spoon, both silver, are placed on a bed of brown twigs and leaves.",
+     "hit": true,
+     "s": 23.542
+    },
+    {
+     "file": "10_hairbrush.jpg",
+     "label": "hairbrush",
+     "answer": "A black hairbrush with a wooden handle lies on a white surface.",
+     "hit": true,
+     "s": 20.238
+    },
+    {
+     "file": "11_kettle.jpg",
+     "label": "kettle",
+     "answer": "A white electric kettle with a digital display and handle is shown on a gray surface.",
+     "hit": true,
+     "s": 22.361
+    },
+    {
+     "file": "12_keys.jpg",
+     "label": "keys",
+     "answer": "A blue keychain with a \"Safe Driving\" sign and three keys is attached to a keyring.",
+     "hit": true,
+     "s": 23.79
+    },
+    {
+     "file": "13_lamp.jpg",
+     "label": "lamp",
+     "answer": "Lamp",
+     "hit": true,
+     "s": 11.438
+    },
+    {
+     "file": "14_laptop.jpg",
+     "label": "laptop",
+     "answer": "Laptop",
+     "hit": true,
+     "s": 12.716
+    },
+    {
+     "file": "15_lego.jpg",
+     "label": "lego",
+     "answer": "A pile of black and gray plastic toys, including various shapes and sizes, is scattered haphazardly.",
+     "hit": false,
+     "s": 25.253
+    },
+    {
+     "file": "16_mug.jpg",
+     "label": "mug",
+     "answer": "Mug",
+     "hit": true,
+     "s": 13.631
+    },
+    {
+     "file": "17_orange.jpg",
+     "label": "orange",
+     "answer": "Orange",
+     "hit": true,
+     "s": 14.783
+    },
+    {
+     "file": "18_pencils.jpg",
+     "label": "pencils",
+     "answer": "A circle of colored pencils arranged in a radial pattern, with each color distinct and vibrant.",
+     "hit": true,
+     "s": 31.05
+    },
+    {
+     "file": "19_phone.jpg",
+     "label": "phone",
+     "answer": "Phone",
+     "hit": true,
+     "s": 15.915
+    },
+    {
+     "file": "20_pillow.jpg",
+     "label": "pillow",
+     "answer": "A blue and white patterned pillow with a symmetrical design sits on a beige wall.",
+     "hit": true,
+     "s": 35.708
+    },
+    {
+     "file": "21_remote.jpg",
+     "label": "remote",
+     "answer": "A black remote control with white buttons is shown on a white surface.",
+     "hit": true,
+     "s": 20.393
+    },
+    {
+     "file": "22_rubber_duck.jpg",
+     "label": "rubber duck",
+     "answer": "A yellow rubber duck floats on a dark blue surface, with a white light shining on it.",
+     "hit": true,
+     "s": 30.978
+    },
+    {
+     "file": "23_scissors.jpg",
+     "label": "scissors",
+     "answer": "Scissors",
+     "hit": true,
+     "s": 18.186
+    },
+    {
+     "file": "24_shoe.jpg",
+     "label": "shoe",
+     "answer": "A pair of gray and white sneakers with white soles and laces is shown on a gray surface.",
+     "hit": true,
+     "s": 30.408
+    },
+    {
+     "file": "25_soccer_ball.jpg",
+     "label": "soccer ball",
+     "answer": "A black and white soccer ball rests on a gray turf field, ready for play.",
+     "hit": true,
+     "s": 24.898
+    },
+    {
+     "file": "26_spoon.jpg",
+     "label": "spoon",
+     "answer": "A spoon, fork, and knife are arranged in a row, with the spoon on the left, fork in the middle, and knife on the right, all in black.",
+     "hit": true,
+     "s": 37.47
+    },
+    {
+     "file": "27_stapler.jpg",
+     "label": "stapler",
+     "answer": "A green stapler with a black staple head is shown on a gray surface.",
+     "hit": true,
+     "s": 25.849
+    },
+    {
+     "file": "28_teddy_bear.jpg",
+     "label": "teddy bear",
+     "answer": "A white teddy bear with a purple nose and black eyes sits on a bed, accompanied by a brown teddy bear.",
+     "hit": true,
+     "s": 49.407
+    },
+    {
+     "file": "29_tennis_ball.jpg",
+     "label": "tennis ball",
+     "answer": "A green tennis ball rests on a red clay court, with a white net and trees in the background.",
+     "hit": true,
+     "s": 100.92
+    },
+    {
+     "file": "30_toothbrush.jpg",
+     "label": "toothbrush",
+     "answer": "Three toothbrushes in blue, red, and green are arranged on a white surface.",
+     "hit": true,
+     "s": 50.565
+    },
+    {
+     "file": "31_toy_car.jpg",
+     "label": "toy car",
+     "answer": "A red toy car with black roof and silver accents is parked on a gray surface.",
+     "hit": true,
+     "s": 42.189
+    },
+    {
+     "file": "32_umbrella.jpg",
+     "label": "umbrella",
+     "answer": "A brown umbrella with orange trim is shown upside down, revealing its inner structure.",
+     "hit": true,
+     "s": 30.666
+    },
+    {
+     "file": "33_vase.jpg",
+     "label": "vase",
+     "answer": "A blue vase holds a bouquet of yellow and white flowers, with a reflection visible in the water.",
+     "hit": true,
+     "s": 25.576
+    },
+    {
+     "file": "34_watch.jpg",
+     "label": "watch",
+     "answer": "A stainless steel wristwatch with a white face and gold hands is displayed against a beige background.",
+     "hit": true,
+     "s": 23.785
+    },
+    {
+     "file": "35_water_bottle.jpg",
+     "label": "water bottle",
+     "answer": "A red bottle with a white label stands on a wooden floor, accompanied by a black metal chair and a black metal stool.",
+     "hit": true,
+     "s": 57.035
+    }
+   ]
+  },
+  {
+   "model": "gemma",
+   "label": "Gemma 4 E2B Q4_0 (+mmproj Q8)",
+   "params": "5.1B (2.3B eff.)",
+   "n": 36,
+   "hits": 30,
+   "hit_rate": 0.8333333333333334,
+   "median_s": 3.253703738490003,
+   "p90_s": 3.626459777005948,
+   "peak_rss_mb": 4564,
+   "rows": [
+    {
+     "file": "00_apple.jpg",
+     "label": "apple",
+     "answer": "This is a red apple.",
+     "hit": true,
+     "s": 2.751
+    },
+    {
+     "file": "01_backpack.jpg",
+     "label": "backpack",
+     "answer": "The main object is a **ladder**.",
+     "hit": false,
+     "s": 2.893
+    },
+    {
+     "file": "02_banana.jpg",
+     "label": "banana",
+     "answer": "The main object in the image is a bunch of green bananas.",
+     "hit": true,
+     "s": 3.282
+    },
+    {
+     "file": "03_blueberries.jpg",
+     "label": "blueberries",
+     "answer": "The main object is a bowl of blueberries.",
+     "hit": true,
+     "s": 3.063
+    },
+    {
+     "file": "04_book.jpg",
+     "label": "book",
+     "answer": "This is a picture of an open book.",
+     "hit": true,
+     "s": 2.909
+    },
+    {
+     "file": "05_cake.jpg",
+     "label": "cake",
+     "answer": "This is a slice of chocolate cake.",
+     "hit": true,
+     "s": 2.952
+    },
+    {
+     "file": "06_chair.jpg",
+     "label": "chair",
+     "answer": "The main object is a **blue plastic chair**.",
+     "hit": true,
+     "s": 3.066
+    },
+    {
+     "file": "07_clock.jpg",
+     "label": "clock",
+     "answer": "This is an old, fancy clock.",
+     "hit": true,
+     "s": 2.888
+    },
+    {
+     "file": "08_cup.jpg",
+     "label": "cup",
+     "answer": "The main object is a cup of coffee.",
+     "hit": true,
+     "s": 3.093
+    },
+    {
+     "file": "09_fork.jpg",
+     "label": "fork",
+     "answer": "The main object is a fork and a spoon.",
+     "hit": true,
+     "s": 3.31
+    },
+    {
+     "file": "10_hairbrush.jpg",
+     "label": "hairbrush",
+     "answer": "This is a black hairbrush.",
+     "hit": true,
+     "s": 3.481
+    },
+    {
+     "file": "11_kettle.jpg",
+     "label": "kettle",
+     "answer": "This is a white electric kettle.",
+     "hit": true,
+     "s": 3.48
+    },
+    {
+     "file": "12_keys.jpg",
+     "label": "keys",
+     "answer": "This is a key for a car.",
+     "hit": true,
+     "s": 3.65
+    },
+    {
+     "file": "13_lamp.jpg",
+     "label": "lamp",
+     "answer": "This is a lamp with a light shade.",
+     "hit": true,
+     "s": 3.548
+    },
+    {
+     "file": "14_laptop.jpg",
+     "label": "laptop",
+     "answer": "This is a laptop.",
+     "hit": true,
+     "s": 3.226
+    },
+    {
+     "file": "15_lego.jpg",
+     "label": "lego",
+     "answer": "The main object in the image is a pile of **metal parts**.",
+     "hit": false,
+     "s": 3.292
+    },
+    {
+     "file": "16_mug.jpg",
+     "label": "mug",
+     "answer": "This is a white mug with a green design on it.",
+     "hit": true,
+     "s": 3.104
+    },
+    {
+     "file": "17_orange.jpg",
+     "label": "orange",
+     "answer": "This is an orange.",
+     "hit": true,
+     "s": 3.016
+    },
+    {
+     "file": "18_pencils.jpg",
+     "label": "pencils",
+     "answer": "The main object is a colorful, sun-like pattern with many bright rays.",
+     "hit": false,
+     "s": 3.363
+    },
+    {
+     "file": "19_phone.jpg",
+     "label": "phone",
+     "answer": "This is a close-up of a smartphone screen showing the time.",
+     "hit": true,
+     "s": 3.409
+    },
+    {
+     "file": "20_pillow.jpg",
+     "label": "pillow",
+     "answer": "This is a blue patterned pillow.",
+     "hit": true,
+     "s": 3.205
+    },
+    {
+     "file": "21_remote.jpg",
+     "label": "remote",
+     "answer": "This is a small, black electronic device that looks like a remote control or a small gadget.",
+     "hit": true,
+     "s": 3.626
+    },
+    {
+     "file": "22_rubber_duck.jpg",
+     "label": "rubber duck",
+     "answer": "The main object is a yellow duck.",
+     "hit": true,
+     "s": 2.82
+    },
+    {
+     "file": "23_scissors.jpg",
+     "label": "scissors",
+     "answer": "This is a pair of scissors.",
+     "hit": true,
+     "s": 2.83
+    },
+    {
+     "file": "24_shoe.jpg",
+     "label": "shoe",
+     "answer": "This is a picture of a pair of sneakers.",
+     "hit": true,
+     "s": 3.114
+    },
+    {
+     "file": "25_soccer_ball.jpg",
+     "label": "soccer ball",
+     "answer": "The main object is a soccer ball.",
+     "hit": true,
+     "s": 3.349
+    },
+    {
+     "file": "26_spoon.jpg",
+     "label": "spoon",
+     "answer": "This is a set of kitchen tools, including a knife and a fork.",
+     "hit": true,
+     "s": 3.907
+    },
+    {
+     "file": "27_stapler.jpg",
+     "label": "stapler",
+     "answer": "This is a bright green plastic object that looks like a small tool or part.",
+     "hit": false,
+     "s": 3.928
+    },
+    {
+     "file": "28_teddy_bear.jpg",
+     "label": "teddy bear",
+     "answer": "This is a big, soft teddy bear.",
+     "hit": true,
+     "s": 3.493
+    },
+    {
+     "file": "29_tennis_ball.jpg",
+     "label": "tennis ball",
+     "answer": "The main object is a **baseball**.",
+     "hit": true,
+     "s": 3.502
+    },
+    {
+     "file": "30_toothbrush.jpg",
+     "label": "toothbrush",
+     "answer": "This is a toothbrush.",
+     "hit": true,
+     "s": 2.806
+    },
+    {
+     "file": "31_toy_car.jpg",
+     "label": "toy car",
+     "answer": "This is a red sports car.",
+     "hit": true,
+     "s": 2.844
+    },
+    {
+     "file": "32_umbrella.jpg",
+     "label": "umbrella",
+     "answer": "This is a brown, pleated fabric item that looks like a skirt or a piece of clothing.",
+     "hit": false,
+     "s": 3.613
+    },
+    {
+     "file": "33_vase.jpg",
+     "label": "vase",
+     "answer": "The main object is a **wreath**.",
+     "hit": false,
+     "s": 3.311
+    },
+    {
+     "file": "34_watch.jpg",
+     "label": "watch",
+     "answer": "This is a watch.",
+     "hit": true,
+     "s": 2.809
+    },
+    {
+     "file": "35_water_bottle.jpg",
+     "label": "water bottle",
+     "answer": "The main object is a **red bottle**.",
+     "hit": true,
+     "s": 3.321
+    }
+   ]
+  },
+  {
+   "model": "qwen3vl-2b",
+   "label": "Qwen3-VL-2B Q8",
+   "params": "2.1B",
+   "n": 36,
+   "hits": 35,
+   "hit_rate": 0.9722222222222222,
+   "median_s": 8.899670678496477,
+   "p90_s": 9.788154073001351,
+   "peak_rss_mb": 3551,
+   "rows": [
+    {
+     "file": "00_apple.jpg",
+     "label": "apple",
+     "answer": "A red apple.",
+     "hit": true,
+     "s": 8.87
+    },
+    {
+     "file": "01_backpack.jpg",
+     "label": "backpack",
+     "answer": "A black bag with a blue stripe is leaning against the wall.",
+     "hit": true,
+     "s": 8.688
+    },
+    {
+     "file": "02_banana.jpg",
+     "label": "banana",
+     "answer": "A bunch of bananas.",
+     "hit": true,
+     "s": 7.763
+    },
+    {
+     "file": "03_blueberries.jpg",
+     "label": "blueberries",
+     "answer": "A bowl full of blueberries.",
+     "hit": true,
+     "s": 9.218
+    },
+    {
+     "file": "04_book.jpg",
+     "label": "book",
+     "answer": "A big open book is on a table.",
+     "hit": true,
+     "s": 12.347
+    },
+    {
+     "file": "05_cake.jpg",
+     "label": "cake",
+     "answer": "A slice of chocolate cake with chocolate sauce on a plate.",
+     "hit": true,
+     "s": 9.245
+    },
+    {
+     "file": "06_chair.jpg",
+     "label": "chair",
+     "answer": "A blue table with two chairs on a patio.",
+     "hit": true,
+     "s": 8.513
+    },
+    {
+     "file": "07_clock.jpg",
+     "label": "clock",
+     "answer": "A big, fancy clock with a round face and leaves on the sides.",
+     "hit": true,
+     "s": 10.071
+    },
+    {
+     "file": "08_cup.jpg",
+     "label": "cup",
+     "answer": "A small cup of coffee sits on a table.",
+     "hit": true,
+     "s": 9.711
+    },
+    {
+     "file": "09_fork.jpg",
+     "label": "fork",
+     "answer": "A spoon and fork are lying on the ground.",
+     "hit": true,
+     "s": 9.351
+    },
+    {
+     "file": "10_hairbrush.jpg",
+     "label": "hairbrush",
+     "answer": "A brush with black bristles and a wooden handle.",
+     "hit": true,
+     "s": 9.788
+    },
+    {
+     "file": "11_kettle.jpg",
+     "label": "kettle",
+     "answer": "A white electric kettle with a handle and a digital display.",
+     "hit": true,
+     "s": 8.872
+    },
+    {
+     "file": "12_keys.jpg",
+     "label": "keys",
+     "answer": "A keychain with a tag that says \"Safe Driving.\"",
+     "hit": true,
+     "s": 10.195
+    },
+    {
+     "file": "13_lamp.jpg",
+     "label": "lamp",
+     "answer": "A lamp with a beige shade and base.",
+     "hit": true,
+     "s": 9.126
+    },
+    {
+     "file": "14_laptop.jpg",
+     "label": "laptop",
+     "answer": "A black laptop computer with a screen showing a webpage.",
+     "hit": true,
+     "s": 8.288
+    },
+    {
+     "file": "15_lego.jpg",
+     "label": "lego",
+     "answer": "A pile of black plastic toy parts.",
+     "hit": false,
+     "s": 8.176
+    },
+    {
+     "file": "16_mug.jpg",
+     "label": "mug",
+     "answer": "A white mug with a green globe design on it.",
+     "hit": true,
+     "s": 8.236
+    },
+    {
+     "file": "17_orange.jpg",
+     "label": "orange",
+     "answer": "A whole orange and a slice of orange.",
+     "hit": true,
+     "s": 8.897
+    },
+    {
+     "file": "18_pencils.jpg",
+     "label": "pencils",
+     "answer": "A colorful pencil arrangement that looks like a rainbow.",
+     "hit": true,
+     "s": 8.758
+    },
+    {
+     "file": "19_phone.jpg",
+     "label": "phone",
+     "answer": "A black phone showing the time 10:29.",
+     "hit": true,
+     "s": 8.634
+    },
+    {
+     "file": "20_pillow.jpg",
+     "label": "pillow",
+     "answer": "A blue and white patterned square pillow.",
+     "hit": true,
+     "s": 8.902
+    },
+    {
+     "file": "21_remote.jpg",
+     "label": "remote",
+     "answer": "A black remote control with buttons on it.",
+     "hit": true,
+     "s": 9.456
+    },
+    {
+     "file": "22_rubber_duck.jpg",
+     "label": "rubber duck",
+     "answer": "A yellow rubber duck is sitting on a dark, cloudy surface.",
+     "hit": true,
+     "s": 9.401
+    },
+    {
+     "file": "23_scissors.jpg",
+     "label": "scissors",
+     "answer": "A pair of scissors with black handles and silver blades.",
+     "hit": true,
+     "s": 9.13
+    },
+    {
+     "file": "24_shoe.jpg",
+     "label": "shoe",
+     "answer": "A pair of gray sneakers with a white sole.",
+     "hit": true,
+     "s": 8.729
+    },
+    {
+     "file": "25_soccer_ball.jpg",
+     "label": "soccer ball",
+     "answer": "A soccer ball is on the ground.",
+     "hit": true,
+     "s": 8.49
+    },
+    {
+     "file": "26_spoon.jpg",
+     "label": "spoon",
+     "answer": "This is a set of camping utensils, like a knife, fork, spoon, and a bottle opener.",
+     "hit": true,
+     "s": 9.623
+    },
+    {
+     "file": "27_stapler.jpg",
+     "label": "stapler",
+     "answer": "A green stapler.",
+     "hit": true,
+     "s": 8.904
+    },
+    {
+     "file": "28_teddy_bear.jpg",
+     "label": "teddy bear",
+     "answer": "The main object is a white teddy bear.",
+     "hit": true,
+     "s": 9.344
+    },
+    {
+     "file": "29_tennis_ball.jpg",
+     "label": "tennis ball",
+     "answer": "A yellow tennis ball is on the red clay court.",
+     "hit": true,
+     "s": 9.307
+    },
+    {
+     "file": "30_toothbrush.jpg",
+     "label": "toothbrush",
+     "answer": "Three toothbrushes are lying on a towel.",
+     "hit": true,
+     "s": 8.896
+    },
+    {
+     "file": "31_toy_car.jpg",
+     "label": "toy car",
+     "answer": "A red toy car with a sleek design and a number on the side.",
+     "hit": true,
+     "s": 8.675
+    },
+    {
+     "file": "32_umbrella.jpg",
+     "label": "umbrella",
+     "answer": "A small, folded-up umbrella with a patterned fabric and a handle.",
+     "hit": true,
+     "s": 8.989
+    },
+    {
+     "file": "33_vase.jpg",
+     "label": "vase",
+     "answer": "A blue vase with flowers in it.",
+     "hit": true,
+     "s": 8.714
+    },
+    {
+     "file": "34_watch.jpg",
+     "label": "watch",
+     "answer": "A watch with a white face and gold-colored metal.",
+     "hit": true,
+     "s": 8.695
+    },
+    {
+     "file": "35_water_bottle.jpg",
+     "label": "water bottle",
+     "answer": "A red bottle is standing on the floor.",
+     "hit": true,
+     "s": 8.847
+    }
+   ]
+  }
+ ]
+}

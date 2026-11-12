@@ -25,7 +25,7 @@ from .director import Director, system_prompt
 from .llm import make_backend
 from .perception import Perceiver, Recognizer
 from .spectrum import Monitor
-from . import parent as parent_mod, parent_web, scripted
+from . import parent as parent_mod, parent_web, scripted, teach
 from .tts import KITTEN_VOICES, Voices
 from . import debugrec
 from .vad import Segmenter
@@ -91,7 +91,8 @@ def make_handler(hub, eyes, director, rec, voices):
                       "paused": director.paused, "talking": hub.talking, "heard": director.last_heard,
                       "said": [(w, voices.sounds.display(t)) for w, t in director.last_lines], "latency": director.last_latency,
                       "latency_breakdown": director.latency_state(), "latency_profile": config.LATENCY_PROFILE,
-                      "device": getattr(director.llm, "device", "server-configured"), "toys": {}}
+                      "device": getattr(director.llm, "device", "server-configured"), "toys": {},
+                      "cameras": "always on" if config.CAPTURE_CONTINUOUS else "off (on request)"}
                 for t in config.TOY_ORDER:
                     a = hub.atoms.get(t)
                     st["toys"][t] = {"online": t in online, "ip": a.ip if a else "", "cam": bool(a and a.cam),
@@ -341,6 +342,8 @@ def main():
     if config.PARENT_PORT:   # Parent Board: its own port, PIN-protected, encrypted profiles (docs/parent-board.md)
         parent = parent_mod.Parent(activity=lambda: director.last_activity)
         director.parent = parent
+        parent.teacher = teach.Teacher(teach.TeachStore(parent), rec, hub)   # "Teach the camera": encrypted embeddings, brain/teach.py
+        rec.gallery = parent.teacher.store.gallery
         parent_web.serve(parent, director, config.PARENT_PORT)
         if not parent_mod.available():
             log.warning("Parent Board: the 'cryptography' package is missing, profiles cannot be stored (pip install cryptography)")

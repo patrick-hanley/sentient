@@ -1,0 +1,400 @@
+{
+ "note": "Degraded to toy-camera quality (4:3 crop, 320x240, blur, dim+noise, JPEG q50). Originals from Wikimedia Commons; see source/license per image.",
+ "images": [
+  {
+   "file": "00_apple.jpg",
+   "label": "apple",
+   "synonyms": [
+    "apple"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Red_Apple.jpg",
+   "license": "CC BY 2.0",
+   "author": "Abhijit Tembhekar from Mumbai, India"
+  },
+  {
+   "file": "01_backpack.jpg",
+   "label": "backpack",
+   "synonyms": [
+    "backpack",
+    "bag"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:A_backpack_with_trekking_poles_and_shoes.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "SGrabarczuk (WMF)"
+  },
+  {
+   "file": "02_banana.jpg",
+   "label": "banana",
+   "synonyms": [
+    "banana"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Cavendish_banana_from_Maracaibo.jpg",
+   "license": "CC BY-SA 3.0",
+   "author": "Wilfredor"
+  },
+  {
+   "file": "03_blueberries.jpg",
+   "label": "blueberries",
+   "synonyms": [
+    "blueberr",
+    "berries",
+    "bowl",
+    "berry"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Dish_of_blueberries.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Petar Milo\u0161evi\u0107"
+  },
+  {
+   "file": "04_book.jpg",
+   "label": "book",
+   "synonyms": [
+    "book"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Latin_dictionary.jpg",
+   "license": "CC BY-SA 3.0",
+   "author": "Dr. Marcus Gossler"
+  },
+  {
+   "file": "05_cake.jpg",
+   "label": "cake",
+   "synonyms": [
+    "cake",
+    "dessert"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Piece_of_chocolate_cake_on_a_white_plate_decorated_with_chocolate_sauce.jpg",
+   "license": "CC0",
+   "author": "Daria YakovlevaMinor edits made by Subsidiary account"
+  },
+  {
+   "file": "06_chair.jpg",
+   "label": "chair",
+   "synonyms": [
+    "chair",
+    "table",
+    "seat"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Santorin_(GR),_Fira_--_2017_--_2598.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Dietmar Rabich"
+  },
+  {
+   "file": "07_clock.jpg",
+   "label": "clock",
+   "synonyms": [
+    "clock"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Pendulum_clock_by_Jacob_Kock,_antique_furniture_photography,_IMG_0931_edit.jpg",
+   "license": "CC0",
+   "author": "Christoph Braun"
+  },
+  {
+   "file": "08_cup.jpg",
+   "label": "cup",
+   "synonyms": [
+    "cup",
+    "mug"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Coffee_Cup_on_Modern_Table.jpg",
+   "license": "CC0",
+   "author": "Genaro35"
+  },
+  {
+   "file": "09_fork.jpg",
+   "label": "fork",
+   "synonyms": [
+    "fork",
+    "spoon",
+    "knife",
+    "cutlery",
+    "utensil"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Luha.jpg",
+   "license": "Public domain",
+   "author": "Teemu Korhonen"
+  },
+  {
+   "file": "10_hairbrush.jpg",
+   "label": "hairbrush",
+   "synonyms": [
+    "brush",
+    "comb"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Hairbrush_flat.JPG",
+   "license": "CC BY-SA 3.0",
+   "author": "en:User:Musical Linguist"
+  },
+  {
+   "file": "11_kettle.jpg",
+   "label": "kettle",
+   "synonyms": [
+    "kettle"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:2023_Czajnik_elektryczny_N%27OVEEN.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Jacek Halicki"
+  },
+  {
+   "file": "12_keys.jpg",
+   "label": "keys",
+   "synonyms": [
+    "key"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Car_Keys.jpg",
+   "license": "CC BY-SA 3.0",
+   "author": "Mpelletier1"
+  },
+  {
+   "file": "13_lamp.jpg",
+   "label": "lamp",
+   "synonyms": [
+    "lamp",
+    "light"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Lamp_with_a_lampshade_illuminated_by_sunlight.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "LoMit"
+  },
+  {
+   "file": "14_laptop.jpg",
+   "label": "laptop",
+   "synonyms": [
+    "laptop",
+    "computer"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:IBM_Thinkpad_R51.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Andr\u00e9 Karwath aka Aka\n"
+  },
+  {
+   "file": "15_lego.jpg",
+   "label": "lego",
+   "synonyms": [
+    "lego",
+    "brick",
+    "block"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Pile_of_light_gray_LEGO_bricks_at_a_LEGO_store.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Grendelkhan"
+  },
+  {
+   "file": "16_mug.jpg",
+   "label": "mug",
+   "synonyms": [
+    "mug",
+    "cup"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Mug_Wikipedia_Malayalam.jpg",
+   "license": "CC BY-SA 3.0",
+   "author": "Ranjithsiji"
+  },
+  {
+   "file": "17_orange.jpg",
+   "label": "orange",
+   "synonyms": [
+    "orange"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Oranges_-_whole-halved-segment.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Ivar Leidus"
+  },
+  {
+   "file": "18_pencils.jpg",
+   "label": "pencils",
+   "synonyms": [
+    "pencil",
+    "crayon"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Colouring_pencils.jpg",
+   "license": "CC BY-SA 3.0",
+   "author": "MichaelMaggs\u00a0"
+  },
+  {
+   "file": "19_phone.jpg",
+   "label": "phone",
+   "synonyms": [
+    "phone",
+    "smartphone"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Smartphone_display_screen.jpg",
+   "license": "CC0",
+   "author": "Skitterphoto"
+  },
+  {
+   "file": "20_pillow.jpg",
+   "label": "pillow",
+   "synonyms": [
+    "pillow",
+    "cushion"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Batik_Kawung_Cushion.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Gunarta"
+  },
+  {
+   "file": "21_remote.jpg",
+   "label": "remote",
+   "synonyms": [
+    "remote",
+    "controller"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:AverMedia_RM-RH_Remote_control_(white_background)_edit.jpg",
+   "license": "CC BY-SA 3.0",
+   "author": "Taken by the uploader, w:es:Usuario:Barcex"
+  },
+  {
+   "file": "22_rubber_duck.jpg",
+   "label": "rubber duck",
+   "synonyms": [
+    "duck"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Yellow_rubber_duck_in_Rishon_Lezion,_August_2024_05.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Chenspec"
+  },
+  {
+   "file": "23_scissors.jpg",
+   "label": "scissors",
+   "synonyms": [
+    "scissors"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Pair_of_scissors_with_black_handle,_2015-06-07.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Crisco 1492"
+  },
+  {
+   "file": "24_shoe.jpg",
+   "label": "shoe",
+   "synonyms": [
+    "shoe",
+    "sneaker"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:2023_Adidas_Yeezy_350_V2_EF2905_(1).jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Jacek Halicki"
+  },
+  {
+   "file": "25_soccer_ball.jpg",
+   "label": "soccer ball",
+   "synonyms": [
+    "ball",
+    "soccer",
+    "football"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Soccer_Ball_(27181880724).jpg",
+   "license": "CC BY 2.0",
+   "author": "USARJ NCO CORPS\u00a0"
+  },
+  {
+   "file": "26_spoon.jpg",
+   "label": "spoon",
+   "synonyms": [
+    "spoon",
+    "fork",
+    "knife",
+    "cutlery",
+    "utensil"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Feldbesteck_Bundeswehr_TSR_81.jpg",
+   "license": "CC BY-SA 3.0",
+   "author": "Andreas Franzkowiak (User:Bullenw\u00e4chter)"
+  },
+  {
+   "file": "27_stapler.jpg",
+   "label": "stapler",
+   "synonyms": [
+    "stapler"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:A_green_stapler.jpg",
+   "license": "CC0",
+   "author": "Jiafei Slay Queen"
+  },
+  {
+   "file": "28_teddy_bear.jpg",
+   "label": "teddy bear",
+   "synonyms": [
+    "teddy",
+    "bear",
+    "stuffed"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Angry_teddy_bear.jpg",
+   "license": "CC BY-SA 2.0",
+   "author": "Miquel Angel  Pintanel Bassets"
+  },
+  {
+   "file": "29_tennis_ball.jpg",
+   "label": "tennis ball",
+   "synonyms": [
+    "ball",
+    "tennis"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Tennis_ball_on_tennis_court_20170619.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Santeri Viinam\u00e4ki"
+  },
+  {
+   "file": "30_toothbrush.jpg",
+   "label": "toothbrush",
+   "synonyms": [
+    "toothbrush"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Toothbrush_x3_20050716_002.jpg",
+   "license": "Public domain",
+   "author": "Jonas Bergsten"
+  },
+  {
+   "file": "31_toy_car.jpg",
+   "label": "toy car",
+   "synonyms": [
+    "car",
+    "toy"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Ferrari_250_GTO,_CMC-Model_1-18_(vorn_links_2017-03-23).JPG",
+   "license": "CC BY-SA 2.0 de",
+   "author": "Lothar Spurzem"
+  },
+  {
+   "file": "32_umbrella.jpg",
+   "label": "umbrella",
+   "synonyms": [
+    "umbrella"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:1955_Dodge_La_Femme_Umbrella_Closed.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Tony Lindsey"
+  },
+  {
+   "file": "33_vase.jpg",
+   "label": "vase",
+   "synonyms": [
+    "vase",
+    "flowers"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Vase_of_Flowers_and_Refraction.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "MsFrazzle"
+  },
+  {
+   "file": "34_watch.jpg",
+   "label": "watch",
+   "synonyms": [
+    "watch",
+    "clock"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Fossil_wristwatch_with_white_background.jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Cvmontuy"
+  },
+  {
+   "file": "35_water_bottle.jpg",
+   "label": "water bottle",
+   "synonyms": [
+    "bottle"
+   ],
+   "source": "https://commons.wikimedia.org/wiki/File:Water_bottle_(13779).jpg",
+   "license": "CC BY-SA 4.0",
+   "author": "Mukesh721"
+  }
+ ]
+}

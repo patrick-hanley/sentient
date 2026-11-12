@@ -253,7 +253,7 @@ function health(t,h){const e=$('hl_'+t);if(!h||!h.fw){e.textContent='';e.classNa
   e.textContent=`${h.fw} · ${h.clips} clips · speaker repairs ${h.sfix||0}${+h.sfail?` (${h.sfail} failed)`:''} · mic repairs ${h.mfix||0}${+h.mfail?` (${h.mfail} failed)`:''}`}
 function renderState(s){
   const online=T.filter(t=>s.toys[t].online);
-  const chips=[chip(s.backend||'brain',''),chip(s.device||'device',''),chip(s.latency_profile||'profile',''),chip(online.length+' of '+T.length+' toys online',online.length===T.length?'ok':(online.length?'warn':'bad'))];
+  const chips=[chip(s.backend||'brain',''),chip(s.device||'device',''),chip(s.latency_profile||'profile',''),chip('cameras: '+(s.cameras||'off'),(s.cameras||'off').startsWith('off')?'':'warn'),chip(online.length+' of '+T.length+' toys online',online.length===T.length?'ok':(online.length?'warn':'bad'))];
   if(s.paused)chips.push(chip('canned scene playing','warn'));
   $('chips').replaceChildren(...chips);
   for(const t of T){const x=s.toys[t],b=$('b_'+t);
@@ -267,7 +267,7 @@ function renderState(s){
     const vc=x.voice||{};$('vc_'+t).textContent=vc.engine?`Voice: ${vc.label} (${vc.engine}${vc.quant?' '+vc.quant:''})`:'Voice';
     if(x.online&&x.cam&&!document.hidden&&!frameBusy[t]){frameBusy[t]=true;const im=$('i_'+t);
       im.onload=()=>{frameBusy[t]=false;im.hidden=false;$('nc_'+t).hidden=true};
-      im.onerror=()=>{frameBusy[t]=false;im.hidden=true;$('nc_'+t).hidden=false};
+      im.onerror=()=>{frameBusy[t]=false;im.hidden=true;$('nc_'+t).hidden=false;$('nc_'+t).textContent='Camera off'};
       im.src='/frame/'+t+'.jpg?'+Date.now()}
     if(!x.online||!x.cam){$('i_'+t).hidden=true;$('nc_'+t).hidden=false;$('nc_'+t).textContent=x.online?'No camera':'Offline'}}
   $('heard').textContent=s.heard||' ';renderSaid(s.said||[]);
