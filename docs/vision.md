@@ -125,3 +125,57 @@ SENTIENT_VISION_MODEL=llamacpp SENTIENT_VISION_URL=http://127.0.0.1:8082 ...
 
 Florence-2 (`SENTIENT_VISION_MODEL=florence`) is also available in-process; it is small but has no free
 prompt and tied SmolVLM-256M on accuracy.
+
+## Camera policy: off unless the child asks
+
+The toys' cameras are **off by default**. The brain never polls them. A toy takes one picture only when the child asks it to look, from the toy that heard the child, and the camera is off again as soon as the frame is captured.
+
+| | before | now |
+|---|---|---|
+| `Perceiver.start()` | polled every toy at `CAPTURE_FPS` | starts nothing (opt-in: `SENTIENT_CAMERA_CONTINUOUS=1`) |
+| greeting familiar faces/pets (`on_seen`) | on every poll | only in continuous mode |
+| `[SCENE]` in the prompt | what each toy saw 0–2 s ago | "All cameras are off; a toy looks only when the child asks." |
+| dashboard | live frame per toy | "Camera off" tile, chip `cameras: off (on request)` |
+
+("Off" means the brain never requests a frame. The Atom firmware keeps its camera initialised and only exposes `/capture`; nothing reads it.)
+
+### Detecting the request (`brain/camera.py`)
+
+Two paths, both in the same turn:
+
+1. **Transcript rules** (`camera.wants_look`): used whenever there is a transcript (llama.cpp / GenieX backends, which transcribe first). About 25 patterns: "what do you see", "look at this/that/what I made", "what is this/that/these", "can/do you see …", "what am I holding", "who's this", "what colour is this", "let me show you …", "take a look", "check this out". Refusals ("don't look", "stop looking", "turn the camera off", "no peeking") and idioms ("look up", "look for my shoes", "see you later", "let's see how many") never match. The picture is taken before the first model call, so a look turn costs one model call.
+2. **The LOOK handshake** (LiteRT Gemma hears the child's audio directly, so there is no transcript up front): the system prompt tells Gemma that the cameras are off and that when the child asks it to look it must reply with the single word `LOOK`. `camera.LookPeeler` sits between the model stream and the reply parser, recognises a first word `LOOK` however it is chunked, and swallows it. Any other reply passes through byte for byte with no added delay (a toy line starts `DYNO:`/`SAGE:`/`PENNY:`/`HEARD:`, which cannot be a prefix of LOOK after its first letter). The director then calls `Perceiver.snap(toy)` (a forced capture, allowed mid-turn, plus the usual face/tag analysis), writes the JPEG to a `/dev/shm` temp file, calls `Perceiver.close(toy)` (camera off, frame forgotten) and sends a second message in the same conversation: a `[CAMERA]` block plus the image. The question is already in the conversation as audio. The "Hmm!" filler that already plays at turn start covers the extra round trip. A second `LOOK` in one turn is ignored; a dead camera produces an honest "my eyes are not working" prompt.
+
+The extra latency of a look turn is one short model round trip (audio prefill plus ~2 tokens) + one capture (~0.1–0.3 s over the hotspot) + the second call with the image. It is recorded in the turn trace as `look_ms` (stage work) and `look_done_ms` (milestone); ordinary turns are unchanged. Jetson numbers: see "Jetson measurements" below.
+
+Privacy: the frame exists in RAM and in one temp file that the end of the turn deletes (`tmp_files`), the `View` is dropped by `close()`, nothing is logged about what was seen.
+
+## Teach the camera (Parent Board)
+
+Parent Board → **Teach the camera**. A parent can teach, by name:
+
+| teach | stored | recognised as |
+|---|---|---|
+| a parent / family member | SFace face vectors | `person` named by the parent (an unknown face stays **"a person"**) |
+| the child | SFace face vectors | **"the child"** (only a face enrolled as the child gets that label) |
+| a toy's look (Dyno, Sage, Penny) | appearance vectors from *another* toy's camera | the toy, **with no ArUco tag** (tags still work) |
+| a household item ("red cup") | appearance vectors | `object` with the parent's name |
+
+Photos come from a toy's own camera (the camera is on only while the button runs: 6 frames, forced capture) or are uploaded from the parent's phone (up to 10, one request each). Every enrollment needs the consent box; the server refuses without it and touches no camera first.
+
+Rules it keeps (all covered by `tools/test_vision.py`):
+
+- **embeddings only**: photos are decoded in RAM, turned into vectors and dropped; nothing but `teach.enc` is written;
+- **encrypted like the profiles**: AES-GCM under the Parent Board key (`SPB1` format, scrypt-wrapped by the family PIN), file `brain/data/parent/teach.enc`. While the board is locked (after a restart, until a parent enters the PIN) **nothing is recognised**: unknown faces are "a person";
+- **deletable**: per entry from the board, with the child's profile (`forget_child`), and with "Delete all profiles" (`wipe_all` overwrites every file in the directory);
+- **never logged**: the log says only `teach: person enrolled from 6 photo(s)`; the old startup line that listed enrolled names now logs counts; the web server logs no requests;
+- the board never receives vectors (`/api/teach/list` returns kind, name, photo count).
+
+How recognition works (`Recognizer.analyze`): faces use SFace cosine ≥ `FACE_MATCH` against the encrypted gallery (the legacy `enroll.npz` CLI path still works and is checked first). Toys and items are compared on up to four regions of the frame (the detector's two largest boxes, the centre 60 %, the whole frame) with the MediaPipe image embedder where installed and otherwise an OpenCV colour-histogram embedder (brightness-stretched so the dim toy cameras match, so it also works on the Mac). A thing is claimed only if its score clears the embedder's threshold (`SENTIENT_THING_MATCH_MP`=0.80, `_HIST`=0.90) and beats the runner-up by 0.03; a toy never recognises itself and a toy already found by its tag is not reported twice. Entries remember which embedder made them, so a brain moved between machines never mixes scales.
+
+Limits: thresholds were set on synthetic and Mac-only data (the MediaPipe embedder is not installable on the Intel Mac), so **calibrate on the Jetson with the real toys** before trusting them: enroll each toy and two items from a neighbouring toy's camera, then run `tools/test_vision.py`-style checks live (see "Jetson to-do").
+
+## Jetson to-do (when the hardware is free)
+1. Deploy, restart, `POST /mute`; say "what do you see?" to each toy and read `look_ms` / `look_done_ms` in the turn log (the LOOK round trip is untested on hardware).
+2. Run the vision benchmark command above for Gemma (LiteRT is the real runtime) and Qwen3-VL-2B Q4 / SmolVLM-256M; fill in "Jetson numbers".
+3. Teach each toy and two items from a neighbouring toy's camera, check recognition, and tune `SENTIENT_THING_MATCH_MP` / `_HIST`.

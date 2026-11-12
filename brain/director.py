@@ -702,6 +702,15 @@ class Director:
         return (not config.CAPTURE_CONTINUOUS and hasattr(self.eyes, "snap") and bool(a and getattr(a, "cam", False))
                 and getattr(config, "LOOK_ON_REQUEST", True))
 
+    def _vision_model(self):
+        if not hasattr(self, "_vm"):
+            try:
+                from .vision_model import make_vision
+                self._vm = make_vision(getattr(config, "VISION_MODEL", "gemma"))
+            except Exception:  # noqa: BLE001
+                self._vm = None
+        return self._vm
+
     def _look_turn(self, toy, prompt, scene, said, image, tmp_files, trace, replace=True):
         """Turn `toy`'s camera on for ONE picture, then off. Returns (prompt, image path) for the model call that answers it.
         replace=True swaps the [SCENE] line of an existing prompt for the [CAMERA] block (transcript path); replace=False
@@ -715,6 +724,11 @@ class Director:
                     path, got = self._tmp(view.jpeg, ".jpg"), True
                     tmp_files.append(path)
                     text = view.describe()
+                    vm = self._vision_model()
+                    if vm:   # optional separate vision-to-text model (SENTIENT_VISION_MODEL != gemma): its caption goes in as text
+                        cap = vm.describe(view.jpeg, said or "")
+                        if cap:
+                            text += f' A vision model describes the picture as: "{cap}".'
             except Exception:  # noqa: BLE001 — a camera hiccup must never break the turn
                 log.warning("look failed for %s", toy)
             finally:
