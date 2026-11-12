@@ -83,3 +83,13 @@ Everything is in RAM: ~4 s of frames per listener, the clip being played, filter
 ## Knobs (`brain/config.py`)
 
 `SENTIENT_AEC=0` (off), `SENTIENT_AEC_MU`, `AEC_PARTS`, `AEC_SEARCH_S`, `AEC_PLACE_S`, `AEC_MIN_SCORE(_PLACE)`, `AEC_DT_RATIO`, `AEC_MIN_RMS`, `AEC_BARGE_MS`, `AEC_PREROLL_FRAMES`, `AEC_STOP_LATENCY_S`.
+
+## How to resume the hardware measurement (paused Nov 12 by the user; hardware released)
+
+State left behind: Jetson runs main's code (no `brain/aec.py` there), mics muted, toy speakers at volume 0, `SENTIENT_AEC_DUMP` unset, no dump files in `/dev/shm`. Nothing is half done on the toys.
+
+To resume, only when the user says sound is allowed again and the firmware change (mic `seq` follows time, or a capture timestamp in `M` packets) is flashed and the brain reads it:
+1. `rsync -a --exclude data --exclude __pycache__ brain/ sentient@sentient-jetson.local:/data/sentient/brain/` and `tools/`, then `sudo systemctl restart sentient-brain` and `POST localhost:8080/mute` at once. Set `SENTIENT_AEC=1` for the service (it is off by default); raise toy volumes to 255 (`/speaker?toy=X&vol=255`); set them back to 0 and re-deploy main when finished.
+2. ERLE: `/say?toy=<t>&text=...` from each toy in turn (3 clips each, 12 s apart), mics muted; read `journalctl -u sentient-brain | grep "atoms      aec "` (one line per listener: mic rms, ERLE, lag, q). Success = ERLE over 10 dB with a stable lag per pair. Check mic frames/s in a dump (`SENTIENT_AEC_DUMP=/dev/shm`, toy-only audio, delete after): it must be 50 with the new firmware.
+3. False triggers: unmute (`POST /mute`), no one talking, the same clips, count `barge-in:` log lines. Barge-in latency: ask the user to talk over a toy ~20 times at 0.5 m and 2 m.
+Debug aid: `log.debug("aec search ...")` in `AecManager._acquire` shows each GCC-PHAT attempt (lag, score, mic/ref rms).
