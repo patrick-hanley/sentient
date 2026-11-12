@@ -7,6 +7,10 @@ Per human utterance: time from the end of speech to the first agent audio (fille
 reply (a /play longer than --filler-max seconds). Also: overlap (two toys playing at once), talk-over (an agent
 starts while a human is still speaking), dead air between consecutive agent clips, and talk-time share per toy.
 Compares against the brain's own milestones when <run>.turns.json is next to the event log.
+
+--rubric also feeds the same timings to brain.metrics (the conversation-rubric tracker): turn-taking ratio, response latency,
+reciprocity loop, initiation ratio and the timing-only scores. A virtual run has no words, so every real reply (longer than
+--filler-max) is ASSUMED to end with a question/invitation (a cue), and the text-based categories read n/a.
 """
 from __future__ import annotations
 
@@ -89,13 +93,49 @@ def score(path, filler_max=1.5):
     return out
 
 
+def rubric(path, filler_max=1.5):
+    """Timing-only rubric metrics for a virtual-Atoms run (see the module docstring for the assumption made)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from brain import metrics
+    ev = load(path)
+    plays, speech, open_play, open_sp = [], [], {}, {}
+    for e in ev:
+        if e["ev"] == "play_start":
+            open_play[e["toy"]] = e
+        elif e["ev"] == "play_end" and e["toy"] in open_play:
+            st = open_play.pop(e["toy"])
+            plays.append({"s": st["t"], "e": e["t"], "dur": st["dur"]})
+        elif e["ev"] == "speech_start" and e["label"] != "silence":
+            open_sp[(e["toy"], e["label"])] = e
+        elif e["ev"] == "speech_end" and e["label"] != "silence" and (e["toy"], e["label"]) in open_sp:
+            st = open_sp.pop((e["toy"], e["label"]))
+            if not e["label"].startswith("chain"):
+                speech.append({"s": st["t"], "e": e["t"]})
+    events = [{"k": "child", "s": h["s"], "e": h["e"], "f": None} for h in speech]   # the metrics merge the same voice heard by several mics
+    events += [{"k": "audio", "s": p["s"], "e": p["e"]} for p in plays]
+    turn = None
+    for p in sorted(plays, key=lambda p: p["s"]):
+        if p["dur"] <= filler_max:
+            continue
+        if turn and p["s"] - turn["e"] < metrics.TURN_JOIN_S and not any(turn["e"] <= h["s"] <= p["s"] for h in speech):
+            turn["e"] = p["e"]
+        else:
+            turn = {"k": "toy", "s": p["s"], "e": p["e"], "init": False, "q": True, "invite": False, "open": False}
+            events.append(turn)
+    return metrics.analyze(events)
+
+
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--rubric", action="store_true", help="also print the conversation-rubric metrics (timing only)")
     ap.add_argument("runs", nargs="+")
     ap.add_argument("--filler-max", type=float, default=1.5)
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
     res = [score(r, a.filler_max) for r in a.runs]
+    if a.rubric:
+        for r, path in zip(res, a.runs):
+            r["rubric"] = rubric(path, a.filler_max)
     if a.json:
         print(json.dumps(res, indent=1))
         return
@@ -105,6 +145,9 @@ def main():
             print(f"  {k:20s} n={r[k]['n']} p50={r[k]['p50']} p95={r[k]['p95']}")
         print(f"  overlaps {r['overlaps']}  talk-over {r['talk_over']}  half-duplex violations {r['half_duplex_violations']}"
               f"  dead-air {r['dead_air_gaps']} ({r['dead_air_rate']:.0%})  talk share {r['talk_share']}")
+        if "rubric" in r:
+            m, sc = r["rubric"]["metrics"], r["rubric"]["scores"]
+            print(f"  rubric (timing only): T_R={m['T_R']} I:R={m['IR']} C_R={m['C_R']} latency median={m['L_med']}s  scores={sc}")
         for k, v in r.get("brain_ms", {}).items():
             print(f"  brain {k:22s} p50={v['p50']} p95={v['p95']}")
     if len(res) == 2 and all(r["first_real_reply_s"]["p50"] is not None for r in res):

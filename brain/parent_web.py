@@ -22,6 +22,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from . import curriculum_picks
 from . import parent as P
 from . import scripted
+from . import coaching, metrics, report          # progress / coaching views (docs/metrics.md)
+from .progress import ProgressStore
 
 log = logging.getLogger("parent-web")
 
@@ -113,6 +115,18 @@ def make_handler(parent: P.Parent, director=None):
                         "cues": [{"id": k, "label": v["label"]} for k, v in scripted.CUES.items()],
                         "toys_online": list(director.hub.online()) if director else [],
                         "gemma": bool(director and hasattr(director.llm, "complete"))})
+                if u.path == "/api/progress":      # numbers-only session history + the toys' coaching state for one child
+                    data = ProgressStore(parent).load(q.get("child", ""))
+                    sessions = [dict(x, notes=metrics.qualitative(x)) for x in data["sessions"]]
+                    return self._send(200, {"sessions": sessions, "coach": coaching.describe(data["coach"]), "targets": metrics.TARGETS,
+                                            "labels": metrics.LABELS, "categories": list(metrics.CATEGORIES)})
+                if u.path == "/api/progress/export":   # generated on demand, never stored
+                    data = ProgressStore(parent).load(q.get("child", ""))
+                    sess = next((x for x in data["sessions"] if x.get("id") == q.get("session")), None)
+                    if not sess:
+                        return self._send(404, {"error": "no such session"})
+                    name = next((c["name"] for c in parent.children() if c["id"] == q.get("child")), None)
+                    return self._send(200, report.session_markdown(sess, name), "text/markdown")
                 if u.path == "/api/items":
                     return self._send(200, {"items": parent.view(q.get("child", ""))})
                 if u.path == "/api/curriculum":   # read-only: what the toys can teach at this child's grade, with the parent's picks
@@ -202,6 +216,8 @@ def make_handler(parent: P.Parent, director=None):
                 if not director:
                     return self._send(503, {"error": "toys are not connected"})
                 return self._send(200, director.cue(str(b.get("text", ""))[:200], b.get("cue"), bool(b.get("urgent"))))
+            if path in ("/api/progress/clear", "/api/progress/session/delete", "/api/coach"):
+                return self._progress_post(path, b)
             if path == "/api/checkin/done":
                 parent.checkin_done()
                 return self._send(200, {"ok": True})
@@ -220,6 +236,28 @@ def make_handler(parent: P.Parent, director=None):
                 parent.wipe_all(str(b.get("pin", "")))
                 return self._send(200, {"ok": True}, cookie=self._cookie(None))
             self._send(404, {"error": "not found"})
+
+        def _progress_post(self, path, b):
+            cid, store = str(b.get("child", "")), ProgressStore(parent)
+            if path == "/api/progress/clear":
+                store.clear(cid)
+            elif path == "/api/progress/session/delete":
+                store.delete_session(cid, str(b.get("id", "")))
+            else:       # /api/coach: the parent's controls over what the toys adapt
+                act, rid = b.get("action"), str(b.get("id", ""))
+                if act in ("enable", "disable"):
+                    store.mutate_coach(cid, lambda st: coaching.set_enabled(st, act == "enable"))
+                elif act == "undo":
+                    store.mutate_coach(cid, lambda st: coaching.undo(st, rid))
+                elif act == "reset":
+                    store.mutate_coach(cid, coaching.reset)
+                elif act == "review":
+                    store.mutate_coach(cid, lambda st: coaching.resolve_review(st, rid, str(b.get("decision", ""))))
+                else:
+                    return self._send(400, {"error": "unknown action"})
+            if director:
+                director.live.refresh(cid)     # the toys pick up the change at once
+            return self._send(200, {"ok": True})
 
     return H
 

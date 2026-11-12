@@ -40,6 +40,16 @@ details{border-top:1px solid var(--line);padding:10px 0}details>summary{cursor:p
 details>div{margin-top:10px}
 .save{position:sticky;bottom:0;background:var(--card);padding:10px 0 2px;margin-top:10px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 @media(max-width:560px){.edit{grid-template-columns:1fr auto}.edit select{grid-column:1/2}.card{grid-template-columns:1fr}.card .acts{justify-content:flex-start}}
+/* metrics:css begin (Progress) */
+.pg-top{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:center}.pg-big{font-size:34px;font-weight:700;line-height:1}.pg-big small{font-size:16px;color:var(--mut);font-weight:400}
+.pg-bar{display:grid;grid-template-columns:minmax(110px,170px) 1fr 2.2em;gap:8px;align-items:center;font-size:14px;margin:3px 0}
+.pg-track{height:8px;background:var(--soft);border-radius:4px;overflow:hidden}.pg-track i{display:block;height:100%;background:var(--acc)}
+.pg-met{display:grid;grid-template-columns:1fr auto auto;gap:4px 12px;font-size:14px;padding:4px 0;border-top:1px solid var(--line)}.pg-met:first-of-type{border-top:0}
+.pg-ok{color:var(--acc)}.pg-near{color:var(--warn)}.pg-na{color:var(--mut)}
+.pg-lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}.pg-lists ul{margin:4px 0 0;padding-left:18px;font-size:14px}
+.pg-dials{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:8px 0}.pg-dial{font-size:14px}.pg-dial span.s{display:inline-block;width:14px;height:8px;border-radius:2px;background:var(--soft);margin-right:3px}.pg-dial span.s.f{background:var(--acc)}
+.pg-sub{margin-top:16px}.pg-sub>h3{margin-bottom:4px}
+/* metrics:css end */
 </style></head><body><main>
 
 <section id=lock class=panel hidden style="margin-top:24px">
@@ -77,6 +87,13 @@ details>div{margin-top:10px}
  <div class=chips id=filters role=group aria-label="Filter by category"></div>
  <div class=panel id=items></div>
 </section>
+
+<!-- metrics:begin -->
+<section aria-labelledby=progh>
+ <div class=head><h2 id=progh>Progress</h2><p class=mut id=prognote></p></div>
+ <div class=panel id=prog></div>
+</section>
+<!-- metrics:end -->
 
 <section>
  <details id=currdet style="border-top:0;padding-top:0"><summary id=currsum>What the toys can teach at this grade</summary><div>
@@ -126,10 +143,10 @@ $("lockNow").onclick=async()=>{await api("/api/lock",{});showLock()};
 
 /* ---------- children and state ---------- */
 const child=()=>S&&S.children.find(c=>c.id==kid);
-async function load(){S=await api("/api/state");$("app").hidden=false;bump();if(!kid||!child())kid=S.bound||(S.children[0]||{}).id||null;draw();await items()}
+async function load(){S=await api("/api/state");$("app").hidden=false;bump();if(!kid||!child())kid=S.bound||(S.children[0]||{}).id||null;draw();await items();progress()}
 function draw(){
  const k=$("kids");k.textContent="";
- S.children.forEach(c=>{const b=el("button");const d=el("span","","dot");d.style.background=c.color;b.append(d,c.name+(S.bound==c.id?" · playing":""));b.setAttribute("aria-pressed",String(c.id==kid));b.onclick=()=>{kid=c.id;filter="all";draw();items()};k.append(b)});
+ S.children.forEach(c=>{const b=el("button");const d=el("span","","dot");d.style.background=c.color;b.append(d,c.name+(S.bound==c.id?" · playing":""));b.setAttribute("aria-pressed",String(c.id==kid));b.onclick=()=>{kid=c.id;filter="all";draw();items();progress()};k.append(b)});
  const add=el("input");add.placeholder="Add a child (first name)";add.setAttribute("aria-label","Add a child");add.style.cssText="flex:1 1 140px;width:auto;max-width:220px;min-height:40px";
  const ab=el("button","Add");ab.onclick=async()=>{if(add.value.trim()){const c=await api("/api/child/add",{name:add.value});kid=c.id;await load()}};add.onkeydown=e=>{if(e.key=="Enter")ab.click()};k.append(add,ab);
  const c=child();
@@ -230,5 +247,90 @@ $("cday").onchange=$("chour").onchange=async()=>{await api("/api/settings",{chec
 $("chpin").onclick=async()=>{try{await api("/api/pin/change",{old:$("oldpin").value,new:$("newpin").value});$("setmsg").textContent="PIN changed.";$("oldpin").value=$("newpin").value=""}catch(e){$("setmsg").textContent=e.message}};
 $("clearall").onclick=async()=>{if(kid&&confirm("Delete every note for this child?")){await api("/api/items/clear",{child:kid});await items()}};
 $("wipe").onclick=async()=>{if(prompt("This deletes every profile and the PIN. Type DELETE to continue.")=="DELETE"){const pin=prompt("Enter the family PIN to confirm.");if(pin){try{await api("/api/wipe",{confirm:"DELETE",pin:pin});showLock()}catch(e){$("setmsg").textContent=e.message}}}};
+/* metrics:js begin (Progress: numbers and tags only; every API string goes in via textContent) */
+let PG=null;const DASH="–";
+const pgn=(v,d)=>v==null||isNaN(v)?DASH:(+v).toFixed(d);
+function pgCls(v,kind){if(v==null||isNaN(v))return["pg-na","n/a"];
+ const e=kind=="ratio"?Math.abs(v-1)<=.25?0:Math.abs(v-1)<=.6?1:2:kind=="c"?v>=5?0:v>=3.5?1:2:v>=1&&v<=2?0:v>=.6&&v<=2.8?1:2;
+ return[["pg-ok","on target"],["pg-near","close"],["pg-na","not yet"]][e]}
+async function progress(){const box=$("prog");PG=null;$("prognote").textContent="";
+ if(!kid){box.textContent="";box.append(el("p","Add a child to see progress.","mut"));return}
+ try{PG=await api("/api/progress?child="+encodeURIComponent(kid))}catch(e){box.textContent="";if(e.message!="locked")box.append(el("p",e.message,"mut err"));return}
+ box.textContent="";renderProgress()}
+async function pgPost(path,body){try{await api(path,body)}catch(e){if(e.message!="locked")$("prognote").textContent=e.message;return}await progress()}
+async function pgExport(sid){try{const r=await fetch("/api/progress/export?child="+encodeURIComponent(kid)+"&session="+encodeURIComponent(sid),{headers:{"X-PB":"1"}});
+ if(r.status==401){showLock();return}if(!r.ok)throw new Error("Could not export that session.");
+ const u=URL.createObjectURL(await r.blob()),a=document.createElement("a");a.href=u;a.download="session-log.md";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
+ catch(e){$("prognote").textContent=e.message}}
+function pgSpark(list){const NS="http://www.w3.org/2000/svg",w=240,h=44,n=list.length,bw=w/12,svg=document.createElementNS(NS,"svg");
+ svg.setAttribute("viewBox","0 0 "+w+" "+h);svg.setAttribute("role","img");svg.style.cssText="width:100%;max-width:360px;height:auto";
+ svg.setAttribute("aria-label","Score of the last "+n+" sessions, oldest first: "+list.map(x=>x.total+" of "+x.of).join(", "));
+ list.forEach((x,i)=>{const f=x.of?x.total/x.of:0,bh=Math.max(2,f*(h-4)),r=document.createElementNS(NS,"rect");
+  r.setAttribute("x",i*bw+2);r.setAttribute("width",bw-4);r.setAttribute("y",h-bh);r.setAttribute("height",bh);r.setAttribute("rx",2);r.setAttribute("fill","currentColor");r.setAttribute("opacity",i==n-1?"1":".45");svg.append(r)});
+ svg.style.color="var(--acc)";return svg}
+function pgList(title,items,empty){const d=el("div");d.append(el("h3",title));
+ if(!items||!items.length){d.append(el("p",empty,"mut"));return d}
+ const u=el("ul");items.forEach(t=>u.append(el("li",t)));d.append(u);return d}
+function renderProgress(){
+ const box=$("prog"),D=PG,ss=D.sessions.slice().sort((a,b)=>a.start-b.start),c=D.coach;
+ const priv=el("p","Only numbers are kept – never what your child says or any recording.","mut");
+ if(!ss.length){box.append(el("p","No sessions yet. A session is kept once the child has been marked “Playing now” and this board is unlocked while they chat with the toys. Press “Playing now” above, then let them play."),priv);
+  box.append(adaptBlock(c,D));return}
+ const last=ss[ss.length-1],lbl=D.labels||{},T=D.targets||{};
+ const top=el("div","","pg-top"),big=el("div","","pg-big");big.append(String(last.total),el("small"," / "+last.of));top.append(big);
+ const when=el("div");when.append(el("div","Latest session: "+new Date(last.start*1000).toLocaleString()+", "+Math.max(1,Math.round(last.duration_s/60))+" min"));
+ if(last.of<20)when.append(el("div","Scored out of "+last.of+": some areas could not be measured in this session.","mut"));top.append(when);box.append(top);
+ const bars=el("div","","pg-sub");bars.append(el("h3","By area (0 to 4)"));
+ D.categories.forEach(k=>{const v=last.scores?last.scores[k]:null,r=el("div","","pg-bar"),t=el("div","","pg-track"),i=el("i");i.style.width=v==null?"0":(v/4*100)+"%";t.append(i);
+  r.append(el("span",lbl[k]||k),t,el("span",v==null?DASH:String(v)));bars.append(r)});box.append(bars);
+ const m=last.metrics||{},mt=el("div","","pg-sub");mt.append(el("h3","Against the targets"));
+ [["Turns: toy to child ratio (T:R)",pgn(m.T_R,2),"aim for about "+pgn(T.T_R,1),pgCls(m.T_R,"ratio")],
+  ["Child starts vs replies (I:R)",pgn(m.IR,2),"aim for about "+pgn(T.IR,1),pgCls(m.IR,"ratio")],
+  ["Back-and-forth depth (C:R)",pgn(m.C_R,1),"aim for "+pgn(T.C_R,0)+" or more",pgCls(m.C_R,"c")],
+  ["Median reply time",m.L_med==null?DASH:pgn(m.L_med,2)+" s","aim for "+pgn(T.L_lo,0)+" to "+pgn(T.L_hi,0)+" s",pgCls(m.L_med,"lat")]]
+  .forEach(([n,v,tg,[cl,w]])=>{const r=el("div","","pg-met");r.append(el("span",n),el("b",v,cl),el("span",tg+" · "+w,"mut"));mt.append(r)});box.append(mt);
+ if(ss.length>1){const tr=el("div","","pg-sub");tr.append(el("h3","Last "+Math.min(12,ss.length)+" sessions"));tr.append(pgSpark(ss.slice(-12)));box.append(tr)}
+ const nt=last.notes||{},ls=el("div","","pg-lists");
+ ls.append(pgList("Strengths",nt.strengths,"Nothing stands out yet."),pgList("Areas to work on",nt.targets,"Nothing to flag."),pgList("Context",nt.factors,"No notes."));box.append(ls);
+ const sl=el("div","","pg-sub");sl.append(el("h3","Sessions"));
+ ss.slice().reverse().forEach(x=>{const r=el("div","","card"),t=el("div","","txt");
+  t.append(new Date(x.start*1000).toLocaleString()+" · "+Math.max(1,Math.round(x.duration_s/60))+" min · ",el("b",x.total+" / "+x.of));
+  const a=el("div","","acts"),ex=el("button","Export log","q"),dl=el("button","Delete","q danger");
+  ex.onclick=()=>pgExport(x.id);dl.setAttribute("aria-label","Delete session "+new Date(x.start*1000).toLocaleString());
+  dl.onclick=()=>{if(confirm("Delete this session?"))pgPost("/api/progress/session/delete",{child:kid,id:x.id})};a.append(ex,dl);r.append(t,a);sl.append(r)});box.append(sl);
+ box.append(adaptBlock(c,D));
+ const cl=el("div","","row");cl.style.marginTop="12px";const cb=el("button","Delete all progress for this child","danger");
+ cb.onclick=()=>{if(confirm("Delete all session history and everything the toys learned about how to chat with this child? This cannot be undone."))pgPost("/api/progress/clear",{child:kid})};cl.append(cb);box.append(cl,priv)}
+function adaptBlock(c,D){
+ const w=el("div","","pg-sub"),kn={};c.knobs.forEach(k=>kn[k.name]=k);w.append(el("h3","How the toys are adapting"));
+ const row=el("div","","row");row.style.margin="6px 0";const sw=el("button",c.enabled?"On":"Off");sw.setAttribute("role","switch");sw.setAttribute("aria-checked",String(!!c.enabled));sw.setAttribute("aria-pressed",String(!!c.enabled));
+ sw.onclick=()=>pgPost("/api/coach",{child:kid,action:c.enabled?"disable":"enable"});
+ row.append(sw,el("span","When on, the toys make small changes to how they chat, based on these scores. When off, they behave as before.","mut grow"));w.append(row);
+ const dl=el("div","","pg-dials");c.knobs.forEach(k=>{const d=el("div","","pg-dial");d.append(el("div",k.label));const bar=el("div");
+  for(let i=k.min;i<=k.max;i++){const s=el("span","","s"+(i<=k.level?" f":""));bar.append(s)}
+  bar.append(el("span"," "+k.level+(k.level==k.default?" (default)":""),"mut"));bar.setAttribute("role","img");bar.setAttribute("aria-label",k.label+": level "+k.level+" of "+k.max);d.append(bar);dl.append(d)});w.append(dl);
+ if(c.pending){const p=c.pending,k=kn[p.knob],cat=(D.labels||{})[(p.why||{}).weak];
+  w.append(el("p","Being tried now: "+(k?k.label:p.knob)+", level "+p.from+" to "+p.to+(cat?", to help with “"+cat+"”":"")+". Judged after "+(p.after?p.after.length:0)+" of 2 more sessions.","mut"))}
+ const lg=el("div");lg.append(el("h3","What changed"));lg.firstChild.style.marginTop="8px";
+ if(!c.log.length)lg.append(el("p","Nothing yet.","mut"));
+ c.log.forEach(e=>{const k=kn[e.knob],name=k?k.label:(e.knob||"");let t;
+  if(e.kind=="change")t="Changed “"+name+"” from "+e.frm+" to "+e.to+(e.category?", because “"+e.category+"” was the weakest area.":".");
+  else if(e.kind=="kept")t="Kept the change to “"+name+"”: scores held up.";
+  else if(e.kind=="rollback")t="Rolled back “"+name+"” to "+e.to+": scores dropped, so it was undone.";
+  else if(e.kind=="undo")t="You undid the change to “"+name+"”.";
+  else if(e.kind=="reset")t="Everything reset to defaults.";
+  else if(e.kind=="switch")t="Adapting turned "+(e.to?"on":"off")+".";else t=e.kind;
+  const r=el("div","","card"),tx=el("div","","txt");tx.append(t,el("span",new Date(e.t*1000).toLocaleDateString(),"tag"));const a=el("div","","acts");
+  if(e.kind=="change"&&k&&k.level==e.to&&!c.log.some(x=>x.kind=="undo"&&x.of==e.id)){const u=el("button","Undo","q");u.onclick=()=>pgPost("/api/coach",{child:kid,action:"undo",id:e.id});a.append(u)}
+  r.append(tx,a);lg.append(r)});w.append(lg);
+ const rb=el("button","Reset to defaults");rb.style.marginTop="8px";rb.onclick=()=>{if(confirm("Put every setting back to its default?"))pgPost("/api/coach",{child:kid,action:"reset"})};w.append(rb);
+ const rv=c.review.filter(r=>r.state=="pending");
+ if(rv.length){const q=el("div","","pg-sub");q.append(el("h3","For a person to look at"),el("p","These are never applied automatically. “Approve” only means: noted, a person will do it.","mut"));
+  rv.forEach(r=>{const row=el("div","","card"),tx=el("div","","txt");tx.append(r.text,el("span",r.kind=="system_prompt"?"base prompt":"spoken lines","tag"));
+   const a=el("div","","acts"),ap=el("button","Approve"),dm=el("button","Dismiss","q");
+   ap.onclick=()=>pgPost("/api/coach",{child:kid,action:"review",id:r.id,decision:"approved"});dm.onclick=()=>pgPost("/api/coach",{child:kid,action:"review",id:r.id,decision:"dismissed"});
+   a.append(ap,dm);row.append(tx,a);q.append(row)});w.append(q)}
+ return w}
+/* metrics:js end */
 (async()=>{try{await load()}catch(e){if(e.message!="locked")showLock()}})();
 </script></body></html>

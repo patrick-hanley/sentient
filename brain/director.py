@@ -16,6 +16,7 @@ from . import canned, config, curriculum, curriculum_picks, debugrec, nonspeech,
 from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
+from .metrics_live import Live   # conversation metrics + coaching (docs/metrics.md)
 from .pipeline import SpeechPipeline
 
 log = logging.getLogger("director")
@@ -224,11 +225,14 @@ class Director:
         (config.DATA / "latency").mkdir(exist_ok=True)
         self.turn_log = TurnLog(config.DATA / "latency" / "turns.jsonl")
         self.sampler = HostSampler(hub)
+        self.live = Live(get_parent=lambda: self.parent, toys_online=lambda: len(self.hub.online()),
+                         noise=lambda: (sum(s.noise for s in self.segs.values()) / len(self.segs)) if self.segs else None)
         if hasattr(hub, "on_playback"):
             hub.on_playback = self._atom_playback
 
     def _atom_playback(self, toy, kind, when):
         """Atom-side timestamps (firmware 3.3+): the first sample the speaker clocks out, and the end of the clip."""
+        self.live.playback(toy, kind, when)   # metrics: when a toy sound starts/ends (brain clock)
         t = self.active_trace
         if not t or getattr(self.hub, "talking", toy) != toy:   # a toy's own flash clip (IMU yell) is not part of this turn
             return
@@ -263,6 +267,7 @@ class Director:
 
     def on_button(self, toy, kind):
         self.child_contact()
+        self.live.activation()   # metrics: a tap is an activation of the toy
         if kind == "hold":
             threading.Thread(target=self.run_canned, daemon=True).start()
         else:
@@ -319,6 +324,7 @@ class Director:
             return
         if event != "sleep":   # laying a toy down is going to bed, not play
             self.child_contact()
+            self.live.activation()   # metrics: motion is an activation of the toy
         now = time.time()
         st = self.imu.setdefault(toy, {"asleep": False, "since": 0.0, "commented": set(), "last": {}})
         if st["asleep"] and now - st["since"] > 1800:
@@ -386,6 +392,7 @@ class Director:
     def barge_in(self, toy: str):
         """The child started talking over a toy: stop every toy and drop the rest of the running reply."""
         self.child_contact()
+        self.live.barge()   # metrics: the child talked over a toy
         self.interrupt()
 
     def interrupt(self):
@@ -476,6 +483,7 @@ class Director:
             try:
                 u = self.utter_q.get(timeout=0.5)
             except queue.Empty:
+                self.live.tick()   # metrics: close a session that has been idle too long
                 self._maybe_event()
                 continue
             if self.paused:
@@ -493,7 +501,7 @@ class Director:
             ev = self.events.get_nowait()
         except queue.Empty:
             ev = None
-            if (self.idle_on and not self.is_quiet() and time.time() - self.last_activity > config.IDLE_BANTER_S
+            if (self.idle_on and not self.is_quiet() and time.time() - self.last_activity > self.live.idle_banter_s(config.IDLE_BANTER_S)
                     and len(self.hub.online()) >= 2):
                 ev = self._idle_event()
         if ev:
@@ -549,6 +557,9 @@ class Director:
         if utt and utt.arbitrated is not None:
             trace.mark("arbitrate_done_ms", utt.arbitrated)
         trace.mark("turn_started_ms")
+        self.live.turn_open(initiated=utt is None)   # metrics: a toy-initiated turn is a cue; a reply may become one
+        if utt:
+            self.live.child_pending(utt)
         gen = self._gen
         self.last_latency, self.last_lines = 0., []
         tmp_files = []
@@ -593,11 +604,13 @@ class Director:
                         return
                     self.last_heard = said
                     self._remember(said)
+                    self.live.child_text(said)   # metrics: reduced to numbers/tags at once, the words are not kept
                     prompt += f'The child said: "{said}"\nReply.'
             else:
                 prompt += f"[EVENT] {event_text}"
             log.info("→ gemma: %s", prompt.replace("\n", " | "))
             notes = ((self.parent.notes_block() + "\n" + getattr(self.parent, "told_block", lambda: "")()).strip() if self.parent else "")   # added AFTER the log line: notes are never logged
+            notes = (notes + "\n" + (self.live.coaching_block() or "")).strip()   # [COACHING] block (brain/coaching.py); '' when neutral/off
             if notes != self._notes_sent:
                 # the notes changed (another child, an item deleted, notes paused, locked): the toys' conversation still holds
                 # the old ones, so start it afresh. Deleting a note must really stop the toys using it.
@@ -609,6 +622,7 @@ class Director:
             prompt = "".join(b + "\n" for b in (notes, topics) if b) + prompt
 
             def dispatched(who, text):
+                self.live.toy_line(text)   # metrics: question/invite flags only
                 self.last_lines.append((who, text))
                 self.last_latency = trace.snapshot()["milestones_ms"]["first_audio_post_ms"] / 1000
 
@@ -633,6 +647,7 @@ class Director:
                 if text:
                     self.last_heard = text
                     self._remember(text)
+                    self.live.child_text(text)   # audio-mode models report the words here (no-op once STT supplied them)
 
             parser = ReplyLines(speakers, line_ready, heard)
             kwargs = dict(wav=wav if self.llm.hears_audio else None, image=image)
@@ -676,6 +691,8 @@ class Director:
             self.hub.response_active.clear()
             self.busy = False
             self.last_activity = time.time()
+            self.live.child_unresolved(status)   # metrics: count the utterance's timing even if no words were reported
+            self.live.turn_close(status)
             trace.finish(status)
             self.last_trace = self.turn_log.add(dict(trace.snapshot(), host=self.sampler.latest(),
                                                     floor=getattr(self.hub, "floor", None) and self.hub.floor.snapshot()))
