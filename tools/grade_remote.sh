@@ -7,7 +7,7 @@ LABEL=${1:?label}; SET=${2:-tune}; REPS=${3:-1}
 HOST=sentient@sentient-jetson.local; DEST=/data/sentient-grade
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 rsync -a --delete --exclude .venv --exclude __pycache__ --exclude offline "$HERE/brain" "$HERE/tools" $HOST:$DEST/ 2>/dev/null || { ssh $HOST "mkdir -p $DEST" && rsync -a --exclude __pycache__ "$HERE/brain" "$HERE/tools" $HOST:$DEST/; }
-ssh $HOST "sudo systemctl stop sentient-brain; cd $DEST && PYTHONPATH=$DEST /data/sentient/.venv/bin/python tools/grade_toys.py run --model litert --set $SET --reps $REPS --label $LABEL --out /tmp/grade-$LABEL.json --agg-out /tmp/grade-$LABEL.agg.json"
+ssh $HOST "sudo systemctl stop sentient-brain; cd $DEST && PYTHONPATH=$DEST /data/sentient/.venv-brain/bin/python tools/grade_toys.py run --model litert --set $SET --reps $REPS --label $LABEL --out /tmp/grade-$LABEL.json --agg-out /tmp/grade-$LABEL.agg.json"
 RC=$?
 ssh $HOST "sudo systemctl start sentient-brain"
 sleep 20; ssh $HOST "curl -s -X POST localhost:8080/mute"
