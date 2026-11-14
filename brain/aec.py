@@ -178,6 +178,57 @@ class MDF:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Residual echo suppressor
+# ---------------------------------------------------------------------------------------------------------------------
+class Suppressor:
+    """What the filter leaves of the toy (about 10 dB of it) is pushed down further by a per-bin Wiener-style gain.
+
+    The leftover echo power per bin is rho(k) * |Y(k)|^2, Y = the echo the filter predicts and rho = the residual-to-echo ratio
+    learnt per bin while no second voice was around. Gain = 1 - alpha * leftover / |E|^2, floored. Where the child speaks, |E|^2
+    is far above the leftover estimate, so the gain stays near 1 there (double-talk protection by construction); while a second
+    voice is detected alpha shrinks (AEC_RES_DT) and rho stops learning. A causal 129-tap linear-phase filter applies the gain
+    (4 ms delay, no block-edge artefacts)."""
+    N = 2 * B
+    H = 64                                              # filter half length
+
+    def __init__(self):
+        self.e_prev = np.zeros(B)
+        self.y_prev = np.zeros(B)
+        self.win = np.sin(np.pi * (np.arange(self.N) + 0.5) / self.N)
+        self.hw = np.hanning(2 * self.H + 1)
+        self.rho = np.full(NB, 0.15)
+        self.pe = np.zeros(NB)
+        self.py = np.zeros(NB)
+        self.g = np.ones(NB)
+
+    def reset(self):
+        self.__init__()
+
+    def process(self, e: np.ndarray, y: np.ndarray, learn: bool, second_voice: bool) -> np.ndarray:
+        fe = np.concatenate([self.e_prev, e])
+        fy = np.concatenate([self.y_prev, y])
+        self.e_prev, self.y_prev = e.copy(), y.copy()
+        E = np.fft.rfft(fe * self.win)
+        Y = np.fft.rfft(fy * self.win)
+        pe, py = E.real ** 2 + E.imag ** 2, Y.real ** 2 + Y.imag ** 2
+        self.pe = 0.5 * self.pe + 0.5 * pe if self.pe.any() else pe
+        self.py = 0.5 * self.py + 0.5 * py if self.py.any() else py
+        sm = lambda v: np.convolve(np.pad(v, 2, mode="edge"), np.ones(5) / 5, "valid")
+        if learn:
+            r = np.clip(sm(self.pe) / (sm(self.py) + 1e-3), 1e-3, 1.0)
+            self.rho = 0.9 * self.rho + 0.1 * r
+        alpha = config.AEC_RES_ALPHA * (config.AEC_RES_DT if second_voice else 1.0)
+        g = 1.0 - alpha * self.rho * sm(self.py) / (sm(self.pe) + 1e-3)
+        g = np.clip(g, config.AEC_RES_FLOOR, 1.0)
+        g = np.maximum(g, 0.6 * self.g)                  # fall at most ~4 dB a block: no pumping
+        self.g = g
+        h0 = np.fft.irfft(g, self.N)                     # zero-phase impulse response
+        h = np.roll(h0, self.H)[: 2 * self.H + 1] * self.hw
+        out = np.fft.irfft(np.fft.rfft(fe) * np.fft.rfft(h, self.N), self.N)
+        return out[B:]
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # One talker clip on the wire
 # ---------------------------------------------------------------------------------------------------------------------
 @dataclass
@@ -298,6 +349,11 @@ class Pair:
         self.sum_m, self.n_m = 0.0, 0         # mic power while the clip is audibly playing (is the echo even there?)
         self.sum_d = self.sum_e = 0.0         # echo-audible power in / out while no child was detected: the clip's ERLE
         self.snap = None                     # (n, filter frequency response) at the start of the current drift measurement
+        self.sup = Suppressor()
+        self.y_last = np.zeros(B)
+        self.learn_ok = False                # this block was a clean echo-only block (the suppressor may learn from it)
+        self.verify_n = 0
+        self.verify = False                  # warm start: the clip was placed at the last lag and is not checked yet
         self.stats = dict(erle_db=0.0, locks=0, places=0, mismatch=0, barges=0, lag_ms=0.0)
 
     @property
@@ -308,6 +364,8 @@ class Pair:
         log.debug("aec %s->%s: relock (%s)", self.talker, self.l.toy, why)
         self.state, self.s0, self.next_n, self.anchor, self.snap, self.lag0 = "search", {}, None, {}, None, None
         self.mdf.reset()
+        self.sup.reset()
+        self.verify = False
         self.qn, self.qd = 1.0, 1.0
         self.dt_hang, self.dt_run, self.run, self.voiced, self.audible = 0, 0, 0, 0, 0
         if forget:
@@ -454,9 +512,22 @@ class AecManager:
                 pair.sum_m += float(np.mean(pcm.astype(np.float32) ** 2))
                 pair.n_m += 1
         if pair.state == "locked" and id(clip) not in pair.s0:
-            pair.state, pair.audible = "place", 0       # a new clip: the filter is the room's, the placement is new
             pair.mdf.reset_history()
             pair.next_n = None
+            if config.AEC_WARM and pair.D is not None and pair.q < 0.5 and lst.c is not None and clip.t0 is not None:
+                # warm start: same room, same lag as the last clip. Cancel from the first block; the narrow search below only
+                # checks the placement (and moves it if it differs). Until then the output is never worse than the raw mic.
+                pair.s0[id(clip)] = int(round(self._base(pair, clip) + pair.D - PRE))
+                pair.verify, pair.verify_n = True, 0
+                pair.stats["warm"] = pair.stats.get("warm", 0) + 1
+            else:
+                pair.state, pair.audible = "place", 0   # a new clip: the filter is the room's, the placement is new
+        if pair.verify:
+            pair.verify_n += 1
+            if pair.verify_n > 75:                      # 1.5 s without a clear echo to check against: trust the warm start
+                pair.verify = False
+            else:
+                self._acquire(pair, clip, clips, ns, verify=True)
         if pair.state in ("search", "place"):
             if not self._acquire(pair, clip, clips, ns):
                 if pair.state == "place":
@@ -478,14 +549,22 @@ class AecManager:
         pair.x_ring.append(x)
         pair.d_ring.append(d)
         out.pcm, out.cancelling = e16, pair.q < 0.6
-        if config.BARGE_IN and out.cancelling:
+        if config.AEC_RES:
+            es = pair.sup.process(e, pair.y_last, pair.learn_ok, bool(pair.dt_hang or pair.run))
+            out.pcm = np.clip(es, -32768, 32767).astype("<i2")
+            pair.res_ring[-1] = (ns, out.pcm)
+        if pair.verify and rms(e) > rms(d):               # warm start not checked yet: never worse than the raw mic
+            out.pcm, out.cancelling = pcm, False
+            self._track(pair, clip, ns)
+            return out
+        if config.BARGE_IN and out.cancelling and not pair.verify:
             frames = self._barge_check(pair, e16, dt, ns)
             if frames:
                 out.barge = frames
         self._track(pair, clip, ns)
         return out
 
-    def _acquire(self, pair: Pair, clip: Clip, clips: list[Clip], ns: int) -> bool:
+    def _acquire(self, pair: Pair, clip: Clip, clips: list[Clip], ns: int, verify: bool = False) -> bool:
         """Find where this clip sits on the listener's timeline: a wide GCC-PHAT search for the pair's first clip (then the
         filter is trained retrospectively), a narrow one around the last lag for later clips. True once running."""
         lst = pair.l
@@ -493,7 +572,7 @@ class AecManager:
             return False
         base = self._base(pair, clip)
         local = pair.D is not None and pair.mdf.W.any()
-        span = config.AEC_PLACE_S if local else config.AEC_SEARCH_S
+        span = (config.AEC_WARM_S if verify else config.AEC_PLACE_S) if local else config.AEC_SEARCH_S
         have = ns + B - int(base) - (pair.D if local else 0)
         if have < int((span + 0.15) * FS) + (0 if local else 1600) or (ns // B) % 5:
             return False
@@ -513,9 +592,21 @@ class AecManager:
                  "local" if local else "wide", lag / FS * 1000, score, peak, rms(m), lst.noise2 ** .5, rms(r))
         if score < (config.AEC_MIN_SCORE_PLACE if local else config.AEC_MIN_SCORE):
             pair.stats["weak"] = pair.stats.get("weak", 0) + 1
+            if verify:
+                return False
             if local and pair.audible > 0.8 * FS / B:
                 pair.relock("could not place the clip", forget=True)     # the room changed: start over
             return False
+        if verify:
+            pair.verify = False
+            if abs(lag - pair.D) > 2:                      # the placement was off: move the clip, keep the filter
+                pair.s0[id(clip)] = int(round(base + lag - PRE))
+                pair.mdf.reset_history()
+                pair.next_n = None
+                pair.stats["warm_moved"] = pair.stats.get("warm_moved", 0) + 1
+            pair.D = lag
+            pair.stats["lag_ms"] = lag / FS * 1000
+            return True
         pair.D = lag
         pair.stats["lag_ms"] = lag / FS * 1000
         if local:
@@ -569,7 +660,8 @@ class AecManager:
         else:
             pair.dt_hang = max(0, pair.dt_hang - 1)
             pair.dt_run = 0
-        frozen = bool(pair.dt_hang) or pair.run > 0
+        frozen = bool(pair.dt_hang) or pair.run > 0 or pair.verify
+        pair.y_last, pair.learn_ok = y, bool(not frozen and echo_audible)
         if not frozen and px > 1.0:
             pair.mdf.adapt(e, 1.0)
         if not frozen and echo_audible:

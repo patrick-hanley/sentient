@@ -145,6 +145,12 @@ AEC_MIN_RMS = 250.0          # ...and it must be at least this loud (int16 RMS)
 AEC_BARGE_MS = 120           # ...for this long, mostly speech to webrtcvad, to cut the toy
 AEC_PREROLL_FRAMES = 15      # residual frames kept before the first loud one, so the first word is not lost
 AEC_EXPLAIN_RATIO = 0.45     # a loud residual that a re-adapted filter removes this much of is echo-path change, not the child
+AEC_WARM = 0                 # 1 = a later clip of a pair starts cancelling at once with the last filter and lag (verified after AEC_WARM_S)
+AEC_WARM_S = 0.2             # audible echo heard before the warm lag is checked with a narrow GCC-PHAT
+AEC_RES = 0                  # 1 = residual echo suppressor after the filter (per-bin gain from the echo the filter predicts)
+AEC_RES_ALPHA = 1.5          # over-subtraction of the estimated residual echo
+AEC_RES_FLOOR = 0.1          # lowest gain (0.1 = -20 dB)
+AEC_RES_DT = 0.3             # alpha is scaled by this while a second voice is detected (double-talk protection)
 AEC_STOP_LATENCY_S = 0.04    # STOP is sent -> speaker silent (the clip's reference is cut then)
 MIC_TAIL_S = 0.4             # mics stay muted this long after any toy stops talking
 ARBITRATE_S = 0.12           # upper bound; stop sooner when all online mics have reported

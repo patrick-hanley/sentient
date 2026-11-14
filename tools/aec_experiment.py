@@ -24,7 +24,7 @@ REMOTE = r'''
 A=$1; C=$2
 curl -s -X POST "localhost:8080/speaker?toy=$A&vol=$3" >/dev/null; curl -s -X POST "localhost:8080/speaker?toy=$C&vol=$4" >/dev/null
 rm -rf /dev/shm/aec_*.npz; sleep 1
-curl -s -X POST -G localhost:8080/aec_trial --data-urlencode "a=$A" --data-urlencode "c=$C" --data-urlencode "atext=$5" --data-urlencode "ctext=$6" --data-urlencode "delay=$7" >/dev/null
+curl -s -X POST -G localhost:8080/aec_trial --data-urlencode "a=$A" --data-urlencode "c=$C" --data-urlencode "atext=$5" --data-urlencode "ctext=$6" --data-urlencode "delay=$7" --data-urlencode "reps=${9:-1}" --data-urlencode "atext2=${10:-$5}" --data-urlencode "ctext2=${11:-$6}" >/dev/null
 sleep $8
 journalctl -u sentient-brain --since "-$(( $8 + 3 ))s" --no-pager | grep -E " aec |Traceback|failed|HARDWARE" | sed 's/.*atoms *//' | cut -c1-170
 '''
@@ -39,6 +39,16 @@ def progress(iteration, variant, erle, wer, leak, best, status):
     f = lambda v: "n/a" if v is None else f"{v:.2f}"
     with open(PROGRESS, "a") as fh:
         fh.write(f"{_t.strftime('%H:%M:%S')} iter {iteration} {variant} ERLE {f(erle)} dB WER {f(wer)} leak {f(leak)} best {best} {status}\n")
+
+
+def progress_m(iteration, variant, m, best, status):
+    """One numbers-only line per replay trial: onset ERLE (cold/warm), A-only ERLE, A-only leak, child WER."""
+    import time as _t
+    f = lambda v: "n/a" if v is None else f"{v:.2f}"
+    with open(PROGRESS, "a") as fh:
+        fh.write(f"{_t.strftime('%H:%M:%S')} iter {iteration} {variant} ONSET {f(m.get('onset_erle'))} dB (cold {f(m.get('onset_erle_cold'))} warm "
+                 f"{f(m.get('onset_erle_warm'))}) AONLY {f(m.get('aonly_erle'))} dB LEAK {f(m.get('aonly_leak'))} CHILD_WER {f(m.get('child_wer'))} "
+                 f"best-onset {f(best.get('onset_erle'))} best-aonly {f(best.get('aonly_erle'))} {status}\n")
 
 
 class HardwareIssue(RuntimeError):
@@ -68,6 +78,35 @@ def guard(base=None):
     if set(seen) != set(IPS):
         raise HardwareIssue(f"no /status from {set(IPS) - set(seen)}")
     return seen
+
+
+A_TEXT2 = "My favourite colour is green, and I like to count the stars every night before I go to sleep."
+C_TEXT2 = "Can you sing me a song about the moon please?"
+
+
+def trial_seq(a, c, b, vol_a, vol_c, out_dir, tag, reps=2, delay=3.0, wait=34):
+    """`reps` consecutive clips of A (child C speaks during each), B listening; every clip's dump is copied to out_dir as
+    A_B_C_TAG_REP.npz. Hardware guard before and after. Returns the saved paths."""
+    guard()
+    args = [a, c, str(vol_a), str(vol_c), A_TEXT, C_TEXT, str(delay), str(wait), str(reps), A_TEXT2, C_TEXT2]
+    r = subprocess.run(["ssh", HOST, "bash -s -- " + " ".join(shlex.quote(x) for x in args)], input=REMOTE, capture_output=True, text=True)
+    guard()
+    if "HARDWARE" in r.stdout:
+        raise HardwareIssue([ln for ln in r.stdout.splitlines() if "HARDWARE" in ln][0])
+    if "Traceback" in r.stdout:
+        raise HardwareIssue("brain traceback during the trial")
+    d = tempfile.mkdtemp()
+    subprocess.run(["scp", "-q", f"{HOST}:/dev/shm/aec_{a}_{b}_*.npz", d], capture_output=True)
+    files = sorted(glob.glob(d + "/*.npz"))
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    import shutil
+    saved = []
+    for k, f in enumerate(files):
+        dst = Path(out_dir) / f"{a}_{b}_{c}_{tag}_{k}.npz"
+        shutil.copy(f, dst)
+        saved.append(dst)
+    subprocess.run(["ssh", HOST, f"rm -f /dev/shm/aec_{a}_{b}_*.npz"])
+    return r.stdout, saved
 
 
 def trial(a, c, b, vol_a=70, vol_c=70, delay=2.5, atext=A_TEXT, ctext=C_TEXT, wait=17, model=None, keep_dir=None):

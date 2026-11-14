@@ -37,24 +37,30 @@ PAGE = (Path(__file__).with_name("dashboard.html")).read_text(encoding="utf-8") 
 
 
 def aec_trial(hub, voices, q):
+    """`reps` clips of toy `a` back to back (`gap` s apart, so the listener's mic stream stays continuous and a warm start can be
+    tested); in each, toy `c` plays its "child" clip `delay` s after `a`'s dispatch. atext2/ctext2 (if given) are used from the
+    second clip on."""
     import urllib.request
     a, c = q["a"], q["c"]
-    apcm, cpcm = voices.render(a, q.get("atext", "")), voices.render(c, q.get("ctext", ""))
-    body, query = encode_for_atom(cpcm)
-    notes = dict(a=a, c=c, atext=q.get("atext", ""), ctext=q.get("ctext", ""), child_dur=len(cpcm) / 2 / config.SAMPLE_RATE)
+    for k in range(int(q.get("reps", "1"))):
+        at, ct = (q.get("atext2", q.get("atext", "")), q.get("ctext2", q.get("ctext", ""))) if k else (q.get("atext", ""), q.get("ctext", ""))
+        apcm, cpcm = voices.render(a, at), voices.render(c, ct)
+        body, query = encode_for_atom(cpcm)
+        notes = dict(a=a, c=c, atext=at, ctext=ct, child_dur=len(cpcm) / 2 / config.SAMPLE_RATE, rep=k)
 
-    def child():
-        time.sleep(float(q.get("delay", "2.5")))
-        notes["child_t"] = time.monotonic()
-        try:
-            req = urllib.request.Request(f"http://{hub.atoms[c].base}/play?{query}", data=body, method="POST",
-                                         headers={"Content-Type": "application/octet-stream"})
-            hub._http.open(req, timeout=30).read()
-        except Exception as e:  # noqa: BLE001
-            log.warning("aec_trial child failed: %s", e)
-    hub.aec.notes[a] = notes
-    threading.Thread(target=child, daemon=True).start()
-    hub.play(a, apcm)
+        def child(notes=notes, body=body, query=query):
+            time.sleep(float(q.get("delay", "2.5")))
+            notes["child_t"] = time.monotonic()
+            try:
+                req = urllib.request.Request(f"http://{hub.atoms[c].base}/play?{query}", data=body, method="POST",
+                                             headers={"Content-Type": "application/octet-stream"})
+                hub._http.open(req, timeout=30).read()
+            except Exception as e:  # noqa: BLE001
+                log.warning("aec_trial child failed: %s", e)
+        hub.aec.notes[a] = notes
+        threading.Thread(target=child, daemon=True).start()
+        hub.play(a, apcm)
+        time.sleep(float(q.get("gap", "0.8")))
 
 
 def make_handler(hub, eyes, director, rec, voices):
