@@ -134,3 +134,16 @@ Hardware results (2 reps per rotation, whisper WER of the canceller output again
 Offline tuning (`tools/aec_corpus.py` records real trials, `tools/aec_replay.py` replays them, `tools/aec_tune.py` runs one change per iteration, keep only if ERLE +0.5 dB with WER and leakage not worse; progress in `/tmp/aec-progress.log`). Replay baseline over 12 recorded trials: ERLE 8.46 dB, WER 0.067, leak 0.00. Iterations: AEC_PARTS 12 (6.44 dB, WER 0.14), PRE 320 (8.53, 0.075), AEC_MU 0.3 (8.72, WER 0.03), AEC_MU 0.8 (-4.14). **None kept; stopped after 4 rejected in a row.** MU 0.3 is the only one worth a second look (WER better, ERLE +0.27). Not tried (need code, not a knob): comfort-noise handling, a double-talk detector that tracks the child's level, the remaining candidates in `aec_tune.py`.
 
 End state: volumes 0, mics muted (verified from /state), idle banter on, `aec.conf` drop-in removed (AEC off), no dumps in /dev/shm, brain runs this branch merged with main. To resume: recreate the drop-in, restart, `POST /mute?on=1`, `POST /idle` (toggle), set volumes.
+
+## Nov 14 (3): residual suppressor, warm start, onset
+
+Corpus: 12 sequences x 2 back-to-back clips of the talker (`tools/aec_corpus.py`), kept on a Mac RAM disk only. Replay metrics (`tools/aec_replay.py`): onset ERLE (first 1.0 s of the talker's speech), A-only ERLE, A-only leak (share of the talker's words whisper still hears in the output while the child is silent), child WER.
+
+| | onset ERLE | A-only ERLE | A-only leak | child WER |
+|---|---|---|---|---|
+| raw mic | 0 | 0 | 0.71 | 0.65 |
+| filter only | 2.7 dB | 8.7 dB | 0.12 | 0.18 |
+| + suppressor (`AEC_RES=1`, alpha 2.5; kept) | 3.8 dB | 19.6 dB | 0.08 | 0.13 |
+
+Not kept: `AEC_WARM=1` raises warm-clip onset 4.1 -> 7.1 dB (7 -> 21 dB on Dyno clips) but two clips (dyno>penny<sage 06.1, dyno>sage<penny 07.1) stay raw for the whole clip (A-only ERLE ~0): the warm placement is never accepted or the filter stays frozen while `verify` is on. Fixing that is the next lead. Floor 0.05, `AEC_WARM_S` 0.1, `AEC_RES_DT` 0.1 and `AEC_RES_ONSET` 3 were also rejected (stop rule: 4 in a row).
+End state: AEC off (no drop-in), volumes 0, mics muted, no dumps.
