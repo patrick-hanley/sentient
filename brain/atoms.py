@@ -156,6 +156,38 @@ class AtomHub:
 
     def start(self):
         threading.Thread(target=self._rx, daemon=True, name="atoms-rx").start()
+        threading.Thread(target=self._health_loop, daemon=True, name="atoms-health").start()
+
+    STATUS_KEYS = {"spk_fix": "sfix", "spk_fail": "sfail", "mic_fix": "mfix", "mic_fail": "mfail", "vol": "vol",
+                   "imu": "imu", "clips": "clips", "fw": "fw", "rssi": "rssi"}
+
+    def poll_health(self, toy: str) -> dict | None:
+        """Read the toy's /status and refresh its flags. Firmware 3.8+ sends HELLO only until the brain is known, so the
+        codec repair/failure counters in the first HELLO go stale; this keeps the dashboard honest. A rising failure
+        counter is a hardware problem (Atom <-> Voice Base contact), logged as a warning."""
+        a = self.atoms.get(toy)
+        if not a or self.talking == toy:
+            return None
+        try:
+            with self._http.open(f"http://{a.base}/status", timeout=3) as r:
+                st = json.loads(r.read())
+        except (urllib.error.URLError, OSError, TimeoutError, ValueError):
+            return None
+        for k in ("spk_fail", "mic_fail"):
+            old, new = int(a.flags.get(self.STATUS_KEYS[k], 0) or 0), int(st.get(k, 0) or 0)
+            if new > old:
+                log.warning("HARDWARE %s: %s %d -> %d (codec settings did not stick: check the Atom/Voice Base contact)",
+                            toy, k, old, new)
+        for k, f in self.STATUS_KEYS.items():
+            if k in st:
+                a.flags[f] = str(st[k])
+        return st
+
+    def _health_loop(self):
+        while True:
+            time.sleep(config.HEALTH_POLL_S)
+            for t in self.online():
+                self.poll_health(t)
 
     # ---------- registry ----------
     def _toy_for_mac(self, mac: str, forced: str | None = None) -> str:
