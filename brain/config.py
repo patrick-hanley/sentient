@@ -153,7 +153,7 @@ AEC_RES_FLOOR = 0.1          # lowest gain (0.1 = -20 dB)
 AEC_RES_DT = 0.3             # alpha is scaled by this while a second voice is detected (double-talk protection)
 AEC_RES_ONSET = 1.0          # alpha is multiplied by this during the first AEC_RES_ONSET_S of a clip while no second voice is detected
 AEC_RES_ONSET_S = 1.0
-AEC_MAG = 0                  # 1 = before the filter can be trusted (cold start, warm check), a stored per-pair echo-path magnitude |H(f)| x the placed reference drives the suppressor
+AEC_MAG = 1                  # 1 = before the filter can be trusted (cold start, warm check), a stored per-pair echo-path magnitude |H(f)| x the placed reference drives the suppressor
 AEC_MAG_ALPHA = 1.0          # over-subtraction in that mode (the magnitude is only a prior: be conservative)
 AEC_STOP_LATENCY_S = 0.04    # STOP is sent -> speaker silent (the clip's reference is cut then)
 MIC_TAIL_S = 0.4             # mics stay muted this long after any toy stops talking
