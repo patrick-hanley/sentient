@@ -147,3 +147,17 @@ Corpus: 12 sequences x 2 back-to-back clips of the talker (`tools/aec_corpus.py`
 
 Not kept: `AEC_WARM=1` raises warm-clip onset 4.1 -> 7.1 dB (7 -> 21 dB on Dyno clips) but two clips (dyno>penny<sage 06.1, dyno>sage<penny 07.1) stay raw for the whole clip (A-only ERLE ~0): the warm placement is never accepted or the filter stays frozen while `verify` is on. Fixing that is the next lead. Floor 0.05, `AEC_WARM_S` 0.1, `AEC_RES_DT` 0.1 and `AEC_RES_ONSET` 3 were also rejected (stop rule: 4 in a row).
 End state: AEC off (no drop-in), volumes 0, mics muted, no dumps.
+
+## Nov 14 (4): warm-start fix, stored echo-path magnitude
+
+Replay on the 12-sequence corpus (kept on a Mac RAM disk only). Defaults now: `AEC_RES=1`, `AEC_RES_ALPHA=3.5`, `AEC_MAG=1`; `AEC_WARM=0`.
+
+| | onset ERLE (cold / warm clip) | A-only ERLE | A-only leak | child WER |
+|---|---|---|---|---|
+| suppressor only (iter 2) | 3.8 dB (3.6 / 4.1) | 19.6 dB | 0.08-0.10 | 0.13 |
+| + `AEC_MAG=1`, alpha 3.5 (kept) | 7.0 dB (3.8 / 10.2) | 20.9 dB | 0.10 | 0.13 |
+| + `AEC_WARM=1` (fixed, NOT kept) | 8.5 dB (3.6 / 13.3) | 19.7 dB | 0.10 | 0.16 |
+
+* Warm-start bug: a lag check that differs by 1-2 samples was ignored and a trusted (q ~ 0) filter froze, so the clip stayed raw. Fix: the filter is shifted by the whole-sample offset that leaves the least residual on what was heard (`_fine_shift`), the drift tracker and `lag0` follow, and trust drops to 0.3 like a normal placement. Dyno-clip onset 7 -> 21-23 dB. Not kept only because of one clip (dyno... sage>dyno<penny 09.1: child WER 0.2 -> 1.0, whisper flips between a full sentence and nothing at the same output level; beam-5 cross-check: WER 0.104 -> 0.121, leak 0.092 -> 0.072). `AEC_WARM=1` is safe to flip on by hand.
+* Stored magnitude (`Suppressor.mag`): |H(f)|^2 per STFT bin is learnt while the filter is converged (power the filter puts out over the placed reference's power), kept per pair across clips and relocks. Before the filter is trusted (search/place, warm check) the echo spectrum is predicted as |H|^2 x |Ref|^2 at the pair's known lag and a Wiener gain is applied to the mic itself. Warm-clip onset 4.1 -> 10.2 dB, nothing else moved.
+* Still open: the first clip of a pair after a brain restart (cold: no stored magnitude, no lag) stays at ~3.8 dB. The lag differs a lot between pairs (21-86 ms) so a generic |H| with a generic lag does not work; persisting each pair's lag and |H| across restarts (no audio, just numbers) is the next step. The 20 dB-class barge-in latency is unmeasured (mics muted).
