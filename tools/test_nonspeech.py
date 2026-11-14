@@ -27,6 +27,15 @@ class SoundsTests(unittest.TestCase):
         self.assertEqual(seg("Yawn... so sleepy"), [("sfx", "yawn"), ("say", "so sleepy")])
         self.assertEqual(seg("Wheee, honk! Fly!"), [("say", "Wheee"), ("sfx", "penguin_honk"), ("say", "Fly!")])
 
+    def test_hush_and_other_spelled_noises_are_brackets_never_spoken(self):
+        self.assertEqual(seg("Shhh! Somebody's dreaming.", "dyno"), [("sfx", "snore_big"), ("say", "Somebody's dreaming.")])
+        self.assertEqual(seg("[shhh]", "sage"), [("sfx", "snore_cat")])
+        for t, rest in (("Psst! Over here.", "Over here."), ("Ahem. Attention.", "Attention."), ("Achoo! Bless me.", "Bless me."),
+                        ("Tsk tsk, silly.", "silly."), ("[psst] hi", "hi"), ("(ahem) well", "well")):
+            self.assertEqual(seg(t), [("say", rest)], t)   # no recording exists for these, so nothing is played or spoken
+        self.assertEqual(seg("Choo choo train!"), [("say", "Choo choo train!")])
+        self.assertEqual(S.display("Psst! Over here."), "{psst} Over here.")   # shown for the operator
+
     def test_zzz_and_snoring_use_the_speaking_toys_own_snore(self):
         self.assertEqual(seg("Mmm, zzz... zzz...", "dyno")[1], ("sfx", "snore_big"))
         self.assertEqual(seg("[snoring]", "sage"), [("sfx", "snore_cat")])
