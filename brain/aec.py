@@ -374,6 +374,13 @@ class AecManager:
                 return Out(pcm)
             if self.dump_dir:
                 self._dump_frame(lst, ns, arrival, pcm)
+            out = self._feed_locked(lst, toy, ns, missing, pcm)
+            if self.dump_dir:
+                self._dump_out(lst, out)
+            return out
+
+    def _feed_locked(self, lst: Listener, toy: str, ns: int, missing: int, pcm: np.ndarray) -> Out:
+        if True:
             active = self._active_pair(lst, toy, ns)
             if active is None:
                 p2 = float(np.mean(pcm.astype(np.float32) ** 2))
@@ -695,7 +702,16 @@ class AecManager:
         for talker, cl in self.clips.items():
             if talker != lst.toy and cl and not cl[-1].ended and arrival > cl[-1].dispatch - 0.6 and arrival < cl[-1].dispatch + len(cl[-1].pcm) / FS + 2.5:
                 d = self.dumps.setdefault((talker, lst.toy), [])
-                d.append((ns, arrival, pcm.copy()))
+                d.append([ns, arrival, pcm.copy(), None])
+                self._dump_last = d[-1]
+                return
+        self._dump_last = None
+
+    def _dump_out(self, lst, out):
+        """The frame the canceller handed on (residual while cancelling), next to the raw mic frame (experiments only, RAM)."""
+        last = getattr(self, "_dump_last", None)
+        if last is not None:
+            last[3] = out.pcm.copy()
 
     def _write_dump(self, talker):
         for (t, toy), fr in list(self.dumps.items()):
@@ -704,7 +720,8 @@ class AecManager:
             cl = self.clips[talker][-1]
             lst = self.listeners[toy]
             np.savez(f"{self.dump_dir}/aec_{talker}_{toy}_{int(cl.dispatch)}.npz", ns=[f[0] for f in fr], arr=[f[1] for f in fr],
-                     mic=np.concatenate([f[2] for f in fr]), ref=cl.pcm, t0=cl.t0 or -1.0, dispatch=cl.dispatch, c=lst.c or 0.0)
+                     mic=np.concatenate([f[2] for f in fr]),
+                     out=np.concatenate([f[3] if f[3] is not None else f[2] for f in fr]), ref=cl.pcm, t0=cl.t0 or -1.0, dispatch=cl.dispatch, c=lst.c or 0.0)
             del self.dumps[(t, toy)]
 
     # ---- reporting
