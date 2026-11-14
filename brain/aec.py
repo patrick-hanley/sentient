@@ -187,7 +187,10 @@ class Suppressor:
     learnt per bin while no second voice was around. Gain = 1 - alpha * leftover / |E|^2, floored. Where the child speaks, |E|^2
     is far above the leftover estimate, so the gain stays near 1 there (double-talk protection by construction); while a second
     voice is detected alpha shrinks (AEC_RES_DT) and rho stops learning. A causal 129-tap linear-phase filter applies the gain
-    (4 ms delay, no block-edge artefacts)."""
+    (4 ms delay, no block-edge artefacts).
+
+    It also keeps the echo path's magnitude |H(f)|^2 (learnt while the filter is converged, kept across clips and relocks), which
+    mag() uses before the filter can be trusted: cold start, the check of a warm start."""
     N = 2 * B
     H = 64                                              # filter half length
 
@@ -200,32 +203,66 @@ class Suppressor:
         self.pe = np.zeros(NB)
         self.py = np.zeros(NB)
         self.g = np.ones(NB)
+        self.d_prev = np.zeros(B)
+        self.pd = np.zeros(NB)
+        self.H2: np.ndarray | None = None               # stored |H(f)|^2 of the echo path (power gain per bin)
+        self.acc_y = np.zeros(NB)
+        self.acc_x = np.zeros(NB)
 
     def reset(self):
+        keep = self.H2, self.acc_y, self.acc_x
         self.__init__()
+        self.H2, self.acc_y, self.acc_x = keep           # the room's magnitude outlives a relock
 
-    def process(self, e: np.ndarray, y: np.ndarray, learn: bool, second_voice: bool, onset: bool = False) -> np.ndarray:
+    @staticmethod
+    def _sm(v):
+        return np.convolve(np.pad(v, 2, mode="edge"), np.ones(5) / 5, "valid")
+
+    def _apply(self, g: np.ndarray, fe: np.ndarray) -> np.ndarray:
+        g = np.maximum(g, 0.6 * self.g)                  # fall at most ~4 dB a block: no pumping
+        self.g = g
+        h0 = np.fft.irfft(g, self.N)                     # zero-phase impulse response
+        h = np.roll(h0, self.H)[: 2 * self.H + 1] * self.hw
+        return np.fft.irfft(np.fft.rfft(fe) * np.fft.rfft(h, self.N), self.N)[B:]
+
+    def mag(self, d: np.ndarray, x3: np.ndarray, onset: bool = False) -> np.ndarray:
+        """No usable filter yet: the echo spectrum is predicted from the stored magnitude (|H|^2 x the placed reference's power in
+        this window, the reference taken PRE samples before the mic window: that is where the echo's main tap sits) and a Wiener-style
+        gain applied to the mic itself. Magnitude only, so a few ms of timing error cost little; a second voice raises the mic
+        power over the prediction and keeps its bins."""
+        fd = np.concatenate([self.d_prev, d])
+        self.d_prev = d.copy()
+        D = np.fft.rfft(fd * self.win)
+        X = np.fft.rfft(x3[B - PRE: B - PRE + self.N] * self.win)
+        pd = D.real ** 2 + D.imag ** 2
+        self.pd = 0.5 * self.pd + 0.5 * pd if self.pd.any() else pd
+        pecho = self.H2 * (X.real ** 2 + X.imag ** 2)
+        alpha = config.AEC_MAG_ALPHA * (config.AEC_RES_ONSET if onset else 1.0)
+        g = np.clip(1.0 - alpha * self._sm(pecho) / (self._sm(self.pd) + 1e-3), config.AEC_RES_FLOOR, 1.0)
+        return self._apply(g, fd)
+
+    def process(self, e: np.ndarray, y: np.ndarray, learn: bool, second_voice: bool, onset: bool = False, x3=None, learn_h: bool = False) -> np.ndarray:
         fe = np.concatenate([self.e_prev, e])
         fy = np.concatenate([self.y_prev, y])
         self.e_prev, self.y_prev = e.copy(), y.copy()
         E = np.fft.rfft(fe * self.win)
         Y = np.fft.rfft(fy * self.win)
         pe, py = E.real ** 2 + E.imag ** 2, Y.real ** 2 + Y.imag ** 2
+        if learn_h and x3 is not None:                  # the path's magnitude: power the filter puts out over the reference's power, smoothed over blocks
+            X = np.fft.rfft(x3[B - PRE: B - PRE + self.N] * self.win)
+            self.acc_y = 0.97 * self.acc_y + py
+            self.acc_x = 0.97 * self.acc_x + X.real ** 2 + X.imag ** 2
+            self.H2 = np.clip(self._sm(self.acc_y) / (self._sm(self.acc_x) + 1e-3), 0.0, 4.0)
         self.pe = 0.5 * self.pe + 0.5 * pe if self.pe.any() else pe
         self.py = 0.5 * self.py + 0.5 * py if self.py.any() else py
-        sm = lambda v: np.convolve(np.pad(v, 2, mode="edge"), np.ones(5) / 5, "valid")
+        sm = self._sm
         if learn:
             r = np.clip(sm(self.pe) / (sm(self.py) + 1e-3), 1e-3, 1.0)
             self.rho = 0.9 * self.rho + 0.1 * r
         alpha = config.AEC_RES_ALPHA * (config.AEC_RES_DT if second_voice else config.AEC_RES_ONSET if onset else 1.0)
         g = 1.0 - alpha * self.rho * sm(self.py) / (sm(self.pe) + 1e-3)
         g = np.clip(g, config.AEC_RES_FLOOR, 1.0)
-        g = np.maximum(g, 0.6 * self.g)                  # fall at most ~4 dB a block: no pumping
-        self.g = g
-        h0 = np.fft.irfft(g, self.N)                     # zero-phase impulse response
-        h = np.roll(h0, self.H)[: 2 * self.H + 1] * self.hw
-        out = np.fft.irfft(np.fft.rfft(fe) * np.fft.rfft(h, self.N), self.N)
-        return out[B:]
+        return self._apply(g, fe)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -250,6 +287,7 @@ class Out:
     cancelling: bool = False                 # the residual is trustworthy (locked pair)
     talker: str | None = None
     barge: list | None = None                # residual frames from the child's true start, when a barge-in just triggered
+    mag: bool = False                        # pcm is the mic with the stored-magnitude suppressor applied (the filter is not trusted yet): use it, but no barge-in from it
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -502,6 +540,24 @@ class AecManager:
             out += _cubic(c.pcm[: c.n], p)
         return out
 
+    def _mag_out(self, pair: Pair, clips: list[Clip], ns: int, pcm: np.ndarray):
+        """The mic frame with the stored-magnitude suppressor applied, or None if there is no stored magnitude / lag yet."""
+        sup = pair.sup
+        if not config.AEC_MAG or sup.H2 is None or pair.D is None or pair.l.c is None:
+            return None
+        n0 = ns - 2 * B
+        x3 = np.zeros(3 * B, np.float32)
+        for c in clips:
+            if c.t0 is None:
+                continue
+            s0 = int(round(self._base(pair, c) + pair.D - PRE))
+            lo, hi = max(n0, s0), min(ns + B, s0 + c.n)
+            if lo < hi:
+                x3[lo - n0:hi - n0] += c.pcm[lo - s0:hi - s0]
+        c0 = clips[-1]
+        onset = c0.t0 is not None and (ns - int(round(self._base(pair, c0) + pair.D))) < config.AEC_RES_ONSET_S * FS
+        return np.clip(sup.mag(pcm.astype(np.float32), x3, onset), -32768, 32767).astype("<i2")
+
     def _run_pair(self, pair: Pair, clips: list[Clip], ns: int, missing: int, pcm: np.ndarray) -> Out:
         clip = clips[-1]
         lst = pair.l
@@ -532,6 +588,9 @@ class AecManager:
             if not self._acquire(pair, clip, clips, ns):
                 if pair.state == "place":
                     pair.audible += int(rms(self._xprime(pair, clips, ns, ns + B)) > 30)
+                m = self._mag_out(pair, clips, ns, pcm)
+                if m is not None:
+                    out.pcm, out.mag = m, True
                 return out
         d = pcm.astype(np.float32)
         if pair.next_n is None or ns - pair.next_n > 4 * pair.mdf.P * B:
@@ -550,12 +609,16 @@ class AecManager:
         pair.d_ring.append(d)
         out.pcm, out.cancelling = e16, pair.q < 0.6
         if config.AEC_RES:
+            x3 = np.concatenate(list(pair.x_ring)[-3:]) if len(pair.x_ring) >= 3 else None
             es = pair.sup.process(e, pair.y_last, pair.learn_ok, bool(pair.dt_hang or pair.run),
-                                  (ns - self._s0(pair, clip)) < config.AEC_RES_ONSET_S * FS)
+                                  (ns - self._s0(pair, clip)) < config.AEC_RES_ONSET_S * FS, x3, pair.learn_ok and pair.q < 0.3)
             out.pcm = np.clip(es, -32768, 32767).astype("<i2")
             pair.res_ring[-1] = (ns, out.pcm)
         if pair.verify and rms(e) > rms(d):               # warm start not checked yet: never worse than the raw mic
             out.pcm, out.cancelling = pcm, False
+            m = self._mag_out(pair, clips, ns, pcm)
+            if m is not None:
+                out.pcm, out.mag = m, True
             self._track(pair, clip, ns)
             return out
         if config.BARGE_IN and out.cancelling and not pair.verify:
@@ -600,13 +663,16 @@ class AecManager:
             return False
         if verify:
             pair.verify = False
-            if abs(lag - pair.D) > 2:                      # the placement was off: move the clip, keep the filter
+            if abs(lag - pair.D) > 6:                      # the clip sits somewhere else: move it, keep the filter
                 pair.s0[id(clip)] = int(round(base + lag - PRE))
-                pair.mdf.reset_history()
-                pair.next_n = None
                 pair.stats["warm_moved"] = pair.stats.get("warm_moved", 0) + 1
-            pair.D = lag
-            pair.stats["lag_ms"] = lag / FS * 1000
+            else:                                          # a few samples off (even 1-2 ruin 4 kHz): let the filter find the shift that
+                self._fine_shift(pair)                     # removes the most of what was heard so far (measured, not guessed from a peak)
+            pair.mdf.reset_history()
+            pair.next_n = None
+            pair.D = lag if abs(lag - pair.D) > 6 else pair.D
+            pair.stats["lag_ms"] = pair.D / FS * 1000
+            pair.qn, pair.dt_hang, pair.dt_run = max(pair.qn, 0.3 * pair.qd), 0, 0   # like a normal placement: not fully trusted, free to re-adapt
             return True
         pair.D = lag
         pair.stats["lag_ms"] = lag / FS * 1000
@@ -621,6 +687,28 @@ class AecManager:
             self._retrain(pair, clips, ns)
             pair.state = "locked"
         return True
+
+    def _fine_shift(self, pair: Pair, span: int = 6, n: int = 14):
+        """Warm start: shift the filter by the whole number of samples that leaves the least residual on the last n blocks."""
+        if len(pair.d_ring) < n:
+            return
+        w = pair.mdf.taps()
+        best, best_k = None, 0
+        for k in range(-span, span + 1):
+            w2 = np.zeros_like(w)
+            if k >= 0:
+                w2[k:] = w[:len(w) - k]
+            else:
+                w2[:k] = w[-k:]
+            tot = self._replay(pair, w2, n)
+            if best is None or tot < best:
+                best, best_k = tot, k
+        pair.stats["warm_shift"] = best_k
+        if best_k:
+            pair.mdf.shift_taps(best_k)
+            if pair.lag0 is not None:
+                pair.lag0 += best_k                        # the echo now sits best_k later against the filter's reference, as measured by GCC
+        pair.snap = None                                   # the drift tracker must not read the shift as clock drift
 
     def _retrain(self, pair: Pair, clips: list[Clip], ns: int):
         """Converge the filter on the frames already heard of this clip (adaptation passes, then a clean one)."""

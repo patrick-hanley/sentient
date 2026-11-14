@@ -265,7 +265,7 @@ class AtomHub:
                     except Exception:  # noqa: BLE001 — a canceller bug must never silence the ears
                         log.exception("echo canceller failed; falling back to the loudness barge-in detector")
                         self.aec = None
-                clean = out.pcm if out is not None and out.cancelling else pcm
+                clean = out.pcm if out is not None and (out.cancelling or out.mag) else pcm
                 if not self.muted() or (self._barged and a.toy == self._barge_toy):   # after a barge the child's mic is live at once
                     if self._barge_frames and a.toy == self._barge_toy:   # the start of the interrupting speech, kept in RAM
                         frames, self._barge_frames = self._barge_frames, []

@@ -15,14 +15,13 @@ import aec_replay as R  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 # (config name, value, what it changes), in the order tried
-CANDIDATES = [("AEC_WARM", 1, "warm start (on top of the suppressor): cancel from the first block of a later clip"),
-              ("AEC_RES_ONSET", 2.0, "suppressor: more aggressive in the first second of a clip, child not yet talking"),
-              ("AEC_RES_ALPHA", 2.5, "suppressor over-subtraction"),
-              ("AEC_RES_FLOOR", 0.05, "suppressor floor"),
-              ("AEC_WARM_S", 0.1, "warm start: earlier placement check"),
-              ("AEC_RES_DT", 0.1, "suppressor double-talk back-off"),
-              ("AEC_RES_ONSET", 3.0, "suppressor: first-second aggressiveness"),
-              ("AEC_RES_DT", 0.6, "suppressor double-talk back-off")]
+CANDIDATES = [("AEC_MAG", 1, "stored per-pair echo-path magnitude drives the suppressor before the filter is trusted"),
+              ("AEC_WARM", 1, "warm start (fixed: filter shifted to the best whole-sample alignment) on top of the magnitude mode"),
+              ("AEC_MAG_ALPHA", 1.5, "magnitude mode over-subtraction"),
+              ("AEC_RES_ONSET", 2.0, "stronger suppression in the first second"),
+              ("AEC_RES_ALPHA", 3.5, "suppressor over-subtraction"),
+              ("AEC_MAG_ALPHA", 0.7, "magnitude mode over-subtraction"),
+              ("AEC_RES_FLOOR", 0.07, "suppressor floor")]
 
 
 def apply(name, value):

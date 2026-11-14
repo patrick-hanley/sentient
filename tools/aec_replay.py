@@ -76,10 +76,10 @@ def replay_seq(files, overrides=None):
                     played = True
                 fr = mic[i * B:(i + 1) * B]
                 o = m.feed(b_toy, fr, int(ns[i] // B) & 0xFFFF, float(arr[i]), float(cap[i]) if cap[i] > 0 else None)
-                outs.append(o.pcm if o.cancelling else fr)
+                outs.append(o.pcm if (o.cancelling or o.mag) else fr)
             last_n = ns[-1]
             m.finish(a_toy)
-            res.append(dict(k=k, mic=mic, out=np.concatenate(outs).astype(np.int16), z=z, a=a_toy, b=b_toy))
+            res.append(dict(k=k, mic=mic, out=np.concatenate(outs).astype(np.int16), z=z, a=a_toy, b=b_toy, m=m))
         return res
     finally:
         for (mod, k), v in saved.items():

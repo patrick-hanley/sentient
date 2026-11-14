@@ -17,6 +17,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_MODEL = "/Users/patrickhanley/Downloads/sentient/offline/faster-whisper-base.en"
 _model = None
+BEAM = 1                      # decoding beam; 5 is a cross-check that a WER difference is not a one-word decoding flip
 
 
 def words(t):
@@ -40,7 +41,7 @@ def transcribe(pcm, model_dir):
         from faster_whisper import WhisperModel
         _model = WhisperModel(model_dir, device="cpu", compute_type="int8")
     x = pcm.astype(np.float32) / 32768.0
-    segs, _ = _model.transcribe(x, language="en", beam_size=1, vad_filter=False, condition_on_previous_text=False)
+    segs, _ = _model.transcribe(x, language="en", beam_size=BEAM, vad_filter=False, condition_on_previous_text=False)
     return " ".join(s.text.strip() for s in segs)
 
 
