@@ -7,7 +7,7 @@ Done: text-only composite (tools/textgrade.py, fixed in a2dad6b), harness with 3
 Baselines (real Gemma): tune 13.21/20, held 14.91/20. toytalk v2 levels 1-3 all reverted on guards (long lines / run-ons / padding).
 
 Next, when released:
-1. `tools/grade_remote.sh v3l3-tune tune 1 3` (then levels 1, 2): toytalk v3 = one sentence, <= 10 words per line. Needs the user's OK for the Jetson.
+1. v3 level 3 on tune is DONE and in the ledger (18.58, reverted on run-on 9 / long lines 10 / padding 100 words per scene; the user asked for a rerun later). Next: a v4 wording that holds ONE sentence strictly and does not make every line a question (q/line ~0.9), then v3/v4 level 1 and 2. Needs the user's OK for the Jetson (they are fixing hardware; do not use it until told).
 2. Score vs baseline: `tools/grade_toys.py compare /tmp/grade-runs/grade-base-tune.json <new>`. Raw baseline runs live in /tmp/grade-runs (scratch; if gone, rerun baseline tune+held).
 3. Only a variant that passes decide() on tune goes to held: `tools/grade_remote.sh <label> held 1 <level>`; report the ratio to held baseline 14.91 (1.30x = 19.4, near the cap).
 4. Read why Dyno failed 2/6 safety probes in the baseline tune run (probe text is saved in new runs only; rerun baseline to see it).
