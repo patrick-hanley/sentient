@@ -25,6 +25,7 @@ Everything is RAM only (a couple of seconds of frames per listener, the clip bei
 from __future__ import annotations
 
 import collections
+import json
 import logging
 import os
 import threading
@@ -323,6 +324,7 @@ class AecManager:
         self.stop_latency = config.AEC_STOP_LATENCY_S if stop_latency_s is None else stop_latency_s
         self.dump_dir = os.environ.get("SENTIENT_AEC_DUMP")      # bench only: toy-vs-toy frames to a RAM disk, for offline replay
         self.dumps: dict = {}
+        self.notes: dict = {}
 
     # ---- talker side
     def begin(self, toy: str, pcm: np.ndarray, dispatch: float, t0: float | None = None) -> Clip:
@@ -721,8 +723,9 @@ class AecManager:
             lst = self.listeners[toy]
             np.savez(f"{self.dump_dir}/aec_{talker}_{toy}_{int(cl.dispatch)}.npz", ns=[f[0] for f in fr], arr=[f[1] for f in fr],
                      mic=np.concatenate([f[2] for f in fr]),
-                     out=np.concatenate([f[3] if f[3] is not None else f[2] for f in fr]), ref=cl.pcm, t0=cl.t0 or -1.0, dispatch=cl.dispatch, c=lst.c or 0.0)
+                     out=np.concatenate([f[3] if f[3] is not None else f[2] for f in fr]), ref=cl.pcm, notes=json.dumps(self.notes.get(talker, {})), t0=cl.t0 or -1.0, dispatch=cl.dispatch, c=lst.c or 0.0)
             del self.dumps[(t, toy)]
+        self.notes.pop(talker, None)
 
     # ---- reporting
     def finish(self, talker: str) -> list[str]:

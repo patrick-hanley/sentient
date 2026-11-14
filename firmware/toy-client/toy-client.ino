@@ -59,7 +59,7 @@ struct WifiCred { const char* ssid; const char* pass; int channel = 0; };  // ch
 #include "secrets.h"
 static constexpr uint16_t BRAIN_PORT = 5005;
 static constexpr uint16_t ATOM_PORT  = 5006;
-static constexpr const char* FW_VERSION = "toy-client-3.7";
+static constexpr const char* FW_VERSION = "toy-client-3.8";
 
 // ---------- GC0308 camera pins — AtomS3R-CAM ----------
 #define CAM_SIOD   12
@@ -675,8 +675,10 @@ static void service_udp() {
     snprintf(h, sizeof(h), "HELLO %s cam=%d mic=%d spk=%d fw=%s sfix=%u sfail=%u mfix=%u mfail=%u clips=%d vol=%u imu=%d",
              mac_str, cam_ok, M5.Mic.isEnabled(), M5.Speaker.isEnabled(), FW_VERSION,
              spk_fix, spk_fail, mic_fix, mic_fail, clip_count(), spk_volume, imu_state());
-    send_text(IPAddress(255, 255, 255, 255), h);
+    // 3.8: broadcast only while looking for the brain. A broadcast every 3 s stalled this loop for ~270 ms on a busy WiFi,
+    // and the mic ring overran (measured: gaps of 12-14 frames every 3.0 s in the mic stream).
     if (brain_known) send_text(brain_ip, h);
+    else send_text(IPAddress(255, 255, 255, 255), h);
   }
   if (brain_known && now - last_ack > 15000) {
     brain_known = false;

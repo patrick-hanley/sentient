@@ -20,7 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from . import config
-from .atoms import AtomHub
+from .atoms import AtomHub, encode_for_atom
 from .director import Director, system_prompt
 from .llm import make_backend
 from .perception import Perceiver, Recognizer
@@ -34,6 +34,27 @@ from . import canned
 log = logging.getLogger("brain")
 
 PAGE = (Path(__file__).with_name("dashboard.html")).read_text(encoding="utf-8")   # the operator dashboard on :8080
+
+
+def aec_trial(hub, voices, q):
+    import urllib.request
+    a, c = q["a"], q["c"]
+    apcm, cpcm = voices.render(a, q.get("atext", "")), voices.render(c, q.get("ctext", ""))
+    body, query = encode_for_atom(cpcm)
+    notes = dict(a=a, c=c, atext=q.get("atext", ""), ctext=q.get("ctext", ""), child_dur=len(cpcm) / 2 / config.SAMPLE_RATE)
+
+    def child():
+        time.sleep(float(q.get("delay", "2.5")))
+        notes["child_t"] = time.monotonic()
+        try:
+            req = urllib.request.Request(f"http://{hub.atoms[c].base}/play?{query}", data=body, method="POST",
+                                         headers={"Content-Type": "application/octet-stream"})
+            hub._http.open(req, timeout=30).read()
+        except Exception as e:  # noqa: BLE001
+            log.warning("aec_trial child failed: %s", e)
+    hub.aec.notes[a] = notes
+    threading.Thread(target=child, daemon=True).start()
+    hub.play(a, apcm)
 
 
 def make_handler(hub, eyes, director, rec, voices):
@@ -151,6 +172,10 @@ def make_handler(hub, eyes, director, rec, voices):
                 return self._send(200 if hub.calibrate(q["toy"]) else 502, "stand the toy upright and still for 2 s")
             elif u.path == "/say" and q.get("toy") in config.TOYS and q.get("text"):
                 threading.Thread(target=hub.play, args=(q["toy"], voices.render(q["toy"], q["text"])), daemon=True).start()
+            elif u.path == "/aec_trial" and hub.aec is not None and q.get("a") in config.TOYS and q.get("c") in config.TOYS:
+                # experiment (needs SENTIENT_AEC=1): toy `a` speaks `atext` through the normal path (echo canceller engaged),
+                # `delay` s later toy `c` plays `ctext` straight to its speaker as the "child". Notes go into the RAM dump.
+                threading.Thread(target=aec_trial, args=(hub, voices, q), daemon=True).start()
             elif u.path == "/enroll":
                 return self._send(200, enroll_live(rec, hub, q.get("toy", "sage"), q.get("name", "").strip(),
                                                    q.get("pet") == "1"))
