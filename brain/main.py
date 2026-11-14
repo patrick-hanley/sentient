@@ -140,7 +140,7 @@ def make_handler(hub, eyes, director, rec, voices):
                     for t in online:
                         hub.set_volume(t, getattr(hub, "saved_vol", {}).get(t, 200) or 200)
             elif u.path == "/mute":
-                hub.force_mute = not hub.force_mute
+                hub.force_mute = (q["on"] == "1") if q.get("on") in ("0", "1") else not hub.force_mute   # ?on=1 / ?on=0 set it; bare /mute still toggles
             elif u.path == "/idle":
                 director.idle_on = not director.idle_on
             elif u.path == "/imu" and q.get("toy") in config.TOYS and q.get("event") in scripted.IMU_EVENTS:

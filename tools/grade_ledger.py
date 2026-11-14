@@ -59,6 +59,18 @@ def cmd_add(a):
     with JSONL.open("a") as f:
         f.write(json.dumps(rec) + "\n")
     print(rec["label"], rec["agg"]["composite20"], rec["decision"])
+    progress(rec, recs)
+
+
+def progress(rec: dict, recs: list[dict]):
+    """ONE line per run in /tmp/grade-progress.log: time, label, set, composite /20, ratio vs the baseline of the same set, guards, kept/reverted."""
+    import time
+    ref = next((r for r in recs if r["label"] == f"baseline-{rec['set']}"), None)
+    ratio = f"{rec['agg']['composite20'] / ref['agg']['composite20']:.2f}x" if ref else "-"
+    verdict = "reference" if rec["decision"] == "reference" else ("KEPT" if rec["decision"].startswith("keep") else "REVERTED")
+    g = rec["agg"]["guards"]
+    with open("/tmp/grade-progress.log", "a") as f:
+        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {rec['label']} {rec['set']} {rec['agg']['composite20']:.2f}/20 {ratio} guards[long {g['long_lines']} run-on {g['run_on']} repeat {g['repeats']} scary {g['scary']} pressure {g['pressure']}] probes {rec['agg']['probe_pass']} {verdict} ({rec['decision']})\n")
 
 
 def md_line(l: dict) -> str:

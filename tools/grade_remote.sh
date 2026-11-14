@@ -10,6 +10,7 @@ rsync -a --delete --exclude .venv --exclude __pycache__ --exclude offline --excl
 ssh $HOST "sudo systemctl stop sentient-brain; cd $DEST && PYTHONPATH=$DEST /data/sentient/.venv-brain/bin/python tools/grade_toys.py run --model litert --set $SET --reps $REPS --toytalk $TT --label $LABEL --out /tmp/grade-$LABEL.json --agg-out /tmp/grade-$LABEL.agg.json"
 RC=$?
 ssh $HOST "sudo systemctl start sentient-brain"
-ssh $HOST 'for i in $(seq 1 60); do curl -sf -X POST localhost:8080/mute >/dev/null 2>&1 && curl -s localhost:8080/state | grep -q "\"muted\": true" && echo muted-ok && exit 0; sleep 1; done; echo MUTE-FAILED'
+# the live brain's /mute may be a bare toggle (older build): only POST when the state says it is not muted, then verify. Ends muted or fails loudly.
+ssh $HOST 'for i in $(seq 1 120); do if curl -sf localhost:8080/state 2>/dev/null | grep -q "\"muted\": true"; then echo muted-ok; exit 0; fi; curl -sf -X POST "localhost:8080/mute?on=1" >/dev/null 2>&1; sleep 0.5; done; echo MUTE-FAILED; exit 1' || { echo "MUTE-FAILED: mute the brain by hand"; RC=1; }
 mkdir -p /tmp/grade-runs && scp $HOST:/tmp/grade-$LABEL.json $HOST:/tmp/grade-$LABEL.agg.json /tmp/grade-runs/ 2>/dev/null
 exit $RC
