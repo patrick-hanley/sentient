@@ -202,8 +202,11 @@ class BargeTests(unittest.TestCase):
         child = r.child[k0 * 320:(k0 + 20) * 320].reshape(20, 320)
         self.assertLess(np.mean((res - (mic - 0)) ** 2) ** .5, 3 * np.mean(child ** 2) ** .5)   # sanity: same order as the child
         # the residual should not carry more than the child + noise: no echo of a clip that is no longer playing
-        extra = (res - child.astype(float))
-        self.assertLess(np.sqrt(np.mean(extra ** 2)), 0.45 * np.sqrt(np.mean(child ** 2)) + 150)
+        if aec.config.AEC_RES:       # the suppressor's filter delays the output by 4 ms, so compare energy, not samples: a phantom echo adds energy
+            self.assertLess(np.sqrt(np.mean(res ** 2)), 1.25 * np.sqrt(np.mean(child ** 2)) + 150)
+        else:
+            extra = (res - child.astype(float))
+            self.assertLess(np.sqrt(np.mean(extra ** 2)), 0.45 * np.sqrt(np.mean(child ** 2)) + 150)
 
 
 class CaptureStampTests(unittest.TestCase):

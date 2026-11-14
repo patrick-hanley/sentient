@@ -151,6 +151,8 @@ AEC_RES = 1                  # 1 = residual echo suppressor after the filter (pe
 AEC_RES_ALPHA = 1.5          # over-subtraction of the estimated residual echo
 AEC_RES_FLOOR = 0.1          # lowest gain (0.1 = -20 dB)
 AEC_RES_DT = 0.3             # alpha is scaled by this while a second voice is detected (double-talk protection)
+AEC_RES_ONSET = 1.0          # alpha is multiplied by this during the first AEC_RES_ONSET_S of a clip while no second voice is detected
+AEC_RES_ONSET_S = 1.0
 AEC_STOP_LATENCY_S = 0.04    # STOP is sent -> speaker silent (the clip's reference is cut then)
 MIC_TAIL_S = 0.4             # mics stay muted this long after any toy stops talking
 ARBITRATE_S = 0.12           # upper bound; stop sooner when all online mics have reported

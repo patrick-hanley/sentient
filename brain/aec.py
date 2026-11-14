@@ -204,7 +204,7 @@ class Suppressor:
     def reset(self):
         self.__init__()
 
-    def process(self, e: np.ndarray, y: np.ndarray, learn: bool, second_voice: bool) -> np.ndarray:
+    def process(self, e: np.ndarray, y: np.ndarray, learn: bool, second_voice: bool, onset: bool = False) -> np.ndarray:
         fe = np.concatenate([self.e_prev, e])
         fy = np.concatenate([self.y_prev, y])
         self.e_prev, self.y_prev = e.copy(), y.copy()
@@ -217,7 +217,7 @@ class Suppressor:
         if learn:
             r = np.clip(sm(self.pe) / (sm(self.py) + 1e-3), 1e-3, 1.0)
             self.rho = 0.9 * self.rho + 0.1 * r
-        alpha = config.AEC_RES_ALPHA * (config.AEC_RES_DT if second_voice else 1.0)
+        alpha = config.AEC_RES_ALPHA * (config.AEC_RES_DT if second_voice else config.AEC_RES_ONSET if onset else 1.0)
         g = 1.0 - alpha * self.rho * sm(self.py) / (sm(self.pe) + 1e-3)
         g = np.clip(g, config.AEC_RES_FLOOR, 1.0)
         g = np.maximum(g, 0.6 * self.g)                  # fall at most ~4 dB a block: no pumping
@@ -550,7 +550,8 @@ class AecManager:
         pair.d_ring.append(d)
         out.pcm, out.cancelling = e16, pair.q < 0.6
         if config.AEC_RES:
-            es = pair.sup.process(e, pair.y_last, pair.learn_ok, bool(pair.dt_hang or pair.run))
+            es = pair.sup.process(e, pair.y_last, pair.learn_ok, bool(pair.dt_hang or pair.run),
+                                  (ns - self._s0(pair, clip)) < config.AEC_RES_ONSET_S * FS)
             out.pcm = np.clip(es, -32768, 32767).astype("<i2")
             pair.res_ring[-1] = (ns, out.pcm)
         if pair.verify and rms(e) > rms(d):               # warm start not checked yet: never worse than the raw mic

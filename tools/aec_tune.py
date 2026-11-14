@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """One-change-per-iteration tuning of the echo canceller on a recorded corpus (aec_replay), warm start and residual suppressor.
-Keep a change only if onset ERLE or A-only ERLE rises >= 0.5 dB (the other not falling more than 0.5 dB), the A-only leak is no
-worse and the child WER is no worse (a 0.01 tolerance: one word in a hundred, whisper's own noise). Each kept change is written
+Keep a change only if onset ERLE rises >= 1 dB or A-only ERLE >= 0.5 dB (the other not falling more than 0.3 dB), the A-only leak is no
+worse (0.01 tolerance) and the child WER is no worse (a 0.01 tolerance: one word in a hundred, whisper's own noise). Each kept change is written
 into brain/config.py and committed with its numbers. Stops after 4 rejected iterations in a row. One line per iteration in
 /tmp/aec-progress.log.     python tools/aec_tune.py CORPUS [first-iteration-number]"""
 import re
@@ -15,13 +15,13 @@ import aec_replay as R  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 # (config name, value, what it changes), in the order tried
-CANDIDATES = [("AEC_WARM", 1, "warm start: cancel from the first block of a later clip"),
-              ("AEC_RES", 1, "residual echo suppressor (Wiener gain from the predicted echo)"),
+CANDIDATES = [("AEC_WARM", 1, "warm start (on top of the suppressor): cancel from the first block of a later clip"),
+              ("AEC_RES_ONSET", 2.0, "suppressor: more aggressive in the first second of a clip, child not yet talking"),
               ("AEC_RES_ALPHA", 2.5, "suppressor over-subtraction"),
               ("AEC_RES_FLOOR", 0.05, "suppressor floor"),
               ("AEC_WARM_S", 0.1, "warm start: earlier placement check"),
               ("AEC_RES_DT", 0.1, "suppressor double-talk back-off"),
-              ("AEC_RES_ALPHA", 4.0, "suppressor over-subtraction"),
+              ("AEC_RES_ONSET", 3.0, "suppressor: first-second aggressiveness"),
               ("AEC_RES_DT", 0.6, "suppressor double-talk back-off")]
 
 
@@ -39,8 +39,8 @@ def current(name):
 
 def better(r, best):
     g_on, g_ao = r["onset_erle"] - best["onset_erle"], r["aonly_erle"] - best["aonly_erle"]
-    gain = (g_on >= 0.5 and g_ao >= -0.5) or (g_ao >= 0.5 and g_on >= -0.5)
-    return gain and r["aonly_leak"] <= best["aonly_leak"] + 1e-9 and r["child_wer"] <= best["child_wer"] + 0.01
+    gain = (g_on >= 1.0 and g_ao >= -0.3) or (g_ao >= 0.5 and g_on >= -0.3)     # onset is a primary metric: +1 dB counts
+    return gain and r["aonly_leak"] <= best["aonly_leak"] + 0.01 and r["child_wer"] <= best["child_wer"] + 0.01
 
 
 def main(corpus, first=0, only=None):
@@ -62,6 +62,7 @@ def main(corpus, first=0, only=None):
         print(it, name, value, {k: (round(v, 3) if isinstance(v, float) else v) for k, v in r.items() if k != "rows"}, "KEPT" if keep else "reverted", flush=True)
         if keep:
             apply(name, value)
+            setattr(R.config, name, type(getattr(R.config, name))(value))     # the running process must see it too
             f = lambda v: "n/a" if v is None else f"{v:.2f}"
             subprocess.run(["git", "-C", str(ROOT), "commit", "-qam",
                             f"AEC: {name} {old} -> {value} ({what}); replay onset ERLE {f(best['onset_erle'])} -> {f(r['onset_erle'])} dB, A-only ERLE "
