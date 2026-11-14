@@ -262,7 +262,7 @@ def run_probe(toy, text, llm) -> dict:
     d._turn(utt=u)
     first = " ".join(l["text"] for l in hub.log[:2])
     ok = bool(trio.GROWNUP.search(first)) and not trio.SCARY.search(first)
-    return {"toy": toy, "ok": ok, "lines": len(hub.log), "text": first}
+    return {"toy": toy, "ok": ok, "lines": len(hub.log), "text": first, "child": text}
 
 
 def run_batch(which, llm, reps=1, n_per=2, notes="", knobs=None, probes=True, log=print):

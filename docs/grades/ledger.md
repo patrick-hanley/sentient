@@ -1,14 +1,16 @@
-# Grade ledger (numbers only; run JSONs in docs/grades/runs; all with real Gemma on the Jetson via tools/grade_remote.sh, brain stopped then restarted and muted)
+# Grade ledger (numbers + the toys' dialog, synthetic scenarios only; append-only records in ledger.jsonl, rendered per run in ledger/<run>.md (every scene's lines with per-line and scene scores, same scenario vs baseline side by side); all with real Gemma on the Jetson via tools/grade_remote.sh, brain stopped then restarted and muted)
 
 Composite /20 after chunk merging. Baseline = no toy-talk block (`SENTIENT_TOY_TALK=0`, the code on main).
 
-| run | set | composite | probes | words/scene | guards (long/run-on/repeat) | decision |
-|---|---|---|---|---|---|---|
-| baseline | tune | 13.21 | 4/6 | 75.5 | 0/0/4 | reference |
-| baseline | held | 14.91 | 12/12 | 84.8 | 0/0/1 | reference |
-| v2 level 1 | tune | 14.63 | 4/6 | 125.8 | 8/0/3 | revert: long_lines 0 -> 8 (+1.43) |
-| v2 level 2 | tune | 17.38 | 6/6 | 165.2 | 81/6/6 | revert: run_on 0 -> 6 (+4.18) |
-| v2 level 3 | tune | 18.05 | 6/6 | 170.7 | 69/2/1 | revert: long_lines 0 -> 69 (+4.85) |
+<!-- TABLE -->
+| run | set | level | composite | probes | words/scene | guards (long/run-on/repeat) | decision | dialog |
+|---|---|---|---|---|---|---|---|---|
+| baseline-tune | tune | 0 | 13.21 | 4/6 | 75.5 | 0/0/4 | reference | [dialog](ledger/baseline-tune.md) |
+| baseline-held | held | 0 | 14.91 | 12/12 | 84.8 | 0/0/1 | reference | [dialog](ledger/baseline-held.md) |
+| v2-level1-tune | tune | 1 | 14.63 | 4/6 | 125.8 | 8/0/3 | revert: guard 'long_lines' rose 0 -> 8 (gain +1.43) | [dialog](ledger/v2-level1-tune.md) |
+| v2-level2-tune | tune | 2 | 17.38 | 6/6 | 165.2 | 81/6/6 | revert: guard 'run_on' rose 0 -> 6 (gain +4.18) | [dialog](ledger/v2-level2-tune.md) |
+| v2-level3-tune | tune | 3 | 18.05 | 6/6 | 170.7 | 69/2/1 | revert: guard 'long_lines' rose 0 -> 69 (gain +4.85) | [dialog](ledger/v2-level3-tune.md) |
+<!-- /TABLE -->
 
 Per-category columns: see docs/grades/runs/*.json (`agg.toys.<toy>.scores`). Headline category moves, baseline tune -> v2 level 3: relevance ~2.1 -> 3.9,
 follow-up ~1.4 -> 3.9, banter depth 2.1 -> 3.8, variety 3.7 -> 3.9, **length 4.0 -> 2.5** (toys wrote 3+ sentence lines), speaker distinctness 0.72 -> 0.66.

@@ -33,6 +33,17 @@ class Scoring(unittest.TestCase):
         var = T.aggregate([{"topic": "x", "lines": L(("dyno", "Frogs jump high."), ("sage", "Tadpoles swim fast."), ("dyno", "Ponds stay cool."))}])
         self.assertLess(rep["toys"]["dyno"]["scores"]["variety"], var["toys"]["dyno"]["scores"]["variety"])
 
+    def test_line_scores_match_scene_counts(self):
+        lines = L(("dyno", "Rain comes from clouds. Sage, what makes clouds?"), ("sage", "Clouds form when warm air rises and cools."),
+                  ("penny", "I like pizza and also dogs and also cats and so many more things than anyone could count today."), ("dyno", "Droplets join together and fall as rain."))
+        per, ls = T.analyse_scene(lines, "the water cycle"), T.line_scores(lines, "the water cycle")
+        for t in T.NAMES:
+            mine = [x for x in ls if x["toy"] == t]
+            self.assertEqual(per[t]["rel"], sum(x["relevance"] for x in mine))
+            self.assertEqual(per[t]["ok_len"], sum(x["length"] for x in mine))
+            self.assertEqual(per[t]["nonrep"], sum(x["variety"] for x in mine))
+            self.assertEqual(per[t]["follow"], sum(x["followup"] or 0 for x in mine))
+
 
 if __name__ == "__main__":
     unittest.main()

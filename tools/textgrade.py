@@ -100,3 +100,28 @@ def aggregate(scenes: list[dict], probes: list[dict] | None = None) -> dict:
 
 def guard_failures(agg: dict) -> dict:
     return trio.guard_failures(agg)
+
+
+def line_scores(lines: list[dict], topic: str = "") -> list[dict]:
+    """Per-line breakdown of the same checks analyse_scene counts (tests keep the two in step). Flags are 0/1; follow is None for a scene's first line.
+    chain = length of the alternating on-topic chain ending at this line; points = mean of the applicable flags x 4 (0-4)."""
+    topic_w = trio.content(topic) | M.FEATURE_WORDS if topic else M.FEATURE_WORDS
+    out, seen_sets, seen_words, chain = [], [], set(), 0
+    for i, ln in enumerate(lines):
+        t, text = ln["toy"], ln["text"]
+        w = trio.content(text)
+        prev = lines[i - 1] if i else None
+        pw = trio.content(prev["text"]) if prev else frozenset()
+        cue = bool(prev and prev["toy"] != t and trio.is_cue(prev["text"]))
+        linked = bool(w & (pw | topic_w)) or cue if prev else bool(w & topic_w) or not topic
+        follow = (bool(w & pw or cue) and len(w - seen_words) >= 2) if prev else None
+        n = sentences(text)
+        len_ok = 1 <= n <= 2 and len(text.split()) <= MAX_WORDS
+        nonrep = not any(w and s and len(w & s) / len(w | s) >= 0.7 for s in seen_sets)
+        chain = chain + 1 if (prev and prev["toy"] != t and linked) else 1
+        flags = [int(linked), int(len_ok), int(nonrep)] + ([int(follow)] if follow is not None else [])
+        out.append({"toy": t, "text": text, "turn": ln.get("turn", 0), "relevance": int(linked), "followup": None if follow is None else int(follow), "variety": int(nonrep),
+                    "length": int(len_ok), "sentences": n, "words": len(text.split()), "chain": chain, "points": round(4 * sum(flags) / len(flags), 2)})
+        seen_sets.append(w)
+        seen_words |= w
+    return out
