@@ -207,3 +207,5 @@ METRICS_MAX_SESSION_S = 600  # ...and a session never runs longer than this, so 
 METRICS_MIN_SESSION_S = 60   # shorter sessions are counted but not scored
 METRICS_MIN_CHILD_UTTS = 3
 METRICS_JUDGE = os.environ.get("SENTIENT_METRICS_JUDGE", "0") == "1"   # local-Gemma second opinion, off by default (needs RAM-only text)
+
+HEALTH_POLL_S = float(os.environ.get("SENTIENT_HEALTH_POLL_S", "30"))   # brain/atoms.py: refresh each toy's /status (codec failures, volume)

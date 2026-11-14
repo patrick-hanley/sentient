@@ -119,7 +119,7 @@ def make_handler(hub, eyes, director, rec, voices):
                     st["toys"][t] = {"online": t in online, "ip": a.ip if a else "", "cam": bool(a and a.cam),
                                      "level": director.segs[t].level, "view": eyes.views[t].describe(),
                                      "voice": voices.describe(t),
-                                     "health": {k: a.flags.get(k) for k in ("fw", "sfix", "sfail", "mfix", "mfail", "vol", "imu")}
+                                     "health": {k: a.flags.get(k) for k in ("fw", "sfix", "sfail", "mfix", "mfail", "vol", "imu", "clips", "rssi")}
                                                | {"clips": len(a.clips), "fs_used": a.fs[1], "fs_total": a.fs[0]} if a else {}}
                 return self._send(200, json.dumps(st), "application/json")
             self._send(404, "")
@@ -153,15 +153,17 @@ def make_handler(hub, eyes, director, rec, voices):
                 return self._send(200 if ok else 502, "ok" if ok else "toy unreachable")
             elif u.path == "/muteall":
                 online = hub.online()
-                if any(int(hub.atoms[t].flags.get("vol", 200)) > 0 for t in online):   # mute, remember levels
-                    hub.saved_vol = {t: int(hub.atoms[t].flags.get("vol", 200)) for t in online}
+                want = q.get("on")   # on=1 always mutes, on=0 always restores; no parameter toggles (dashboard button)
+                if want == "1" or (want is None and any(int(hub.atoms[t].flags.get("vol", 200)) > 0 for t in online)):   # mute, remember levels
+                    if any(int(hub.atoms[t].flags.get("vol", 200)) > 0 for t in online):
+                        hub.saved_vol = {t: int(hub.atoms[t].flags.get("vol", 200)) for t in online}
                     for t in online:
                         hub.set_volume(t, 0)
                 else:                                                                    # unmute to saved levels
                     for t in online:
                         hub.set_volume(t, getattr(hub, "saved_vol", {}).get(t, 200) or 200)
-            elif u.path == "/mute":
-                hub.force_mute = not hub.force_mute
+            elif u.path == "/mute":   # on=1 / on=0 set it; no parameter toggles (dashboard button)
+                hub.force_mute = (q["on"] == "1") if q.get("on") in ("0", "1") else not hub.force_mute
             elif u.path == "/idle":
                 director.idle_on = not director.idle_on
             elif u.path == "/imu" and q.get("toy") in config.TOYS and q.get("event") in scripted.IMU_EVENTS:
