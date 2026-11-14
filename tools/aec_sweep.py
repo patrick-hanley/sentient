@@ -7,11 +7,19 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import aec_experiment as E  # noqa: E402
 
-va, vc = (int(x) for x in sys.argv[1:3]) if len(sys.argv) >= 3 else (90, 130)
+# Sage's speaker needs more volume (reseated Nov 14, audible at 160-200); the others stay modest. Arg: reps per rotation.
+VOL_TALK = {"dyno": 70, "penny": 70, "sage": 160}
+VOL_CHILD = {"dyno": 100, "penny": 100, "sage": 160}
+reps = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 rows = []
-for a, c in itertools.permutations(("dyno", "sage", "penny"), 2):
+for a, c in [p for p in itertools.permutations(("dyno", "sage", "penny"), 2) for _ in range(reps)]:
     b = ({"dyno", "sage", "penny"} - {a, c}).pop()
-    log, res = E.trial(a, c, b, va, vc)
+    va, vc = VOL_TALK[a], VOL_CHILD[c]
+    try:
+        log, res = E.trial(a, c, b, va, vc)
+    except E.HardwareIssue as e:
+        print("HARDWARE ISSUE, stopping:", e, flush=True)
+        break
     erle = log[0].split("ERLE ")[1].split(" dB")[0] if log and "ERLE" in log[0] else "?"
     barges = log[0].split("barges ")[1].split(",")[0] if log and "barges" in log[0] else "?"
     r = res or {}

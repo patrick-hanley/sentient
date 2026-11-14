@@ -30,10 +30,43 @@ journalctl -u sentient-brain --since "-$(( $8 + 3 ))s" --no-pager | grep -E " ae
 '''
 
 
+class HardwareIssue(RuntimeError):
+    pass
+
+
+# fail counters at the start of the Nov 14 resume (Sage was reseated: 6/4 since its boot, Dyno and Penny 0/0). Any rise = stop.
+BASELINE = {"dyno": (0, 0), "sage": (6, 4), "penny": (0, 0)}
+IPS = {"dyno": "10.42.0.44", "sage": "10.42.0.51", "penny": "10.42.0.236"}
+
+
+def guard(base=None):
+    """Read every toy's /status (spk_fail, mic_fail); raise HardwareIssue if a counter rose or a toy does not answer."""
+    base = base or BASELINE
+    cmd = "; ".join(f"echo {t} $(curl -s -m4 --retry 2 --retry-all-errors --retry-delay 1 http://{ip}/status)" for t, ip in IPS.items())
+    out = subprocess.run(["ssh", HOST, cmd], capture_output=True, text=True).stdout.splitlines()
+    seen = {}
+    for ln in out:
+        t, _, js = ln.partition(" ")
+        try:
+            d = json.loads(js)
+        except ValueError:
+            raise HardwareIssue(f"{t} did not answer /status")
+        seen[t] = (d["spk_fail"], d["mic_fail"])
+        if seen[t][0] > base[t][0] or seen[t][1] > base[t][1]:
+            raise HardwareIssue(f"{t}: spk_fail/mic_fail rose from {base[t]} to {seen[t]}")
+    if set(seen) != set(IPS):
+        raise HardwareIssue(f"no /status from {set(IPS) - set(seen)}")
+    return seen
+
+
 def trial(a, c, b, vol_a=70, vol_c=70, delay=2.5, atext=A_TEXT, ctext=C_TEXT, wait=17, model=None):
+    guard()
     args = [a, c, str(vol_a), str(vol_c), atext, ctext, str(delay), str(wait)]
     r = subprocess.run(["ssh", HOST, "bash -s -- " + " ".join(shlex.quote(x) for x in args)], input=REMOTE, capture_output=True, text=True)
     log = [ln for ln in r.stdout.splitlines() if f"{a}->{b}" in ln or "Traceback" in ln]
+    guard()
+    if "Traceback" in r.stdout:
+        raise HardwareIssue("brain traceback during the trial")
     d = tempfile.mkdtemp()
     subprocess.run(["scp", "-q", f"{HOST}:/dev/shm/aec_{a}_{b}_*.npz", d], capture_output=True)
     files = glob.glob(d + "/*.npz")
