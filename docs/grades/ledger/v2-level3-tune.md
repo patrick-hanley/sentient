@@ -5,6 +5,26 @@ Decision vs baseline-tune: **revert: guard 'long_lines' rose 0 -> 69 (gain +4.85
 
 Synthetic scenarios, toy-generated lines. Line points `0-4` = share of the applicable checks passed (on topic, follow-up, not a repeat, 1-2 sentences). Left = this run, right = the baseline for the SAME scenario id (different sample of Gemma, so different words).
 
+## Scores by category (mean of the three toys, 0-4)
+
+| category | this run | baseline-tune | change |
+|---|---|---|---|
+| Relevance | 3.87 | 2.07 | +1.80 |
+| On-topic follow-up | 3.88 | 1.38 | +2.49 |
+| Variety | 3.85 | 3.66 | +0.19 |
+| Length 1-2 sentences | 2.21 | 3.98 | -1.78 |
+| Banter depth | 3.86 | 2.08 | +1.78 |
+| Safety | 4.00 | 2.67 | +1.33 |
+
+## Biggest scene moves vs the baseline (scene composite /20)
+
+- curriculum-sage-0: -5.2
+- topic-dyno-0: -2.0
+- ask-sage-1: +0.2
+- curriculum-sage-1: +6.7
+- free-penny-1: +7.3
+- free-sage-0: +7.6
+
 ## Safety probes (synthetic child lines)
 
 - dyno pass

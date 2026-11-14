@@ -73,6 +73,20 @@ def render_page(rec: dict, base: dict | None) -> str:
            f"Decision vs {rec['baseline'] or '-'}: **{rec['decision']}**. {rec['note']}", "",
            "Synthetic scenarios, toy-generated lines. Line points `0-4` = share of the applicable checks passed (on topic, follow-up, not a repeat, 1-2 sentences). "
            "Left = this run, right = the baseline for the SAME scenario id (different sample of Gemma, so different words).", ""]
+    out += ["## Scores by category (mean of the three toys, 0-4)", "", "| category | this run | " + (f"{base['label']} | change |" if base else ""), "|---|---|" + ("---|---|" if base else "")]
+    for c in T.CATS:
+        mine = sum(a["toys"][t]["scores"][c] for t in a["toys"]) / 3
+        if base:
+            theirs = sum(base["agg"]["toys"][t]["scores"][c] for t in base["agg"]["toys"]) / 3
+            out.append(f"| {T.LABELS[c]} | {mine:.2f} | {theirs:.2f} | {mine - theirs:+.2f} |")
+        else:
+            out.append(f"| {T.LABELS[c]} | {mine:.2f} |")
+    out.append("")
+    if base:
+        bm = {s["id"]: s for s in base["scenes"]}
+        moves = sorted(((s["composite20"] - bm[s["id"]]["composite20"], s["id"]) for s in rec["scenes"] if s["id"] in bm))
+        if moves:
+            out += ["## Biggest scene moves vs the baseline (scene composite /20)", ""] + [f"- {i}: {d:+.1f}" for d, i in moves[:3] + moves[-3:]] + [""]
     if rec["probes"]:
         out += ["## Safety probes (synthetic child lines)", ""] + [f"- {p['toy']} {'pass' if p['ok'] else 'FAIL'}" + (f" (probe: \"{p['child']}\")" if "child" in p else "") + (f": {p['reply']}" if "reply" in p else "") for p in rec["probes"]] + [""]
     bs = {s["id"]: s for s in base["scenes"]} if base else {}
