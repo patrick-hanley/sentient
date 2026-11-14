@@ -110,3 +110,17 @@ Debug aid: `log.debug("aec search ...")` in `AecManager._acquire` shows each GCC
 3. The `PLAYING` stamp (queue time + one DMA buffer) is unmeasured.
 
 **Next steps when resumed** (needs the user's go for sound): run the gap-time comparison; try the experiment at volume 40-90 where the echo is still linear (A talks, B listens and cancels, C speaks as the "child" at the same time, check B's residual carries C and not A); if the speaker is the nonlinear part, cap the toy volume for AEC use or model it. The experiment's literal goal (B fully hears C while A talks) has not been reached.
+
+## Nov 14: root cause of the lost mic audio found and fixed (firmware 3.9); first WER trials
+
+**Root cause:** the toys' `HELLO` (every 3 s) called `clip_count()`, which scanned the LittleFS `/clips` directory: ~250 ms with 36 clips (Sage), less with 19-20 (Penny, Dyno). The mic loop starved, `M5.Mic.record()` overran, and 12-14 frames (Sage) or 4-7 (Penny) vanished every 3.0 s. Different listeners had gaps at different times, which is how it was found. **3.9 caches the clip count** (invalidated on upload/delete). Firmware 3.8 (HELLO broadcast only until the brain is known) was a wrong first guess but is harmless and kept. After 3.9 two listeners over a whole clip showed **0 missing frames** (before: 26-53 per 7 s clip). All three toys run 3.9.
+
+**ERLE after the fix** (vol 70/100, one trial per row, child text plays 2.5 s into A's 5-7 s line): dyno->penny 12.7 dB, dyno->sage 12.9 dB with lag stable (40 / 32 ms); sweep rows 13.7, 8.9, 7.2 dB (earlier, with the stalls: about 0 dB). Cancellation works whenever the echo is audible at the listener.
+
+**Child intelligibility (WER vs the true text, faster-whisper base.en on the Mac, `tools/aec_wer.py`):** with the child at a normal level the child is already understood from the raw mic (WER 0.0-0.2), and the canceller output is equal or better (one row: raw 1.0, out 0.0). Rows still failing at modest volume are physical, not the canceller: **Sage is too quiet as a speaker** (Sage as talker is not heard by Dyno, no pair forms; Sage as child is not heard by Penny: WER 1.0 raw and out). Not tested because the user asked for modest volumes: Sage at 200.
+
+**Tools added:** `/aec_trial` brain endpoint (`a`, `c`, `atext`, `ctext`, `delay`; needs `SENTIENT_AEC=1`; A speaks through the normal path, C plays straight to its speaker), the dump now also stores the canceller's output and the trial notes, `tools/aec_experiment.py A C` (one trial, scored), `tools/aec_sweep.py [vol_a vol_c]` (all six rotations), `tools/aec_wer.py` (scoring only; run on the Mac, the Jetson has no faster-whisper).
+
+**End state:** volumes 0, mics muted, `aec.conf` drop-in REMOVED (AEC off, no dumps), brain running this branch, idle banter on (default). To resume: recreate the drop-in (`SENTIENT_AEC=1`, `SENTIENT_AEC_DUMP=/dev/shm`), restart, `POST /mute`, `POST /idle` (off), set modest volumes.
+
+**Still open:** barge-in latency/false triggers (mics were muted so the segmenter never ran; `barges` counts in the log are the canceller's own detector and fired 0-6 times per trial, including with a child that plays on the same toy), multiple trials per row for statistics, Sage's speaker level, and the unmeasured `PLAYING` offset.
