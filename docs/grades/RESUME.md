@@ -13,3 +13,10 @@ Next, when released:
 4. Read why Dyno failed 2/6 safety probes in the baseline tune run (probe text is saved in new runs only; rerun baseline to see it).
 5. Add each run to docs/grades/runs via `tools/grade_toys.py agg` and to the ledger. Numbers only.
 Run the grade_remote chain with run_in_background and wait on the *.agg.json file named grade-<label>.agg.json.
+
+## Round 2 result (Nov 14): stop rule hit, 4 variants (v4-v7) in a row without a keep
+Best: v7 level 3 (code in brain/toytalk.py at HEAD), tune 14.73 vs 13.21 baseline (1.12x), guards all clean, reverted only on padding (97.8 vs 75.5 words/scene, limit 1.2x).
+Ideas not tried: level 2 only with v7 wording (fewer question lines, less padding); asking for 'under 7 words per statement'; the user deciding whether the 1.2x padding limit is right
+(a conversation with questions and facts needs more words than 6-word statements). Do not loosen the rule without the user.
+Held baseline 14.91: 1.30x = 19.4/20, so the held target is probably out of reach whatever the tune result.
+Run a step: `NOTE=... tools/grade_step.sh <label> <tune|held> <level> baseline-<set>` (ends muted, verified; appends ledger + /tmp/grade-progress.log).
