@@ -1,6 +1,6 @@
 # Resume notes (grade goal, paused by the user)
 
-State: branch goal/grade, main merged in, all committed. Nothing running; the Jetson is NOT in use (another goal has it until the user says).
+State: branch goal/grade, main merged in again on resume (sfx brackets), all committed. Nothing running; the Jetson is NOT in use (another goal has it until the user says).
 Toys stay muted; no audio; do not deploy tuned settings.
 
 Done: text-only composite (tools/textgrade.py, fixed in a2dad6b), harness with 3-turn banter scenes, keep/revert rule, ledger (docs/grades/ledger.md).
