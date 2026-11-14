@@ -124,3 +124,13 @@ Debug aid: `log.debug("aec search ...")` in `AecManager._acquire` shows each GCC
 **End state:** volumes 0, mics muted, `aec.conf` drop-in REMOVED (AEC off, no dumps), brain running this branch, idle banter on (default). To resume: recreate the drop-in (`SENTIENT_AEC=1`, `SENTIENT_AEC_DUMP=/dev/shm`), restart, `POST /mute`, `POST /idle` (off), set modest volumes.
 
 **Still open:** barge-in latency/false triggers (mics were muted so the segmenter never ran; `barges` counts in the log are the canceller's own detector and fired 0-6 times per trial, including with a child that plays on the same toy), multiple trials per row for statistics, Sage's speaker level, and the unmeasured `PLAYING` offset.
+
+## Nov 14 (later): Sage fixed, all rotations, offline tuning
+
+Sage was reseated by the user (audible at 120+). Every trial ran behind a hardware guard (`aec_experiment.guard()`: /status spk_fail/mic_fail of all three toys must equal the baseline Sage 6/4, Dyno 0/0, Penny 0/0, else stop). No counter ever rose. Volumes used: talker Dyno/Penny 70, Sage 120 (160 made Sage's echo nonlinear: ERLE ~6 dB and the child suppressed); child Dyno/Penny 100, Sage 120. Muting uses `POST /mute?on=1`.
+
+Hardware results (2 reps per rotation, whisper WER of the canceller output against the child's text): 10 of 12 trials gave WER 0.0-0.2. The weak rows: sage talks, dyno listens, penny child (WER 1.0 in 1 of 2) and dyno talks, sage listens with a loud penny child (ERLE -2 dB; the same pair gives 17 dB with the child after the clip and 12-16 dB with the child at 70, so a child much louder than the echo derails the filter: double-talk handling). ERLE varies a lot between reps of one rotation (e.g. -2.3 then 13.8).
+
+Offline tuning (`tools/aec_corpus.py` records real trials, `tools/aec_replay.py` replays them, `tools/aec_tune.py` runs one change per iteration, keep only if ERLE +0.5 dB with WER and leakage not worse; progress in `/tmp/aec-progress.log`). Replay baseline over 12 recorded trials: ERLE 8.46 dB, WER 0.067, leak 0.00. Iterations: AEC_PARTS 12 (6.44 dB, WER 0.14), PRE 320 (8.53, 0.075), AEC_MU 0.3 (8.72, WER 0.03), AEC_MU 0.8 (-4.14). **None kept; stopped after 4 rejected in a row.** MU 0.3 is the only one worth a second look (WER better, ERLE +0.27). Not tried (need code, not a knob): comfort-noise handling, a double-talk detector that tracks the child's level, the remaining candidates in `aec_tune.py`.
+
+End state: volumes 0, mics muted (verified from /state), idle banter on, `aec.conf` drop-in removed (AEC off), no dumps in /dev/shm, brain runs this branch merged with main. To resume: recreate the drop-in, restart, `POST /mute?on=1`, `POST /idle` (toggle), set volumes.
