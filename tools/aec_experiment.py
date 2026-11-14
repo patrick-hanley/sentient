@@ -26,8 +26,19 @@ curl -s -X POST "localhost:8080/speaker?toy=$A&vol=$3" >/dev/null; curl -s -X PO
 rm -rf /dev/shm/aec_*.npz; sleep 1
 curl -s -X POST -G localhost:8080/aec_trial --data-urlencode "a=$A" --data-urlencode "c=$C" --data-urlencode "atext=$5" --data-urlencode "ctext=$6" --data-urlencode "delay=$7" >/dev/null
 sleep $8
-journalctl -u sentient-brain --since "-$(( $8 + 3 ))s" --no-pager | grep -E " aec |Traceback|failed" | sed 's/.*atoms *//' | cut -c1-170
+journalctl -u sentient-brain --since "-$(( $8 + 3 ))s" --no-pager | grep -E " aec |Traceback|failed|HARDWARE" | sed 's/.*atoms *//' | cut -c1-170
 '''
+
+
+PROGRESS = "/tmp/aec-progress.log"
+
+
+def progress(iteration, variant, erle, wer, leak, best, status):
+    """One plain-text line, numbers only, for the user who watches the file."""
+    import time as _t
+    f = lambda v: "n/a" if v is None else f"{v:.2f}"
+    with open(PROGRESS, "a") as fh:
+        fh.write(f"{_t.strftime('%H:%M:%S')} iter {iteration} {variant} ERLE {f(erle)} dB WER {f(wer)} leak {f(leak)} best {best} {status}\n")
 
 
 class HardwareIssue(RuntimeError):
@@ -59,17 +70,23 @@ def guard(base=None):
     return seen
 
 
-def trial(a, c, b, vol_a=70, vol_c=70, delay=2.5, atext=A_TEXT, ctext=C_TEXT, wait=17, model=None):
+def trial(a, c, b, vol_a=70, vol_c=70, delay=2.5, atext=A_TEXT, ctext=C_TEXT, wait=17, model=None, keep_dir=None):
     guard()
     args = [a, c, str(vol_a), str(vol_c), atext, ctext, str(delay), str(wait)]
     r = subprocess.run(["ssh", HOST, "bash -s -- " + " ".join(shlex.quote(x) for x in args)], input=REMOTE, capture_output=True, text=True)
     log = [ln for ln in r.stdout.splitlines() if f"{a}->{b}" in ln or "Traceback" in ln]
     guard()
+    if "HARDWARE" in r.stdout:
+        raise HardwareIssue([ln for ln in r.stdout.splitlines() if "HARDWARE" in ln][0])
     if "Traceback" in r.stdout:
         raise HardwareIssue("brain traceback during the trial")
     d = tempfile.mkdtemp()
     subprocess.run(["scp", "-q", f"{HOST}:/dev/shm/aec_{a}_{b}_*.npz", d], capture_output=True)
     files = glob.glob(d + "/*.npz")
+    if keep_dir and files:
+        import shutil
+        Path(keep_dir).mkdir(parents=True, exist_ok=True)
+        shutil.copy(files[0], Path(keep_dir) / f"{a}_{b}_{c}_{vol_a}_{vol_c}_{Path(files[0]).stem[-4:]}_{len(list(Path(keep_dir).glob('*.npz')))}.npz")
     res = aec_wer.score(files[0], model or aec_wer.DEFAULT_MODEL) if files else None
     return log, res
 

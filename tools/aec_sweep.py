@@ -8,8 +8,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import aec_experiment as E  # noqa: E402
 
 # Sage's speaker needs more volume (reseated Nov 14, audible at 160-200); the others stay modest. Arg: reps per rotation.
-VOL_TALK = {"dyno": 70, "penny": 70, "sage": 160}
-VOL_CHILD = {"dyno": 100, "penny": 100, "sage": 160}
+VOL_TALK = {"dyno": 70, "penny": 70, "sage": 120}
+VOL_CHILD = {"dyno": 100, "penny": 100, "sage": 120}
 reps = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 rows = []
 for a, c in [p for p in itertools.permutations(("dyno", "sage", "penny"), 2) for _ in range(reps)]:

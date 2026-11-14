@@ -375,7 +375,7 @@ class AecManager:
             if ns is None:
                 return Out(pcm)
             if self.dump_dir:
-                self._dump_frame(lst, ns, arrival, pcm)
+                self._dump_frame(lst, ns, arrival, pcm, cap)
             out = self._feed_locked(lst, toy, ns, missing, pcm)
             if self.dump_dir:
                 self._dump_out(lst, out)
@@ -700,11 +700,11 @@ class AecManager:
     def _live_anchor_clips(self, pair: Pair):
         return [c for cl in self.clips.values() for c in cl if id(c) in pair.s0]
 
-    def _dump_frame(self, lst, ns, arrival, pcm):
+    def _dump_frame(self, lst, ns, arrival, pcm, cap=None):
         for talker, cl in self.clips.items():
             if talker != lst.toy and cl and not cl[-1].ended and arrival > cl[-1].dispatch - 0.6 and arrival < cl[-1].dispatch + len(cl[-1].pcm) / FS + 2.5:
                 d = self.dumps.setdefault((talker, lst.toy), [])
-                d.append([ns, arrival, pcm.copy(), None])
+                d.append([ns, arrival, pcm.copy(), None, cap if cap is not None else -1.0])
                 self._dump_last = d[-1]
                 return
         self._dump_last = None
@@ -721,7 +721,7 @@ class AecManager:
                 continue
             cl = self.clips[talker][-1]
             lst = self.listeners[toy]
-            np.savez(f"{self.dump_dir}/aec_{talker}_{toy}_{int(cl.dispatch)}.npz", ns=[f[0] for f in fr], arr=[f[1] for f in fr],
+            np.savez(f"{self.dump_dir}/aec_{talker}_{toy}_{int(cl.dispatch)}.npz", ns=[f[0] for f in fr], arr=[f[1] for f in fr], cap=[f[4] for f in fr],
                      mic=np.concatenate([f[2] for f in fr]),
                      out=np.concatenate([f[3] if f[3] is not None else f[2] for f in fr]), ref=cl.pcm, notes=json.dumps(self.notes.get(talker, {})), t0=cl.t0 or -1.0, dispatch=cl.dispatch, c=lst.c or 0.0)
             del self.dumps[(t, toy)]
