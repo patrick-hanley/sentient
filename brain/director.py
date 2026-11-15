@@ -75,22 +75,26 @@ def just_said(lines, n: int = 2) -> str:
     return " ".join(f'{NAMES.get(w, w)}: "{t}"' for w, t in merged[-n:])
 
 
-def line_jobs(names: list[str], start: int = 0) -> str:
+def line_jobs(names: list[str], start: int = 0, before: str | None = None) -> str:
     """One job per line of [ORDER], fixed by each toy's persona so the three stay distinct (jobs rotated by position blurred them, ledger
-    s2-beats-tune): Dyno asks the next toy a question, Sage answers the question just asked with one true fact, Penny reacts to the line
-    before with wordplay. `start` = lines already said in this chat (0: the first line opens the topic)."""
+    s2-beats-tune): Dyno asks the next toy a NEW question, whoever follows a question answers it (Sage with a true fact, Penny playfully),
+    otherwise Sage adds a fact and Penny reacts with wordplay. `start` = lines already said in this chat (0: the first line opens the topic);
+    `before` = the name of the toy who spoke the last line of the previous round."""
     by = {v: k for k, v in NAMES.items()}
     out = []
     for i, n in enumerate(names):
         toy, first = by.get(n.upper()), start == 0 and i == 0
+        prev = names[i - 1] if i else before
+        asked = prev is not None and by.get(prev.upper()) == "dyno" and not first
         nxt = names[i + 1] if i + 1 < len(names) else None
         if toy == "dyno":
-            out.append(f"{n} asks {nxt + ' ' if nxt and nxt != n else ''}one short, curious question about the topic.")
+            out.append(f"{n} asks {nxt + ' ' if nxt and nxt != n else ''}one short, curious question about the topic that nobody has asked yet.")
         elif toy == "sage":
-            out.append(f"{n} {'opens with' if first else 'answers the question just asked with'} one true, specific fact about the topic"
-                       f"{'' if first else ' (if nothing was asked, adds one)'}.")
+            out.append(f"{n} answers {prev}'s question with one true, specific fact." if asked else
+                       f"{n} {'opens with' if first else 'adds'} one new, true, specific fact about the topic.")
         else:
-            out.append(f"{n} {'opens the topic' if first else 'reacts to the line before'} with wordplay or a silly comparison, without a question.")
+            out.append(f"{n} answers {prev}'s question playfully, with wordplay or a silly comparison." if asked else
+                       f"{n} {'opens the topic' if first else 'reacts to the line before'} with wordplay or a silly comparison, without a question.")
     return " ".join(f"{i + 1}. {j}" for i, j in enumerate(out))
 
 
@@ -253,6 +257,7 @@ class Director:
         self._rotation = curriculum.Rotation()     # which grade topics were offered recently (rotates, no repeats)
         self._scene_topic: str | None = None       # SCENE_TOPIC: the one subject of the current toy-to-toy chat (None = no chat going)
         self._scene_line = 0                       # BEATS: lines of this chat so far (the line jobs continue across rounds)
+        self._scene_last: str | None = None        # BEATS: who spoke the last line of the previous round
         self.parent = None                         # brain.parent.Parent, set by main (profiles, cues; None = feature off)
         self._notes_sent = ""                       # the notes block the toys' conversation currently contains
         self.imu = {}                              # toy -> {"asleep", "commented", "last"}: per-episode memory, RAM only
@@ -576,10 +581,10 @@ class Director:
             seen = [x.label for x in v.things if x.kind == "toy"]
             if seen:
                 seed = self._scene_topic = self._banter_seed()
-                self._scene_line = 0
+                self._scene_line, self._scene_last = 0, None
                 return f"{NAMES[t]} is looking at {seen[0]}. {NAMES[t]} asks {seen[0]} something about {seed}, who answers."
         seed = self._scene_topic = self._banter_seed()
-        self._scene_line = 0
+        self._scene_line, self._scene_last = 0, None
         order = ", ".join(NAMES[t] for t in plan_order(online))
         return (f"Nobody has talked for a while. The toys chat about {seed} to invite the child to play. "
                 f"[ORDER] {order}. One short line each, each reacting to the one before.")
@@ -686,8 +691,9 @@ class Director:
                 if config.BEATS and order:
                     # each line gets a job (ask -> answer -> playful reaction), continuing across rounds, so lines answer each other
                     names = [n.strip() for n in order.group(1).split(",") if n.strip()]
-                    topics += "\n[LINE JOBS] " + line_jobs(names, self._scene_line)
+                    topics += "\n[LINE JOBS] " + line_jobs(names, self._scene_line, self._scene_last)
                     self._scene_line += len(names)
+                    self._scene_last = names[-1] if names else None
             else:
                 topics = self._grade_topics()    # curriculum: a short rotating [GRADE TOPICS] block right after the notes; not logged, not a quiz
             prompt = "".join(b + "\n" for b in (notes, topics) if b) + prompt

@@ -184,11 +184,13 @@ class Harness(unittest.TestCase):
         from brain import config, director as D
         j = D.line_jobs(["DYNO", "SAGE", "PENNY", "DYNO"])
         self.assertIn("1. DYNO asks SAGE one short", j)                    # each toy keeps its persona's job: Dyno asks,
-        self.assertIn("2. SAGE answers the question just asked", j)        # Sage answers with a fact,
+        self.assertIn("2. SAGE answers DYNO's question with one true", j)    # whoever follows a question answers it: Sage with a fact,
         self.assertIn("3. PENNY reacts to the line before with wordplay", j)   # Penny plays with words
         self.assertIn("4. DYNO asks one short", j)                          # last line: a question to everyone
         self.assertIn("1. PENNY opens the topic", D.line_jobs(["PENNY", "SAGE", "DYNO"], 0))
-        self.assertIn("1. PENNY reacts to the line before", D.line_jobs(["PENNY", "SAGE", "DYNO"], 4))
+        self.assertIn("1. PENNY reacts to the line before", D.line_jobs(["PENNY", "SAGE", "DYNO"], 4, "SAGE"))
+        self.assertIn("1. PENNY answers DYNO's question playfully", D.line_jobs(["PENNY", "SAGE", "DYNO"], 4, "DYNO"))   # across rounds
+        self.assertIn("nobody has asked yet", j)
         old = config.SCENE_TOPIC, config.BEATS
         config.SCENE_TOPIC = config.BEATS = 1
         try:
