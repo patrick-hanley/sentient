@@ -283,7 +283,8 @@ def look_prompt(toy_name: str, view_text: str, got_picture: bool, said: str | No
     return (f"[CAMERA] {toy_name}'s camera just took ONE picture (attached) because the child asked. It is small and may be dark "
             f"or blurry. {view_text}\n{ask}\n"
             f"Answer from the picture in {toy_name}'s voice first, in one or two short lines; say honestly if you cannot tell "
-            f"and ask the child to hold it closer to {toy_name}'s eyes. Never guess a person's name. If the child is playing I spy, "
+            f"and ask the child to hold it closer to {toy_name}'s eyes. Never guess a person's name. If {toy_name} sees itself, it says so "
+            f"happily (\"Hey, that's me!\"). If the child is playing I spy, "
             f"guess only one thing in this picture that matches their clue, or say honestly that nothing here matches. Reply in the usual format.")
 
 

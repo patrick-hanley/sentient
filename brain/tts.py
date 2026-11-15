@@ -129,6 +129,8 @@ class Voices:
                 start = time.time()
                 pcm = dsp.finish(self._render_with_sfx(t, text, kokoro, toy), toy)
                 pcm = _apply_gain(pcm, (t.get("gain") or 1.0))
+                if t.get("lead_ms"):   # a speaker that wakes slowly (Sage): silence first so the first word is not cut
+                    pcm = b"\0\0" * int(config.SAMPLE_RATE * t["lead_ms"] / 1000) + pcm
                 self.last[toy] = f"{len(pcm) / 2 / config.SAMPLE_RATE:.1f} s of speech in {time.time() - start:.1f} s"
             finally:
                 if not persist:
@@ -169,6 +171,8 @@ class Voices:
             spec["dsp"] = dsp.fingerprint() + f".{toy}"
         if (t.get("gain") or 1.0) != 1.0:   # only part of the key when changed, so existing clips stay valid
             spec["g"] = t["gain"]
+        if t.get("lead_ms"):
+            spec["lead"] = t["lead_ms"]
         if self.sounds.affects(text):    # lines with sound effects (and "Rawr!") render differently now
             spec["sfx"] = 1
         return hashlib.sha1(json.dumps(spec, sort_keys=True).encode()).hexdigest()

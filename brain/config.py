@@ -57,6 +57,7 @@ TOYS = {
                          "amazed; sometimes growls with the {dino_growl} sound"),
     "sage": dict(name="Sage", aruco=2, voice="en_GB-alba-medium", speaker=None, length=1.08, pitch=1.0,
                  kokoro="bf_emma", kspeed=0.95, kpitch=1.0,    # Kokoro (British)
+                 lead_ms=200,   # silence before every clip/line: Sage's speaker loses the first ~0.1-0.2 s (cut-off "...think")
                  looks="a baby dressed up in a unicorn costume, with a horn",
                  persona="calm and careful; explains things simply; the reader who can look at books, worksheets "
                          "and pictures; helps with homework by giving hints, not just answers"),

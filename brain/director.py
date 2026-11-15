@@ -651,7 +651,7 @@ class Director:
         online = self.hub.online()
         for t in online:
             v = self.eyes.views[t]
-            seen = [x.label for x in v.things if x.kind == "toy"]
+            seen = [x.label for x in v.things if x.kind == "toy" and not x.label.startswith("itself")]
             if seen:
                 seed = self._scene_topic = self._banter_seed()
                 self._scene_line, self._scene_last = 0, None

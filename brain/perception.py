@@ -19,6 +19,7 @@ from . import config, teach
 log = logging.getLogger("perception")
 ARUCO_TO_TOY = {t["aruco"]: k for k, t in config.TOYS.items()}
 PET_CLASSES = {"dog", "cat"}
+SELF_LABEL = "itself (in a mirror or a picture)"   # a toy whose camera recognises its own look or tag
 OBJ_CLASSES = ["dog", "cat", "book", "teddy bear"]
 
 
@@ -187,10 +188,10 @@ class Recognizer:
         corners, ids = self._tags(img)
         for c, i in zip(corners if ids is not None else [], ids.flatten() if ids is not None else []):
             toy = ARUCO_TO_TOY.get(int(i))
-            if toy and toy != own_toy:
+            if toy:
                 x, y, w, h = cv2.boundingRect(c.astype(np.int32))
-                # the tag is on the chest; widen the box to roughly the whole toy
-                things.append(Thing("toy", config.TOYS[toy]["name"].upper(), (x - w, y - 2 * w, 3 * w, 4 * w)))
+                # the tag is on the chest; widen the box to roughly the whole toy. Its own tag: a mirror or a picture of itself
+                things.append(Thing("toy", SELF_LABEL if toy == own_toy else config.TOYS[toy]["name"].upper(), (x - w, y - 2 * w, 3 * w, 4 * w)))
         objs = self.objects(img)
         things += self._taught(img, gal, own_toy, objs, {t.label for t in things if t.kind == "toy"})
         for cls, box, sc in objs:
@@ -210,11 +211,11 @@ class Recognizer:
         for emb in {t[2] for t in gal.things}:
             if emb == self.embedder_name:
                 cands[emb] = [self.thing_vec(img, r)[1] for r in regs]
-        skip = {("toy", k) for k in config.TOYS if k == own_toy or config.TOYS[k]["name"].upper() in tagged}
+        skip = {("toy", k) for k in config.TOYS if config.TOYS[k]["name"].upper() in tagged or (k == own_toy and SELF_LABEL in tagged)}
         out = []
         for kind, name, score, ri in gal.match_things(cands, exclude=skip):
             if kind == "toy":
-                out.append(Thing("toy", config.TOYS[name]["name"].upper(), regs[ri], score))
+                out.append(Thing("toy", SELF_LABEL if name == own_toy else config.TOYS[name]["name"].upper(), regs[ri], score))
             else:
                 out.append(Thing("object", name, regs[ri], score))
         return out

@@ -35,7 +35,7 @@ log = logging.getLogger("teach")
 
 KINDS = ("person", "child", "toy", "item")
 ROLES = {"person": ("parent", "family"), "child": ("child",), "toy": ("toy",), "item": ("item",)}
-MAX_VECS, MAX_ENTRIES, MAX_SHOTS = 12, 40, 10
+MAX_VECS, MAX_ENTRIES, MAX_SHOTS = 64, 40, 10   # 64: each photo is also stored as camera-like variants (see camera_variants)
 FILE, AAD = "teach.enc", b"teach"
 
 # Thing matching. The MediaPipe embedder and the colour fallback have different scales, so each has its own threshold
@@ -66,6 +66,20 @@ def hist_embed(img) -> np.ndarray | None:
     cells = [h(hsv[r:r + 24, c:c + 24], [8, 2, 2]) for r in (0, 24) for c in (0, 24)]
     vec = np.sqrt(np.concatenate([h(hsv, [8, 4, 4])] + cells))
     return (vec / (np.linalg.norm(vec) + 1e-9)).astype(np.float32)
+
+
+def camera_variants(img, faces: bool = False) -> list:
+    """The photo as the OTHER toys' cameras might see it: darker, brighter and, for things, a warm and a cool colour cast. Enrolling
+    these too means something taught through one toy's camera is recognised through every toy's camera (the Atom cameras differ in
+    brightness and white balance). Pure arithmetic on the pixels; nothing is stored but the vectors."""
+    if img is None:
+        return []
+    f = img.astype(np.float32)
+    out = [img, np.clip(f * 0.55, 0, 255).astype(np.uint8), np.clip(f * 1.5 + 10, 0, 255).astype(np.uint8)]
+    if not faces:
+        out.append(np.clip(f * np.array([0.82, 1.0, 1.18], np.float32), 0, 255).astype(np.uint8))   # warm (BGR)
+        out.append(np.clip(f * np.array([1.18, 1.0, 0.82], np.float32), 0, 255).astype(np.uint8))   # cool
+    return out
 
 
 def _cos(a, b) -> float:
@@ -171,7 +185,7 @@ class TeachStore:
     def list(self) -> list[dict]:
         """What the board shows: never the vectors."""
         self._need()
-        return [{"id": e["id"], "kind": e["kind"], "name": e["name"], "role": e["role"], "photos": len(e["vecs"]),
+        return [{"id": e["id"], "kind": e["kind"], "name": e["name"], "role": e["role"], "photos": e.get("shots") or len(e["vecs"]),
                  "added": e["added"], "child": e.get("child")} for e in self._entries()]
 
     def gallery(self) -> Gallery:
@@ -190,7 +204,8 @@ class TeachStore:
             return self._gallery
 
     # ---- writing ----
-    def add(self, kind: str, name: str, vecs, embedder: str, consent: bool, role: str | None = None, child: str | None = None) -> dict:
+    def add(self, kind: str, name: str, vecs, embedder: str, consent: bool, role: str | None = None, child: str | None = None,
+            shots: int | None = None) -> dict:
         """Add vectors for a person / the child / a toy / an item (more photos of the same name are appended)."""
         with self._lock:
             self._need()
@@ -222,9 +237,11 @@ class TeachStore:
                      "vecs": [], "consent": dt.date.today().isoformat(), "added": dt.date.today().isoformat()}
                 entries.append(e)
             e["vecs"] = (e["vecs"] + [[round(float(x), 5) for x in v] for v in vecs])[-MAX_VECS:]
+            if shots is not None:   # photos taken (each stored with its camera variants); what the board shows
+                e["shots"] = min(e.get("shots", 0) + shots, MAX_VECS)
             e["consent"] = dt.date.today().isoformat()
             self._save()
-            return {"id": e["id"], "kind": kind, "name": e["name"], "role": e["role"], "photos": len(e["vecs"])}
+            return {"id": e["id"], "kind": kind, "name": e["name"], "role": e["role"], "photos": e.get("shots") or len(e["vecs"])}
 
     def delete(self, eid: str):
         with self._lock:
@@ -265,26 +282,32 @@ class Teacher:
     def __init__(self, store: TeachStore, rec, hub=None):
         self.store, self.rec, self.hub = store, rec, hub
 
-    def face_vecs(self, imgs) -> list:
-        out = []
+    def face_vecs(self, imgs, variants: bool = True) -> list:
+        out, self.used = [], 0
         for img in imgs:
-            faces = self.rec.faces(img)
-            if faces:
-                out.append(max(faces, key=lambda f: f[0][2] * f[0][3])[1])
+            n = len(out)
+            for v in (camera_variants(img, faces=True) if variants else [img]):
+                faces = self.rec.faces(v)
+                if faces:
+                    out.append(max(faces, key=lambda f: f[0][2] * f[0][3])[1])
+            self.used += len(out) > n
         return out
 
     def thing_vecs(self, imgs) -> tuple[str, list]:
         """Embeddings of the centre of each photo (the parent holds the item up, centred) and of the detector's box."""
-        embedder, out = None, []
+        embedder, out, self.used = None, [], 0
         for img in imgs:
+            n = len(out)
             boxes = [b for _, b, _ in self.rec.objects(img)]
             # the first region is the detector's box if there is one, then the centre; the whole frame is not enrolled
             for box in regions(img, boxes)[:-1]:
-                name, vec = self.rec.thing_vec(img, box)
-                if vec is not None:
-                    embedder = embedder or name
-                    if name == embedder:
-                        out.append(vec)
+                for v in camera_variants(img):          # as every toy's camera might see it, not just the one used to teach
+                    name, vec = self.rec.thing_vec(v, box)
+                    if vec is not None:
+                        embedder = embedder or name
+                        if name == embedder:
+                            out.append(vec)
+            self.used += len(out) > n
         return embedder or self.rec.embedder_name, out
 
     def enroll(self, kind: str, name: str, imgs, consent: bool, role: str | None = None, child: str | None = None) -> dict:
@@ -295,9 +318,9 @@ class Teacher:
             vecs, embedder = self.face_vecs(imgs), "sface"
         else:
             embedder, vecs = self.thing_vecs(imgs)
-        res = self.store.add(kind, name, vecs, embedder, consent, role=role, child=child)
+        res = self.store.add(kind, name, vecs, embedder, consent, role=role, child=child, shots=self.used)
         res["frames"] = len(imgs)
-        res["used"] = len(vecs)
+        res["used"] = self.used          # photos that gave something usable (each is stored with its camera variants)
         log.info("teach: %s enrolled from %d photo(s)", kind, len(imgs))   # no names, no vectors
         return res
 

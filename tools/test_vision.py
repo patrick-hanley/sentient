@@ -639,7 +639,7 @@ class StoreTests(unittest.TestCase):
         self.assertEqual([e["kind"] for e in self.store.list()], ["person"])
 
     def test_more_photos_of_the_same_name_are_appended_and_capped(self):
-        for i in range(5):
+        for i in range(30):
             self.store.add("item", "red cup", [vec(i), vec(i + 10), vec(i + 20)], "hist", True)
         (e,) = self.store.list()
         self.assertEqual(e["photos"], teach.MAX_VECS)
@@ -719,12 +719,28 @@ class RecognizerTests(unittest.TestCase):
         self.assertEqual(r.analyze(self.img()), [])
         self.assertEqual(r.analyze(blob((200, 200, 40))), [])
 
-    def test_a_toy_never_recognises_itself(self):
+    def test_a_toy_that_sees_itself_says_so(self):
         r = make_recognizer()
         t = teach.Teacher(teach.TeachStore.__new__(teach.TeachStore), r)
         emb, vecs = t.thing_vecs([blob((40, 200, 60))])
         r.gallery = lambda: teach.Gallery(things=[("toy", "dyno", emb, vecs)])
-        self.assertEqual(r.analyze(blob((40, 200, 60)), own_toy="dyno"), [])
+        seen = r.analyze(blob((40, 200, 60)), own_toy="dyno")
+        self.assertEqual([x.label for x in seen], [perception.SELF_LABEL])            # a mirror or a picture of itself
+        v = View("dyno", time.time(), True, seen, seen[0])
+        self.assertIn("DYNO is looking at itself", v.describe())
+        self.assertIn("that's me", camera.look_prompt("DYNO", v.describe(), True))
+        self.assertEqual([x.label for x in r.analyze(blob((40, 200, 60)), own_toy="sage")], ["DYNO"])   # another toy sees Dyno
+
+    def test_taught_through_one_camera_recognised_through_a_dimmer_or_tinted_one(self):
+        r = make_recognizer()
+        t = teach.Teacher(teach.TeachStore.__new__(teach.TeachStore), r)
+        emb, vecs = t.thing_vecs([blob((30, 90, 220), shift=s) for s in (-10, 0, 10)])   # taught on a bright camera (an orange item)
+        self.assertEqual(len(vecs), 3 * 5)                                                 # 3 photos x 5 camera variants (one region here)
+        r.gallery = lambda: teach.Gallery(things=[("item", "orange ball", emb, vecs), ("item", "blue cup", emb, t.thing_vecs([blob((200, 90, 30))])[1])])
+        dim = blob((30, 90, 220), dim=0.5)
+        warm = np.clip(blob((30, 90, 220)).astype(np.float32) * np.array([0.8, 1.0, 1.2]), 0, 255).astype(np.uint8)
+        for img in (dim, warm):
+            self.assertIn("orange ball", [x.label for x in r.analyze(img, own_toy="penny")])
 
     def test_two_lookalike_things_are_not_guessed_between(self):
         a = vec(1, 64)
