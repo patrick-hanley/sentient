@@ -180,6 +180,24 @@ class Harness(unittest.TestCase):
         self.assertNotIn("[JUST SAID]", got[0])                               # round 1: nothing said yet
         self.assertTrue(all("[JUST SAID]" in p for p in got[1:]))
 
+    def test_line_jobs_continue_across_rounds(self):
+        from brain import config, director as D
+        j = D.line_jobs(["DYNO", "SAGE", "PENNY", "DYNO"])
+        self.assertIn("1. DYNO asks SAGE", j)
+        self.assertIn("2. SAGE answers that exact question", j)
+        self.assertIn("4. DYNO asks one short", j)                          # last line: a question to everyone
+        self.assertTrue(D.line_jobs(["PENNY", "SAGE", "DYNO"], 4).startswith("1. PENNY answers"))   # the next round opens with its answer
+        old = config.SCENE_TOPIC, config.BEATS
+        config.SCENE_TOPIC = config.BEATS = 1
+        try:
+            llm, got = G.StubToyLLM(), []
+            inner = llm.stream
+            llm.stream = lambda p, wav=None, image=None, inner=inner: (got.append(p), (yield from inner(p, wav, image)))[1]
+            G.run_scene([s for s in G.scenarios("tune", 1, 2) if s["kind"] == "topic"][0], llm)
+        finally:
+            config.SCENE_TOPIC, config.BEATS = old
+        self.assertTrue(all("[LINE JOBS] 1." in p for p in got))
+
 
 class KeepRevert(unittest.TestCase):
     def setUp(self):

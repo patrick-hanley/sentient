@@ -75,6 +75,22 @@ def just_said(lines, n: int = 2) -> str:
     return " ".join(f'{NAMES.get(w, w)}: "{t}"' for w, t in merged[-n:])
 
 
+def line_jobs(names: list[str], start: int = 0) -> str:
+    """One job per line of [ORDER]: ask a question, answer exactly that, react playfully, then again. `start` = lines already said in this
+    chat, so a round that begins after a question begins with its answer. A question on the last line is asked to everyone."""
+    out = []
+    for i, n in enumerate(names):
+        k = (start + i) % 3
+        if k == 0:
+            who = f" {names[i + 1]}" if i + 1 < len(names) else ""      # the last line asks everyone; the next round opens with the answer
+            out.append(f"{n} asks{who} one short question about the topic.")
+        elif k == 1:
+            out.append(f"{n} answers that exact question with one true, specific fact.")
+        else:
+            out.append(f"{n} reacts to that answer with a playful twist, without a question.")
+    return " ".join(f"{i + 1}. {j}" for i, j in enumerate(out))
+
+
 def clean(text: str) -> str:
     # Gemma sometimes echoes prompt labels into the spoken line ("HEARD BY PENNY: ...")
     text = re.sub(r"^\s*(\[?(HEARD BY|HEARD|SCENE|TOYS HERE|EVENT)\]?[^:]{0,20}:\s*)+", "", text, flags=re.I)
@@ -233,6 +249,7 @@ class Director:
         self.cue_hold = threading.Event()          # set while a parent cue speaks: the reply waits at its next line boundary
         self._rotation = curriculum.Rotation()     # which grade topics were offered recently (rotates, no repeats)
         self._scene_topic: str | None = None       # SCENE_TOPIC: the one subject of the current toy-to-toy chat (None = no chat going)
+        self._scene_line = 0                       # BEATS: lines of this chat so far (the line jobs continue across rounds)
         self.parent = None                         # brain.parent.Parent, set by main (profiles, cues; None = feature off)
         self._notes_sent = ""                       # the notes block the toys' conversation currently contains
         self.imu = {}                              # toy -> {"asleep", "commented", "last"}: per-episode memory, RAM only
@@ -556,8 +573,10 @@ class Director:
             seen = [x.label for x in v.things if x.kind == "toy"]
             if seen:
                 seed = self._scene_topic = self._banter_seed()
+                self._scene_line = 0
                 return f"{NAMES[t]} is looking at {seen[0]}. {NAMES[t]} asks {seen[0]} something about {seed}, who answers."
         seed = self._scene_topic = self._banter_seed()
+        self._scene_line = 0
         order = ", ".join(NAMES[t] for t in plan_order(online))
         return (f"Nobody has talked for a while. The toys chat about {seed} to invite the child to play. "
                 f"[ORDER] {order}. One short line each, each reacting to the one before.")
@@ -660,6 +679,12 @@ class Director:
                     # the last lines quoted: a 2B model follows a quoted line far better than its memory of the previous turn
                     topics += (f"\n[JUST SAID] {said}\n[REPLY RULE] The first toy line answers or builds on the last line just said, "
                                "and each line after builds on the line before it.")
+                order = re.search(r"\[ORDER\] ([A-Za-z, ]+)\.", event_text or "")
+                if config.BEATS and order:
+                    # each line gets a job (ask -> answer -> playful reaction), continuing across rounds, so lines answer each other
+                    names = [n.strip() for n in order.group(1).split(",") if n.strip()]
+                    topics += "\n[LINE JOBS] " + line_jobs(names, self._scene_line)
+                    self._scene_line += len(names)
             else:
                 topics = self._grade_topics()    # curriculum: a short rotating [GRADE TOPICS] block right after the notes; not logged, not a quiz
             prompt = "".join(b + "\n" for b in (notes, topics) if b) + prompt
