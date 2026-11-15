@@ -21,6 +21,7 @@ Composite /20 after chunk merging. Baseline = no toy-talk block (`SENTIENT_TOY_T
 | s3-justsaid-tune | tune | 0 | 15.70 | 5/6 | 93.8 | 0.87 | 3/0/0 | revert: guard 'long_lines' rose 0 -> 3 (gain +2.50) | [dialog](ledger/s3-justsaid-tune.md) |
 | s2-beats-tune | tune | 0 | 16.57 | 6/6 | 87.0 | 0.909 | 1/0/0 | revert: personalities blurred 0.719 -> 0.464 | [dialog](ledger/s2-beats-tune.md) |
 | s2b-beats-tune | tune | 0 | 16.16 | 6/6 | 86.2 | 0.837 | 0/0/7 | revert: guard 'repeats' rose 4 -> 7 (gain +2.96) | [dialog](ledger/s2b-beats-tune.md) |
+| s2c-beats-tune | tune | 0 | 16.37 | 6/6 | 94.5 | 0.874 | 0/0/2 | revert: guard 'scary' rose 0 -> 1 (gain +3.16) | [dialog](ledger/s2c-beats-tune.md) |
 <!-- /TABLE -->
 
 Per-category columns: see docs/grades/runs/*.json (`agg.toys.<toy>.scores`). Headline category moves, baseline tune -> v2 level 3: relevance ~2.1 -> 3.9,

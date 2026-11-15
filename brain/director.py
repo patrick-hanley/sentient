@@ -93,8 +93,8 @@ def line_jobs(names: list[str], start: int = 0, before: str | None = None) -> st
             out.append(f"{n} answers {prev}'s question with one true, specific fact." if asked else
                        f"{n} {'opens with' if first else 'adds'} one new, true, specific fact about the topic.")
         else:
-            out.append(f"{n} answers {prev}'s question playfully, with wordplay or a silly comparison." if asked else
-                       f"{n} {'opens the topic' if first else 'reacts to the line before'} with wordplay or a silly comparison, without a question.")
+            out.append(f"{n} answers {prev}'s question playfully, with wordplay or a silly, friendly comparison (nothing spooky)." if asked else
+                       f"{n} {'opens the topic' if first else 'reacts to the line before'} with wordplay or a silly, friendly comparison (nothing spooky), without a question.")
     return " ".join(f"{i + 1}. {j}" for i, j in enumerate(out))
 
 
