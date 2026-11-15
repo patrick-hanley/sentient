@@ -11,6 +11,7 @@ DATA = Path(__file__).resolve().parent / "data"
 DATA.mkdir(exist_ok=True)
 
 TOY_TALK = int(os.environ.get("SENTIENT_TOY_TALK", "0"))   # idle-banter conversation advice level (brain/toytalk.py); 0 = off
+SCENE_TOPIC = int(os.environ.get("SENTIENT_SCENE_TOPIC", "0"))   # 1 = a toy-to-toy chat keeps one [TOPIC] instead of fresh [GRADE TOPICS] each turn (docs/gemma-conversation-settings.md #1)
 MODEL_LITERT = Path(os.environ.get("SENTIENT_MODEL", Path.home() / ".litert-lm/models/gemma4-e2b/model.litertlm"))
 MODEL_GGUF = OFFLINE / "gguf/gemma-4-E2B-it-Q4_0.gguf"
 MMPROJ_GGUF = OFFLINE / "gguf/mmproj-gemma-4-E2B-it-Q8_0.gguf"

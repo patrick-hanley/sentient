@@ -217,6 +217,7 @@ class Director:
         self._barge_t = 0.0                        # wall time of the last barge-in: the child's words from then on survive _flush()
         self.cue_hold = threading.Event()          # set while a parent cue speaks: the reply waits at its next line boundary
         self._rotation = curriculum.Rotation()     # which grade topics were offered recently (rotates, no repeats)
+        self._scene_topic: str | None = None       # SCENE_TOPIC: the one subject of the current toy-to-toy chat (None = no chat going)
         self.parent = None                         # brain.parent.Parent, set by main (profiles, cues; None = feature off)
         self._notes_sent = ""                       # the notes block the toys' conversation currently contains
         self.imu = {}                              # toy -> {"asleep", "commented", "last"}: per-episode memory, RAM only
@@ -539,9 +540,9 @@ class Director:
             v = self.eyes.views[t]
             seen = [x.label for x in v.things if x.kind == "toy"]
             if seen:
-                seed = self._banter_seed()
+                seed = self._scene_topic = self._banter_seed()
                 return f"{NAMES[t]} is looking at {seen[0]}. {NAMES[t]} asks {seen[0]} something about {seed}, who answers."
-        seed = self._banter_seed()
+        seed = self._scene_topic = self._banter_seed()
         order = ", ".join(NAMES[t] for t in plan_order(online))
         return (f"Nobody has talked for a while. The toys chat about {seed} to invite the child to play. "
                 f"[ORDER] {order}. One short line each, each reacting to the one before.")
@@ -631,7 +632,15 @@ class Director:
                 if reset and (self._notes_sent or notes):
                     reset()
                 self._notes_sent = notes
-            topics = self._grade_topics()    # curriculum: a short rotating [GRADE TOPICS] block right after the notes; not logged, not a quiz
+            if utt:
+                self._scene_topic = None     # the child spoke: their subject leads now; the next idle chat picks a new topic
+            if config.SCENE_TOPIC and not utt and self._scene_topic:
+                # a toy-to-toy chat keeps ONE subject: no fresh rotating curriculum items each turn (they made rounds 2-3 jump topics)
+                # (wording with no phrase a toy could speak: "stay on it!" was copied into lines verbatim)
+                topics = (f"[TOPIC] {self._scene_topic}\n[TOPIC RULE] Every line this turn is about the topic above and no other subject. "
+                          "Each line adds something new and concrete about it: a real example, word, number or fact. No line repeats an earlier one.")
+            else:
+                topics = self._grade_topics()    # curriculum: a short rotating [GRADE TOPICS] block right after the notes; not logged, not a quiz
             prompt = "".join(b + "\n" for b in (notes, topics) if b) + prompt
 
             def dispatched(who, text):

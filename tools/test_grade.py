@@ -141,6 +141,28 @@ class Harness(unittest.TestCase):
     def test_saved_files_hold_no_child_data(self):
         self.assertNotIn("child_text", Path(G.__file__).read_text())
 
+    def test_scene_topic_keeps_one_subject_across_rounds(self):
+        """SCENE_TOPIC=1: every round of a toy chat gets the same [TOPIC] and no rotating [GRADE TOPICS]; 0 keeps the old block."""
+        import re
+        from brain import config
+        for on in (0, 1):
+            old, config.SCENE_TOPIC = config.SCENE_TOPIC, on
+            try:
+                llm, got = G.StubToyLLM(), []
+                inner = llm.stream
+                llm.stream = lambda p, wav=None, image=None, inner=inner: (got.append(p), (yield from inner(p, wav, image)))[1]
+                sc = [s for s in G.scenarios("tune", 1, 2) if s["kind"] == "curriculum"][0]
+                G.run_scene(sc, llm)
+            finally:
+                config.SCENE_TOPIC = old
+            self.assertGreaterEqual(len(got), 2)
+            if on:
+                topics = {re.search(r"\[TOPIC\] ([^(\n]+)", p).group(1).strip() for p in got}
+                self.assertEqual(len(topics), 1, topics)
+                self.assertFalse(any("[GRADE TOPICS" in p for p in got))
+            else:
+                self.assertTrue(all("[GRADE TOPICS" in p for p in got))
+
 
 class KeepRevert(unittest.TestCase):
     def setUp(self):
