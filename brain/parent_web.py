@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import http.cookies
 import json
+import time
 import logging
 import re
 import threading
@@ -140,6 +141,18 @@ def make_handler(parent: P.Parent, director=None):
                     return self._send(200, {"ready": True, "entries": teacher.store.list(), "toys": [
                         {"id": k, "name": t["name"], "online": k in online, "cam": bool(hub and k in hub.atoms and hub.atoms[k].cam)}
                         for k, t in config.TOYS.items()]})
+                if u.path == "/api/convlog":   # the toys' conversation log (RAM only), as a download for the parent
+                    log_ = getattr(director, "convlog", None) if director else None
+                    data = log_.dump() if log_ else {"turns": []}
+                    body = json.dumps(data, indent=1)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Disposition", f'attachment; filename="toy-conversations-{time.strftime("%Y%m%d-%H%M")}.json"')
+                    self.send_header("Content-Length", str(len(body.encode())))
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    self.wfile.write(body.encode())
+                    return
                 if u.path in ("/api/photo/status", "/api/sort/status"):
                     return self._send(200, parent.jobs.get(q.get("job", ""), {"status": "unknown"}))
             except P.Locked:
@@ -214,6 +227,9 @@ def make_handler(parent: P.Parent, director=None):
             if path == "/api/login":
                 tok = parent.login(str(b.get("pin", "")))
                 return self._send(200, {"ok": True}, cookie=self._cookie(tok))
+            if path == "/api/convlog/clear":
+                log_ = getattr(director, "convlog", None) if director else None
+                return self._send(200, {"cleared": log_.clear() if log_ else 0})
             if path == "/api/logout":
                 parent.logout(self._token())
                 return self._send(200, {"ok": True}, cookie=self._cookie(None))

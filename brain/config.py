@@ -249,6 +249,15 @@ FACE_MATCH = 0.40            # SFace cosine; OpenCV suggests 0.363
 PET_MATCH = 0.60
 GREET_COOLDOWN_S = 120
 IDLE_BANTER_S = 45           # 0 disables idle toy-to-toy chatter
+# The child leads (Nov 15, user: "the conversations should center around what the human wants to talk about"): answer the child's
+# subject first and stay on it; questions about the parent's notes are answered; "stop" quiets the toys.
+CHILD_LEADS = os.environ.get("SENTIENT_CHILD_LEADS", "1") == "1"
+CHILD_MAX_LINES = int(os.environ.get("SENTIENT_CHILD_MAX_LINES", "2"))   # the child spoke: one answer + at most one short add-on
+IDLE_AFTER_CHILD_S = float(os.environ.get("SENTIENT_IDLE_AFTER_CHILD_S", "180"))   # no toy-to-toy chat this soon after the child spoke
+STOP_QUIET_S = float(os.environ.get("SENTIENT_STOP_QUIET_S", "600"))              # after "stop": no toy-to-toy chat for this long
+# Conversation log for review (brain/convlog.py): RAM only, last CONVLOG_MAX turns; the child's words + the toys' lines
+CONVLOG = os.environ.get("SENTIENT_CONVLOG", "1") == "1"
+CONVLOG_MAX = int(os.environ.get("SENTIENT_CONVLOG_MAX", "2000"))
 QUIET_AFTER_S = (180, 600)   # no child contact (speech, tap, motion, someone seen) for a random time in this range: the toys go silent
 
 # ---- LLM ----

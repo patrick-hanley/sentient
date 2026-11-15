@@ -110,6 +110,10 @@ def make_handler(hub, eyes, director, rec, voices):
                 return self._send(200, buf.getvalue(), "audio/wav")
             if u.path == "/metrics":   # anonymous live conversation counters (no child identity, no text); docs/metrics.md
                 return self._send(200, json.dumps(director.live.dashboard()), "application/json")
+            if u.path == "/convlog":   # the conversation log, for review: only from the brain itself (ssh); the Parent Board has its own
+                if self.client_address[0] not in ("127.0.0.1", "::1"):
+                    return self._send(403, "only on the brain itself (tools/review_convlog.py), or on the Parent Board")
+                return self._send(200, json.dumps(director.convlog.dump()), "application/json")
             if u.path == "/latency":
                 return self._send(200, json.dumps(director.turn_log.summary()), "application/json")
             if u.path == "/state":
@@ -185,6 +189,10 @@ def make_handler(hub, eyes, director, rec, voices):
                 # experiment (needs SENTIENT_AEC=1): toy `a` speaks `atext` through the normal path (echo canceller engaged),
                 # `delay` s later toy `c` plays `ctext` straight to its speaker as the "child". Notes go into the RAM dump.
                 threading.Thread(target=aec_trial, args=(hub, voices, q), daemon=True).start()
+            elif u.path == "/convlog/clear":
+                if self.client_address[0] not in ("127.0.0.1", "::1"):
+                    return self._send(403, "only on the brain itself, or on the Parent Board")
+                return self._send(200, json.dumps({"cleared": director.convlog.clear()}), "application/json")
             elif u.path == "/cameras" and q.get("mode") in config.CAMERA_MODES:
                 return self._send(200, json.dumps({"mode": director.set_camera_mode(q["mode"])}), "application/json")
             elif u.path == "/look" and q.get("toy") in config.TOYS:

@@ -139,6 +139,9 @@ class FakeHub:
     def online(self):
         return self.toys.copy()
 
+    def stop_all(self):
+        pass
+
     def capture(self, toy, timeout=3.0, force=False):
         self.captures.append((toy, force))
         return self.frame

@@ -64,7 +64,7 @@ details>div{margin-top:10px}
 
 <div id=app hidden>
 <header>
- <div class=bar><h1>Parent Board</h1><button class=q id=lockNow>Lock</button></div>
+ <div class=bar><h1>Parent Board</h1><button class=q id=lockNow title="Close the board on this screen. The toys keep using the notes.">Close</button></div>
  <div class=kids id=kids></div>
 </header>
 <div id=banner class=banner hidden></div>
@@ -127,7 +127,11 @@ details>div{margin-top:10px}
   <label class=mut style="display:block"><input type=checkbox id=childmem style="width:auto"> Toys remember what the child tells them (it appears in the notes, tagged; delete any)</label>
   <div class=row style="margin:8px 0"><span class=mut>Weekly check-in:</span><select id=cday style="width:auto" aria-label="Check-in day"></select><select id=chour style="width:auto" aria-label="Check-in hour"></select></div>
   <div class=row><input id=oldpin type=password placeholder="Current PIN" aria-label="Current PIN"><input id=newpin type=password placeholder="New PIN" aria-label="New PIN"><button id=chpin>Change PIN</button></div>
-  <p class=mut style="margin:8px 0">Notes live only on the brain, encrypted. After a restart the toys use none until you open this board and enter the PIN.</p>
+  <p class=mut style="margin:8px 0">Notes live only on the brain, encrypted. After a restart the toys use none until you open this board and enter the PIN.
+   <b>Close</b> (top) only closes this screen; the toys keep using the notes. With one child, the toys use that child's notes without "Playing now".</p>
+  <div class=row style="margin:8px 0"><span class=mut>Conversation log (what the child and the toys said; kept in the brain's memory only, gone on restart):</span>
+   <a id=convdl href="/api/convlog" download>Download</a><button id=convclear>Clear</button></div>
+  <div class=row><button id=forgetKey>Lock the notes (toys stop using them until the PIN is entered)</button></div>
   <div class=row><button class=danger id=clearall>Delete all notes for this child</button><button class=danger id=wipe>Delete all profiles</button></div>
   <p class=mut id=setmsg role=status></p></div></details>
 </section>
@@ -153,7 +157,9 @@ async function showLock(){$("app").hidden=true;$("lock").hidden=false;const st=a
  $("lockbtn").textContent=st.configured?"Open":"Set PIN";$("lockhelp").textContent=st.locked_for?"Too many tries. Wait "+st.locked_for+" seconds.":""}
 $("lockbtn").onclick=async()=>{$("lockerr").textContent="";const st=await (await fetch("/api/status")).json();
  try{if(!st.configured){if($("pin").value!==$("pin2").value)throw new Error("The two PINs differ.");await api("/api/setup",{pin:$("pin").value,code:$("code").value})}else await api("/api/login",{pin:$("pin").value});$("lock").hidden=true;await load()}catch(e){if(e.message!="locked")$("lockerr").textContent=e.message}};
-$("lockNow").onclick=async()=>{await api("/api/lock",{});showLock()};
+$("lockNow").onclick=async()=>{await api("/api/logout",{}).catch(()=>{});showLock()};
+$("convclear").onclick=async()=>{const j=await api("/api/convlog/clear",{});$("setmsg").textContent=j.cleared+" turns cleared."};
+$("forgetKey").onclick=async()=>{if(!confirm("The toys stop using the notes until someone enters the PIN again. Continue?"))return;await api("/api/lock",{});showLock()};
 
 /* ---------- children and state ---------- */
 const child=()=>S&&S.children.find(c=>c.id==kid);

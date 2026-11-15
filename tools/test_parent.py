@@ -326,13 +326,25 @@ class StoreTests(unittest.TestCase):
         self.assertIn("loves dinosaurs", block)
         self.assertIn("keep it quiet voices", block)
         self.assertNotIn("trains", block)
-        self.assertIn("never quote", block)
+        self.assertIn("never say that notes, a parent or a cue exist", block)
+        self.assertIn("answer it like a friend who knows", block)
         self.p.set_settings(notes_on=False)
         self.assertEqual(self.p.notes_block(), "")
         self.p.set_settings(notes_on=True)
         self.clock.advance(seconds=P.BIND_IDLE_S + 5)         # 30 idle minutes: the binding ends
         self.assertEqual(self.p.notes_block(), "")
         self.assertIsNone(self.p.bound)
+
+    def test_one_child_family_needs_no_playing_now_for_the_notes_only(self):
+        self.p.setup("12345678", self.p.setup_code)
+        a = self.p.add_child("Ana")["id"]
+        self.p.add_items(a, [{"kind": "interest", "text": "dinosaurs"}])
+        self.assertIn("loves dinosaurs", self.p.notes_block())    # no "Playing now": the only child's notes are used
+        self.assertIsNone(self.p.bound_child())                     # ...but memory and metrics still need a parent's pick
+        self.p.add_child("Ben")
+        self.assertEqual(self.p.notes_block(), "")                  # two children: a parent picks
+        self.p.lock()
+        self.assertEqual(self.p.notes_block(), "")
 
     def test_locking_forgets_the_key_and_notes(self):
         self.p.setup("12345678", self.p.setup_code)

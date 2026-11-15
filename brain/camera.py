@@ -212,16 +212,29 @@ LOOK_WORD = "LOOK"
 _HEARD = re.compile(r"HEARD\s*:\s*(.*)", re.I)
 
 
+STOP_WORD = "STOP"
+_STOP = re.compile(r"^(?:ok(?:ay)?\s+|please\s+|hey\s+|toys\s+|guys\s+|(?:dyno|sage|penny)\s+)*(?:stop|shh+|hush|quiet|be quiet|enough|thats enough|zip it)\b"
+                   r"|\bstop talking\b|\bbe quiet\b|\bplease stop\b|\bcan you (?:all )?stop\b|\bstop it\b|\bquiet please\b|\bstop please\b")
+
+
+def wants_stop(text: str) -> bool:
+    """The child tells the toys to stop / be quiet (a short command, not "the bus stop" or "stop sign" in a story)."""
+    t = _norm(text)
+    return bool(t) and len(t.split()) <= 8 and bool(_STOP.search(t)) and not re.search(r"\bstop (?:sign|light|watch)\b|\bbus stop\b", t)
+
+
 class LookPeeler:
     """Sits between the model's stream and the reply parser. If the reply STARTS with the word LOOK (and nothing else of a
     toy line), the toy is asking for its camera: everything is swallowed, `looking` turns True and `heard` may carry the
     child's words from a trailing HEARD line. Any other reply is passed through untouched with no added delay (a toy line
     starts "DYNO:" / "SAGE:" / "PENNY:" / "HEARD:", which cannot be a prefix of LOOK after the first letter)."""
 
-    def __init__(self):
+    def __init__(self, words=(LOOK_WORD,)):
         self.buf = ""
         self.state = "undecided"      # undecided | look | reply
         self.rest = ""
+        self.words = tuple(words)     # one-word requests the model may answer with: LOOK (camera), STOP (the child said stop)
+        self.word: str | None = None
 
     @property
     def looking(self) -> bool:
@@ -242,10 +255,11 @@ class LookPeeler:
         s = self.buf.lstrip(" \t\r\n*#-[`\"'").upper()
         if not s:
             return ""
-        if s.startswith(LOOK_WORD):
-            self.state, self.rest, self.buf = "look", s[len(LOOK_WORD):], ""
-            return ""
-        if LOOK_WORD.startswith(s):      # "L", "LO", "LOO": wait for one more piece
+        for w in self.words:
+            if s.startswith(w):
+                self.state, self.rest, self.buf, self.word = "look", s[len(w):], "", w
+                return ""
+        if any(w.startswith(s) for w in self.words):      # "L", "LO", "LOO" / "S", "ST", "STO": wait for one more piece
             return ""
         self.state, out, self.buf = "reply", self.buf, ""
         return out

@@ -12,7 +12,7 @@ import threading
 import time
 import wave
 
-from . import camera, canned, config, curriculum, curriculum_picks, debugrec, factcheck, nonspeech, scripted, toytalk
+from . import camera, canned, config, convlog, curriculum, curriculum_picks, debugrec, factcheck, nonspeech, scripted, toytalk
 from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
@@ -37,6 +37,16 @@ def system_prompt() -> str:
                   'instead of guessing.' if config.STRICT_FACTS_PROMPT else
                   "- Facts, arithmetic and spellings must be accurate and right for 2nd to 5th grade. If unsure, say so and explore together.")
     look_rule = camera.prompt_rule()   # camera policy: off / one picture when the child asks / continuous
+    stop_rule = ('FIRST: if the child tells the toys to stop, be quiet, hush or stop talking, your whole reply is the one word STOP '
+                 '(then the HEARD line). Example: the child says "Stop talking please" -> you reply:\nSTOP\nHEARD: Stop talking please\n'
+                 if config.CHILD_LEADS else "")
+    child_rule = ('- THE CHILD LEADS. When the child speaks, the first toy answers exactly what the child said or asked, fully and kindly, '
+                  'and the toys stay on the child\'s subject until the child changes it. A question gets ONE toy\'s real answer first; at most '
+                  'one other toy adds a short line. Never change the subject away from the child. If the child asks about something in '
+                  '[PRIVATE NOTES], answer from the notes like a friend who knows.'
+                  if config.CHILD_LEADS else
+                  "- If the child brings up something else (video games, TV, movies, anything), reply kindly in at most five words, then ask a "
+                  "school, homework or learning-game question.")
     return f"""You are the voice director for three plush toy friends who play with {config.AUDIENCE}.
 The toys:
 {toys}
@@ -44,12 +54,12 @@ Each turn gives you [TOYS HERE] (the only toys that may speak this turn), [SCENE
 Reply ONLY in this exact format and nothing else. The toy lines come FIRST, the HEARD line LAST:
 <TOY NAME>: <exactly what that toy says out loud>
 HEARD: <the child's words, or - if there are none>
-Rules:
-- One to four toy lines; when all three toys are here, usually let all three join in. The order is free and a toy may speak again after another toy (Dyno, Sage, Dyno, Penny), but never twice in a row. Toys react to the line before. If [ORDER] is given, write exactly one line per entry in exactly that order. Each line under 20 words. Words a 2nd to 5th grader knows. Warm, playful, curious.
-- Talk about these things:
+{stop_rule}Rules:
+{child_rule}
+- One to four toy lines; when the toys chat by themselves, usually let all three join in. The order is free and a toy may speak again after another toy (Dyno, Sage, Dyno, Penny), but never twice in a row. Toys react to the line before. If [ORDER] is given, write exactly one line per entry in exactly that order. Each line under 20 words. Words a 2nd to 5th grader knows. Warm, playful, curious.
+- When the toys chat by themselves (an [EVENT]), or the child has no subject of their own, talk about these things:
 {topics}
-- EVERY line must be about those topics. The toys never talk about their own hobbies, food, or where they live.
-- If the child brings up something else (video games, TV, movies, anything), reply kindly in at most five words, then ask a school, homework or learning-game question.
+- If the child brings up something not right for a child (violence, scary or grown-up things), say kindly it is not a toy topic and offer something else.
 - Never sing or recite song lyrics or movie lines.
 {facts_rule}
 - Penny is whimsical and silly through wordplay, playful comparisons and clearly marked make-believe. She gives careful answers and never makes deliberate factual or spelling mistakes.
@@ -145,8 +155,10 @@ class ReplyLines:
     CLAUSE_MIN_WORDS = 5   # each TTS call has ~0.4 s fixed cost on the Pi; don't split tiny clauses
     FIRST_CLAUSE_MIN_WORDS = 3   # ...but the first piece of a reply sets time-to-first-audio (Kokoro renders ~1x real time)
 
-    def __init__(self, online, on_line, on_heard, guard: "factcheck.FactGuard | None" = None, ispy: "camera.ISpyReferee | None" = None):
+    def __init__(self, online, on_line, on_heard, guard: "factcheck.FactGuard | None" = None, ispy: "camera.ISpyReferee | None" = None,
+                 max_lines: int | None = None):
         self.online, self.on_line, self.on_heard = set(online), on_line, on_heard
+        self._max_lines = max_lines   # the child spoke: CHILD_MAX_LINES (one answer + one short add-on); else config.MAX_LINES
         self.ispy = ispy          # an I spy turn: the one toy line is held until HEARD, then the referee checks it against the picture
         self.ispy_line: tuple[str, str] | None = None
         # the fact guard checks every piece before it is spoken (wrong sums, letter counts, spellings, ... are fixed or dropped)
@@ -157,6 +169,10 @@ class ReplyLines:
         self.by_name = {value: key for key, value in NAMES.items()}
         self.pieces = 0   # chunks handed to TTS so far in this reply
         self.cur, self.spoken = None, 0   # (toy, allowed) of the line in progress; chars of it already spoken
+
+    @property
+    def max_lines(self) -> int:
+        return self._max_lines or config.MAX_LINES
 
     def feed(self, delta):
         self.buffer += delta
@@ -190,7 +206,7 @@ class ReplyLines:
 
     def _speak(self, toy, raw_text):
         if self.cur is None:   # first piece of a new toy line decides whether the line may play
-            allowed = toy in self.online and self.count < config.MAX_LINES
+            allowed = toy in self.online and self.count < self.max_lines
             self.count += allowed
             self.cur = (toy, allowed)
             self.line_so_far = ""
@@ -249,7 +265,7 @@ class ReplyLines:
             if text and (remainder.strip() or self.cur is None):
                 self._speak(self.by_name[who], remainder if spoken else body)
             self.cur = None
-            if self.count >= config.MAX_LINES:
+            if self.count >= self.max_lines:
                 self.closed = True
         else:
             self.cur = None
@@ -295,6 +311,9 @@ class Director:
         self._barge_t = 0.0                        # wall time of the last barge-in: the child's words from then on survive _flush()
         self.cue_hold = threading.Event()          # set while a parent cue speaks: the reply waits at its next line boundary
         self._rotation = curriculum.Rotation()     # which grade topics were offered recently (rotates, no repeats)
+        self.convlog = convlog.ConvLog()           # what was said, per turn, for review (RAM only)
+        self._quiet_until = 0.0                    # the child said stop: no toy-to-toy chat until then
+        self._last_child_t = 0.0                   # when the child last spoke (toy chats wait IDLE_AFTER_CHILD_S after it)
         self.turn_lines: list = []                 # lines handed to speech this turn (recorded even when the speakers are muted)
         self.last_look = None                      # the dashboard look: what the recogniser found + annotated frame (popped at once)
         self._ispy_until = 0.0                     # an I spy game is on until then (each turn of the game takes one picture)
@@ -595,7 +614,9 @@ class Director:
             ev = self.events.get_nowait()
         except queue.Empty:
             ev = None
-            if (self.idle_on and not self.is_quiet() and time.time() - self.last_activity > self.live.idle_banter_s(config.IDLE_BANTER_S)
+            now = time.time()
+            if (self.idle_on and not self.is_quiet() and now - self.last_activity > self.live.idle_banter_s(config.IDLE_BANTER_S)
+                    and now >= self._quiet_until and now - self._last_child_t > (config.IDLE_AFTER_CHILD_S if config.CHILD_LEADS else 0)
                     and len(self.hub.online()) >= 2):
                 ev = self._idle_event()
         if ev:
@@ -663,6 +684,7 @@ class Director:
         self.live.turn_open(initiated=utt is None)   # metrics: a toy-initiated turn is a cue; a reply may become one
         if utt:
             self.live.child_pending(utt)
+            self._last_child_t = time.time()
         gen = self._gen
         prev_lines = self.last_lines                # what the toys said last turn (JUST_SAID quotes it in a continuing chat)
         self.last_latency, self.last_lines, self.turn_lines = 0., [], []
@@ -670,6 +692,7 @@ class Director:
         filler = None
         pipeline = None
         status = "ok"
+        tl = {"heard": "", "flags": {}, "kind": "child" if utt else ("look" if isinstance(event, dict) and event.get("look") else "toys")}
         try:
             online = self.hub.online()
             toy = utt.toy if utt and utt.toy in online else online[0]
@@ -710,6 +733,7 @@ class Director:
                         status = "ignored_non_speech"
                         return
                     self.last_heard = said
+                    tl["heard"] = said
                     self._remember(said)
                     self.live.child_text(said)   # metrics: reduced to numbers/tags at once, the words are not kept
                     prompt += f'The child said: "{said}"\nReply.'
@@ -718,6 +742,7 @@ class Director:
             # Camera policy (brain/camera.py). With a transcript (whisper path) the rules decide here, so the picture goes with the
             # first call. The audio-native model has no transcript yet: it answers LOOK and the loop below takes the picture.
             looks = self._can_look(toy)
+            stop_now = bool(said and config.CHILD_LEADS and camera.wants_stop(said))
             if asked_look and config.LOOK_ON_REQUEST and self._has_cam(toy):
                 prompt, image = self._look_turn(toy, prompt, scene, "What do you see right now?", image, tmp_files, trace)
             if said and camera.ispy_stop(said):
@@ -775,6 +800,8 @@ class Director:
                     topics += "\n[LINE JOBS] " + line_jobs(names, self._scene_line, self._scene_last)
                     self._scene_line += len(names)
                     self._scene_last = names[-1] if names else None
+            elif utt and config.CHILD_LEADS:
+                topics = ""                      # the child leads: no curriculum items pulling the reply away from what they said
             else:
                 topics = self._grade_topics()    # curriculum: a short rotating [GRADE TOPICS] block right after the notes; not logged, not a quiz
             prompt = "".join(b + "\n" for b in (notes, topics) if b) + prompt
@@ -809,8 +836,15 @@ class Director:
                         self._ispy_until = 0.0
                     elif camera.wants_ispy(text):
                         self._ispy_until = time.time() + config.ISPY_GAME_S
+                if text and utt and config.CHILD_LEADS and camera.wants_stop(text) and not tl["flags"].get("stop"):
+                    # the audio-native model wrote toy lines instead of STOP (it hears the child, the words come last): cut what is
+                    # queued now, then one "I'm listening" after the turn, and quiet
+                    tl["flags"]["stop"], tl["ack"] = True, toy
+                    self._quiet(toy)
+                    self.interrupt()
                 if text:
                     self.last_heard = text
+                    tl["heard"] = text
                     self._remember(text)
                     self.live.child_text(text)   # audio-mode models report the words here (no-op once STT supplied them)
 
@@ -818,12 +852,19 @@ class Director:
             guard = factcheck.FactGuard(context=[t for _w, t in prev_lines[-1:]] + [said]) if config.FACT_GUARD else None
             referee = (camera.ISpyReferee(said, self._ispy_seen, self._ispy_secret, self._ispy_guessed, self._ispy_clue)
                        if ispy and self._ispy_seen is not None else None)
-            parser = ReplyLines(speakers, line_ready, heard, guard, referee)
+            parser = ReplyLines(speakers, line_ready, heard, guard, referee,
+                                max_lines=config.CHILD_MAX_LINES if utt and config.CHILD_LEADS else None)
             kwargs = dict(wav=wav if self.llm.hears_audio else None, image=image)
             stream = getattr(self.llm, "stream", None)
-            peel = camera.LookPeeler() if looks and utt and not image else None   # round 0 may be the one-word LOOK request
+            words = ((camera.LOOK_WORD,) if looks else ()) + ((camera.STOP_WORD,) if config.CHILD_LEADS else ())
+            peel = camera.LookPeeler(words) if words and utt and not image else None   # round 0 may be the one-word LOOK / STOP
+            if stop_now:      # transcript said stop: no model call at all, just "I'm listening" and quiet
+                tl["flags"]["stop"] = True
+                self._quiet(toy)
+                line_ready(toy, canned.LISTENING.get(toy, "Okay, I'm listening."))
+                parser.count = 1
             with trace.span("llm_ms"):
-                for round_ in (0, 1):
+                for round_ in ((0, 1) if not stop_now else ()):
                     chunks = stream(prompt, **kwargs) if stream else iter([self.llm.ask(prompt, **kwargs)])
                     try:
                         for delta in chunks:
@@ -840,6 +881,15 @@ class Director:
                         close = getattr(chunks, "close", None)
                         if close:
                             close()
+                    if peel and peel.looking and peel.word == camera.STOP_WORD and self._gen == gen:
+                        # the child said stop: one short "I'm listening", then quiet (no toy-to-toy chat for STOP_QUIET_S)
+                        tl["flags"]["stop"] = True
+                        if peel.heard:
+                            heard(peel.heard)
+                        self._quiet(toy)
+                        line_ready(toy, canned.LISTENING.get(toy, "Okay, I'm listening."))
+                        parser.count = 1
+                        break
                     if not (peel and peel.looking and round_ == 0 and self._gen == gen):
                         break
                     # The child asked the toy to look: one picture from the toy that heard them, camera off again, same turn.
@@ -851,6 +901,8 @@ class Director:
             trace.mark("model_done_ms")
             if referee:
                 self._ispy_secret, self._ispy_guessed, self._ispy_clue = referee.secret, referee.guessed, referee.clue
+            tl["flags"].update(ispy=bool(ispy), look=bool(image) and not ispy, fact_fixed=guard.fixed if guard else 0,
+                               fact_dropped=guard.dropped if guard else 0)
             if guard and (guard.fixed or guard.dropped):
                 self.fact_stats["fixed"] += guard.fixed
                 self.fact_stats["dropped"] += guard.dropped
@@ -870,6 +922,13 @@ class Director:
                     log.exception("speech output failed")
             if filler:
                 filler.join()
+            if tl.get("ack"):
+                try:
+                    ack = canned.LISTENING.get(tl["ack"], "Okay, I'm listening.")
+                    self.hub.play_line(tl["ack"], ack, self.voices)
+                    self.turn_lines.append((tl["ack"], ack))
+                except Exception:  # noqa: BLE001
+                    log.warning("listening line failed")
             for f in tmp_files:
                 try:
                     os.unlink(f)
@@ -882,6 +941,12 @@ class Director:
             self.live.child_unresolved(status)   # metrics: count the utterance's timing even if no words were reported
             self.live.turn_close(status)
             trace.finish(status)
+            try:   # the conversation log for review (RAM only, brain/convlog.py)
+                if status != "ignored_non_speech":
+                    self.convlog.add(kind=tl["kind"], heard_by=utt.toy if utt else None, heard=tl["heard"], said=self.turn_lines,
+                                     status=status, latency_s=round(self.last_latency, 2) if self.last_latency else None, flags=tl["flags"])
+            except Exception:  # noqa: BLE001
+                log.warning("conversation log failed")
             self.last_trace = self.turn_log.add(dict(trace.snapshot(), host=self.sampler.latest(),
                                                     floor=getattr(self.hub, "floor", None) and self.hub.floor.snapshot()))
             self.active_trace = None
@@ -983,6 +1048,13 @@ class Director:
             except Exception:  # noqa: BLE001
                 log.warning("I spy list call failed")
                 return None
+
+    def _quiet(self, toy=None):
+        """The child said stop: cut whatever is playing, end a toy chat, no toy-to-toy chat for STOP_QUIET_S. The toys still answer
+        the child whenever they speak."""
+        self._quiet_until = time.time() + config.STOP_QUIET_S
+        self._scene_topic = None
+        log.info("child said stop: quiet for %.0f s", config.STOP_QUIET_S)
 
     def _ispy_on(self) -> bool:
         """An I spy game is going: the child started it and spoke again within ISPY_GAME_S."""

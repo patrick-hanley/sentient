@@ -51,3 +51,6 @@ GREETINGS = {
     "sage": "Hello, I'm Sage. My brain is having a little rest. Let's talk again soon.",
     "penny": "Hi! I'm Penny the penguin! My brain is taking a quick nap.",
 }
+
+# The child said stop: one short line from the toy that heard them, then the toys listen (brain/director.py _quiet)
+LISTENING = {"dyno": "Okay! I'm listening.", "sage": "Of course. I'm listening.", "penny": "Okay! I'm all ears."}

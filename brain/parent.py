@@ -971,13 +971,24 @@ class Parent:
                 self.bound = None
                 return None
 
+    def notes_child(self) -> dict | None:
+        """Whose notes the toys use: the child playing now, or, in a family with ONE child, that child (no "Playing now" needed, also
+        after a restart or 30 idle minutes). Only the notes: what the child says is remembered, and metrics kept, only for a child a
+        parent picked (bound_child)."""
+        with self._lock:
+            child = self.bound_child()
+            if child or self._dek is None:
+                return child
+            kids = self.index.get("children", [])
+            return kids[0] if len(kids) == 1 and self.index["settings"].get("auto_single", True) else None
+
     # ---- what the toys see ----
     def notes_block(self) -> str:
         """The private prompt section for the bound child, or '' (no key, nobody bound, paused or nothing active)."""
         with self._lock:
             if self._dek is None or not self.index["settings"].get("notes_on", True):
                 return ""
-            child = self.bound_child()
+            child = self.notes_child()
             if not child:
                 return ""
             now = self.now()
@@ -992,15 +1003,16 @@ class Parent:
                     size += len(ph) + 2
             if not phrases:
                 return ""
-            return ("[PRIVATE NOTES: use them to choose topics and games; never quote them, never mention that notes, a parent or "
-                    "a cue exist; never use one as a test; a 'keep it' note beats an interest for tone; a 'be mindful' note is about their safety or comfort] " + "; ".join(phrases))
+            return ("[PRIVATE NOTES: what you know about the child. Use them to choose topics and games. When the child asks about one, answer "
+                    "it like a friend who knows (\"Your favorite food is pizza!\"); never say that notes, a parent or a cue exist; never use one "
+                    "as a test; a 'keep it' note beats an interest for tone; a 'be mindful' note is about their safety or comfort] " + "; ".join(phrases))
 
     def told_block(self) -> str:
         """What the child told the toys themselves, for the prompt: the toys may bring it up like a friend who remembers."""
         with self._lock:
             if self._dek is None or not self.index["settings"].get("notes_on", True) or not self.index["settings"].get("child_memory", True):
                 return ""
-            child = self.bound_child()
+            child = self.notes_child()
             if not child:
                 return ""
             now = self.now()
