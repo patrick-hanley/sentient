@@ -29,6 +29,7 @@ import json
 import logging
 import os
 import threading
+import time
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -410,10 +411,65 @@ class Pair:
             self.D = None
 
 
+class PathStore:
+    """Each (talker -> listener) echo path, kept across brain restarts so a pair's first clip after a restart starts with the
+    stored-magnitude suppressor instead of the raw mic: the lag D (samples) and the path magnitude's two smoothed power
+    accumulators (filter output and reference, per frequency bin). Numbers only: no audio, nothing a voice can be rebuilt from.
+    `path` None keeps it in memory (tests, offline replay)."""
+    VERSION = 1
+
+    def __init__(self, path=None, max_age_h: float | None = None):
+        self.path = path
+        self.max_age_s = 3600.0 * (config.AEC_PATHS_MAX_AGE_H if max_age_h is None else max_age_h)
+        self.pairs: dict[str, dict] = {}
+        if path:
+            try:
+                with open(path) as f:
+                    d = json.load(f)
+                if d.get("version") == self.VERSION and d.get("fs") == FS and d.get("bins") == NB:
+                    self.pairs = d.get("pairs", {})
+            except FileNotFoundError:
+                pass
+            except (OSError, ValueError) as e:
+                log.warning("aec: stored echo paths unreadable (%s), starting without them", e)
+
+    def restore(self, pair: "Pair", now: float) -> bool:
+        e = self.pairs.get(f"{pair.talker}->{pair.l.toy}")
+        if not e or now - e.get("t", 0) > self.max_age_s:
+            return False
+        acc_y, acc_x = np.asarray(e["acc_y"], float), np.asarray(e["acc_x"], float)
+        if acc_y.shape != (NB,) or acc_x.shape != (NB,) or not np.isfinite(acc_y).all() or not np.isfinite(acc_x).all():
+            return False
+        pair.D = int(e["D"])
+        pair.stats["lag_ms"] = pair.D / FS * 1000
+        sup = pair.sup
+        sup.acc_y, sup.acc_x = acc_y, acc_x
+        sup.H2 = np.clip(sup._sm(acc_y) / (sup._sm(acc_x) + 1e-3), 0.0, 4.0)
+        pair.stats["restored"] = 1
+        return True
+
+    def put(self, pair: "Pair", now: float):
+        sup = pair.sup
+        self.pairs[f"{pair.talker}->{pair.l.toy}"] = dict(
+            t=round(now), D=int(pair.D), acc_y=[float(f"{v:.4g}") for v in sup.acc_y], acc_x=[float(f"{v:.4g}") for v in sup.acc_x])
+
+    def save(self):
+        if not self.path:
+            return
+        tmp = f"{self.path}.tmp"
+        try:
+            with open(tmp, "w") as f:
+                json.dump(dict(version=self.VERSION, fs=FS, bins=NB, pairs=self.pairs), f)
+            os.replace(tmp, self.path)
+        except OSError as e:
+            log.warning("aec: could not store echo paths (%s)", e)
+
+
 class AecManager:
     """The hub's single entry point. Times are brain monotonic seconds; every call is cheap and thread-safe."""
 
-    def __init__(self, stop_latency_s: float | None = None):
+    def __init__(self, stop_latency_s: float | None = None, paths: PathStore | None = None):
+        self.paths = paths                                       # echo paths kept across restarts (None: start cold)
         self.lock = threading.RLock()
         self.clips: dict[str, list[Clip]] = {}
         self.listeners: dict[str, Listener] = {}
@@ -505,6 +561,8 @@ class AecManager:
             pair = lst.pairs.get(talker)
             if pair is None:
                 pair = lst.pairs[talker] = Pair(talker, lst)
+                if self.paths is not None and self.paths.restore(pair, time.time()):
+                    log.info("aec %s->%s: stored echo path restored (lag %.0f ms)", talker, toy, pair.stats["lag_ms"])
             live = []
             for c in clist:
                 sp = self._clip_span(pair, c, lst)
@@ -925,6 +983,16 @@ class AecManager:
                            f"barges {p.stats['barges']}, echo-path resets {p.stats['mismatch']}")
                 p.sum_d = p.sum_e = p.sum_m = 0.0
                 p.n_m = 0
+            stored = False
+            if self.paths is not None:
+                for l in self.listeners.values():
+                    p = l.pairs.get(talker)
+                    # only a path the filter trusts: locked, converged, and the magnitude has been learnt
+                    if p is not None and p.state == "locked" and p.q < 0.3 and p.D is not None and p.sup.H2 is not None and p.sup.acc_x.any():
+                        self.paths.put(p, time.time())
+                        stored = True
+        if stored:
+            self.paths.save()
         return out
 
     def snapshot(self) -> dict:

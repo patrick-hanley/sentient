@@ -161,3 +161,26 @@ Replay on the 12-sequence corpus (kept on a Mac RAM disk only). Defaults now: `A
 * Warm-start bug: a lag check that differs by 1-2 samples was ignored and a trusted (q ~ 0) filter froze, so the clip stayed raw. Fix: the filter is shifted by the whole-sample offset that leaves the least residual on what was heard (`_fine_shift`), the drift tracker and `lag0` follow, and trust drops to 0.3 like a normal placement. Dyno-clip onset 7 -> 21-23 dB. Not kept only because of one clip (dyno... sage>dyno<penny 09.1: child WER 0.2 -> 1.0, whisper flips between a full sentence and nothing at the same output level; beam-5 cross-check: WER 0.104 -> 0.121, leak 0.092 -> 0.072). `AEC_WARM=1` is safe to flip on by hand.
 * Stored magnitude (`Suppressor.mag`): |H(f)|^2 per STFT bin is learnt while the filter is converged (power the filter puts out over the placed reference's power), kept per pair across clips and relocks. Before the filter is trusted (search/place, warm check) the echo spectrum is predicted as |H|^2 x |Ref|^2 at the pair's known lag and a Wiener gain is applied to the mic itself. Warm-clip onset 4.1 -> 10.2 dB, nothing else moved.
 * Still open: the first clip of a pair after a brain restart (cold: no stored magnitude, no lag) stays at ~3.8 dB. The lag differs a lot between pairs (21-86 ms) so a generic |H| with a generic lag does not work; persisting each pair's lag and |H| across restarts (no audio, just numbers) is the next step. The 20 dB-class barge-in latency is unmeasured (mics muted).
+
+## Nov 14 (5): echo paths kept across brain restarts (AEC_PERSIST, on by default)
+
+After each clip, every pair the filter trusts (locked, q < 0.3, magnitude learnt) stores its lag D and the two smoothed per-bin
+power accumulators behind |H(f)|^2 in `brain/data/aec_paths.json` (git-ignored; numbers only, no audio, nothing a voice can be
+rebuilt from; ignored after AEC_PATHS_MAX_AGE_H = 168 h). A new brain restores them when the pair first appears, so the pair's
+first line after a restart starts with the stored-magnitude suppressor instead of the raw mic; the wide GCC-PHAT search and
+the filter still run and overwrite the stored path. Delete the file to start cold.
+
+Offline replay, `tools/aec_replay.py /Volumes/aecram2/corpus2 --restart` (each sequence seeded with the path stored by ANOTHER
+sequence of the same pair, leave one out; 12 sequences, 24 clips):
+
+| | no stored path | after a restart with a stored path |
+|---|---|---|
+| onset ERLE, pair's first line | 3.76 dB | **8.29 dB** |
+| onset ERLE, later lines | 10.22 dB | 10.66 dB |
+| A-only ERLE | 20.88 dB | 20.88 dB |
+| A-only leak | 0.096 | 0.096 |
+| child WER | 0.129 | 0.129 |
+
+Stored lags agree within ~2 ms across trials (20.4-23.4 ms) except one 86 ms lock (dyno->penny seq 00); seeding with that
+one still did not hurt (9.22 -> 10.27 dB). Four of the twelve sequences stored no path (the pair never reached q < 0.3:
+penny->sage both, penny->dyno 05, sage->penny 02), so their first lines are unchanged.

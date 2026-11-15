@@ -132,6 +132,33 @@ class ErleTests(unittest.TestCase):
         self.assertGreater(r.erle_db(11.7, 13.5), 8)
         self.assertEqual(snap["barges"], 0)
 
+    def test_stored_path_survives_a_restart_and_cancels_the_first_line(self):
+        """AEC_PERSIST: after a pair's line the lag and path magnitude are stored (numbers only, no audio); a fresh brain loads them
+        and the first line of that pair is cancelled from its start instead of passing the raw mic for the first ~0.5 s."""
+        import json, os, tempfile
+        with tempfile.TemporaryDirectory() as d:
+            f = os.path.join(d, "aec_paths.json")
+            m1 = aec.AecManager(paths=aec.PathStore(f))
+            S.run(S.Scenario(seed=2, manager=m1), two_pass=False)
+            m1.finish("dyno")                                                # what the hub calls after each clip
+            saved = json.load(open(f))
+            e = saved["pairs"]["dyno->sage"]
+            self.assertEqual(set(e), {"t", "D", "acc_y", "acc_x"})            # nothing else: no audio, no samples
+            self.assertEqual(len(e["acc_y"]), aec.NB)
+            cold = S.run(S.Scenario(seed=2), two_pass=False)
+            m2 = aec.AecManager(paths=aec.PathStore(f))                     # "after a restart"
+            warm = S.run(S.Scenario(seed=2, manager=m2), two_pass=False)
+            self.assertEqual(m2.snapshot()["dyno->sage"].get("restored"), 1)
+            on = (0.6, 1.1)                                                  # the first half second of the line
+            c, w = cold.erle_db(*on), warm.erle_db(*on)
+            print(f"  first 0.5 s of a pair's first line: {c:.1f} dB cold, {w:.1f} dB with the stored path")
+            self.assertGreater(w, c + 3)
+            self.assertGreater(warm.erle_db(2.0, 4.4), 8)                    # and the filter still locks and cancels after
+            old = aec.PathStore(f, max_age_h=0)                              # a path past its age is ignored
+            self.assertFalse(old.restore(aec.Pair("dyno", aec.Listener("sage")), time.time() + 1))
+            open(f, "w").write("{broken")
+            self.assertEqual(aec.PathStore(f).pairs, {})                     # an unreadable file means a cold start, not a crash
+
     def test_no_clock_no_cancelling(self):
         """Without a PLAYING timestamp the canceller never claims a residual: frames pass through untouched."""
         mgr = aec.AecManager()

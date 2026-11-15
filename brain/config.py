@@ -156,6 +156,9 @@ AEC_RES_ONSET = 1.0          # alpha is multiplied by this during the first AEC_
 AEC_RES_ONSET_S = 1.0
 AEC_MAG = 1                  # 1 = before the filter can be trusted (cold start, warm check), a stored per-pair echo-path magnitude |H(f)| x the placed reference drives the suppressor
 AEC_MAG_ALPHA = 1.0          # over-subtraction in that mode (the magnitude is only a prior: be conservative)
+AEC_PERSIST = int(os.environ.get("SENTIENT_AEC_PERSIST", "1"))   # 1 = keep each pair's echo lag and path magnitude across restarts (numbers only, no audio)
+AEC_PATHS_FILE = DATA / "aec_paths.json"
+AEC_PATHS_MAX_AGE_H = 168     # a stored path older than this (toys moved, a new room) is ignored
 AEC_STOP_LATENCY_S = 0.04    # STOP is sent -> speaker silent (the clip's reference is cut then)
 MIC_TAIL_S = 0.4             # mics stay muted this long after any toy stops talking
 ARBITRATE_S = 0.12           # upper bound; stop sooner when all online mics have reported

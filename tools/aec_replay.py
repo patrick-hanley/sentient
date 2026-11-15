@@ -11,7 +11,7 @@ Metrics per clip (all on what the canceller hands on, `out`; "raw" is the mic it
   A-only leak   share of A's words (what whisper hears in the clean reference over the same stretch) that whisper still hears in
                 the output when the child is silent. Target 0.
   child WER     whisper on the output while the child speaks, against the child's true text. Must not get worse.
-  python tools/aec_replay.py CORPUS_DIR [NAME=VALUE ...]     names are brain.config.* or brain.aec.* attributes"""
+  python tools/aec_replay.py CORPUS_DIR [--restart] [NAME=VALUE ...]     names are brain.config.* or brain.aec.* attributes"""
 import collections
 import json
 import sys
@@ -36,7 +36,7 @@ def sequences(corpus):
     return seq
 
 
-def replay_seq(files, overrides=None):
+def replay_seq(files, overrides=None, paths=None):
     """Returns one dict per clip: mic, out (int16 arrays over that file's frames), z (the dump), k."""
     saved = {}
     for k, v in (overrides or {}).items():
@@ -45,7 +45,7 @@ def replay_seq(files, overrides=None):
         setattr(mod, k, v)
     try:
         a_toy, b_toy = Path(files[0]).name.split("_")[:2]
-        m = aec.AecManager()
+        m = aec.AecManager(paths=paths)
         m.dump_dir = None
         res, fill = [], None
         last_n = None
@@ -174,10 +174,29 @@ def _lag(r, key):
     return _lagcache[key]
 
 
-def score(corpus, overrides=None, model=aec_wer.DEFAULT_MODEL, verbose=False):
+def learnt_paths(corpus, overrides=None):
+    """{sequence key: the echo paths its replay stored} (AEC_PERSIST: what a brain restart would start from)."""
+    out = {}
+    for key, files in sequences(corpus).items():
+        st = aec.PathStore(None, max_age_h=1e9)
+        replay_seq(files, overrides, st)
+        out[key] = st.pairs
+    return out
+
+
+def score(corpus, overrides=None, model=aec_wer.DEFAULT_MODEL, verbose=False, restart=False):
+    """restart=True: every sequence starts as after a brain restart with stored paths, taken from ANOTHER sequence of the
+    same talker -> listener pair (leave one out: a clip never sees its own path)."""
     rows, acc = [], collections.defaultdict(list)
+    learnt = learnt_paths(corpus, overrides) if restart else {}
     for (a, b, c, tag), files in sequences(corpus).items():
-        for r in replay_seq(files, overrides):
+        st = None
+        if restart:
+            st = aec.PathStore(None, max_age_h=1e9)
+            for k2, pairs in learnt.items():
+                if k2[:2] == (a, b) and k2 != (a, b, c, tag) and f"{a}->{b}" in pairs:
+                    st.pairs = {f"{a}->{b}": pairs[f"{a}->{b}"]}
+        for r in replay_seq(files, overrides, st):
             m = clip_metrics(r, model, key=str(files[r["k"]]))
             if not m:
                 continue
@@ -209,11 +228,11 @@ def raw_baseline(corpus, model=aec_wer.DEFAULT_MODEL):
 
 
 if __name__ == "__main__":
-    ov = {}
-    for kv in sys.argv[2:]:
+    ov, restart = {}, "--restart" in sys.argv
+    for kv in [a for a in sys.argv[2:] if a != "--restart"]:
         k, v = kv.split("=")
         ov[k] = float(v) if "." in v or "e" in v else int(v)
-    r = score(sys.argv[1], ov)
+    r = score(sys.argv[1], ov, restart=restart)
     for row in r["rows"]:
         print(row)
     print({k: (round(v, 3) if isinstance(v, float) else v) for k, v in r.items() if k != "rows"})

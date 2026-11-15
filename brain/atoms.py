@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from . import config
-from .aec import AecManager, wire_to_ref
+from .aec import AecManager, PathStore, wire_to_ref
 from .barge import BargeDetector
 from .floor import FloorControl
 
@@ -94,7 +94,7 @@ class AtomHub:
         self.talking: str | None = None
         self.play_id = 0
         self.barge = BargeDetector()
-        self.aec = AecManager() if config.AEC else None
+        self.aec = AecManager(paths=PathStore(config.AEC_PATHS_FILE) if config.AEC_PERSIST else None) if config.AEC else None
         self.on_barge = None          # main wires the director: barge_in(toy)
         self._barged = False
         self._barge_toy, self._barge_frames = None, []
