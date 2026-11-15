@@ -12,7 +12,7 @@ import threading
 import time
 import wave
 
-from . import camera, canned, config, curriculum, curriculum_picks, debugrec, nonspeech, scripted
+from . import camera, canned, config, curriculum, curriculum_picks, debugrec, nonspeech, scripted, toytalk
 from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
@@ -530,6 +530,10 @@ class Director:
         return seed or random.choice(config.BANTER_SEEDS)
 
     def _idle_event(self) -> str:
+        ev = self._idle_event_base()
+        return f"{ev} {toytalk.block(config.TOY_TALK)}".rstrip() if config.TOY_TALK else ev
+
+    def _idle_event_base(self) -> str:
         online = self.hub.online()
         for t in online:
             v = self.eyes.views[t]
