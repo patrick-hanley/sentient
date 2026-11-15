@@ -134,7 +134,7 @@ BARGE_MIN_RMS = float(os.environ.get("SENTIENT_BARGE_MIN_RMS", "350"))
 BARGE_MS = 160               # ...for this long, in a row
 BARGE_WARMUP_MS = 300        # learn the leakage level first
 # Cross-toy echo cancellation (brain/aec.py, docs/aec.md): the listeners' mics keep working while a toy talks
-AEC = os.environ.get("SENTIENT_AEC", "0") == "1"             # OFF by default until the firmware reports dropped mic audio (docs/aec.md, hardware findings); 1 = on
+AEC = os.environ.get("SENTIENT_AEC", "1") == "1"             # ON by default (fw 3.9 fixed the lost mic audio; docs/aec.md); SENTIENT_AEC=0 turns it off
 AEC_PARTS = 8                # filter = 8 x 20 ms blocks = 160 ms of room echo
 AEC_MU = float(os.environ.get("SENTIENT_AEC_MU", "0.5"))
 AEC_SEARCH_S = 0.4           # seconds of the clip heard before the first GCC-PHAT lag search (warm starts skip it)
