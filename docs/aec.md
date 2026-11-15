@@ -82,11 +82,11 @@ Cost: retrospective training takes ~90 ms once per pair on a Mac core and blocks
 
 ## Privacy
 
-Everything is in RAM: ~4 s of frames per listener, the clip being played, filter state (a few hundred KB). Nothing is written to disk and the log lines carry only dB, ms and counts.
+Everything is in RAM: ~4 s of frames per listener, the clip being played, filter state (a few hundred KB). No audio is written to disk and the log lines carry only dB, ms and counts. The one file is `brain/data/aec_paths.json` (AEC_PERSIST): per toy pair a lag and two 321-number power spectra of the room's echo path, from which no audio or words can be recovered.
 
 ## Knobs (`brain/config.py`)
 
-`SENTIENT_AEC=0` (off), `SENTIENT_AEC_MU`, `AEC_PARTS`, `AEC_SEARCH_S`, `AEC_PLACE_S`, `AEC_MIN_SCORE(_PLACE)`, `AEC_DT_RATIO`, `AEC_MIN_RMS`, `AEC_BARGE_MS`, `AEC_PREROLL_FRAMES`, `AEC_STOP_LATENCY_S`.
+`SENTIENT_AEC=0` (off), `SENTIENT_AEC_MU`, `AEC_PARTS`, `AEC_SEARCH_S`, `AEC_PLACE_S`, `AEC_MIN_SCORE(_PLACE)`, `AEC_DT_RATIO`, `AEC_MIN_RMS`, `AEC_BARGE_MS`, `AEC_PREROLL_FRAMES`, `AEC_STOP_LATENCY_S`, `SENTIENT_AEC_PERSIST=1` / `AEC_PATHS_MAX_AGE_H` (stored echo paths).
 
 ## How to resume the hardware measurement (paused Nov 12 by the user; hardware released)
 
