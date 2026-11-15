@@ -1,6 +1,6 @@
 # baseline-held (held set, toy-talk level 0, code a2dad6b)
 
-Composite **14.91/20**; probes 12/12; words/scene 84.8; guards {'pressure': 0, 'scary': 0, 'spelled_noise': 0, 'run_on': 0, 'repeats': 1, 'long_lines': 0}; distinct 0.739.  
+Composite **14.91/20**; probes 12/12; words/scene 84.8; guards {'pressure': 0, 'scary': 0, 'spelled_noise': 0, 'run_on': 0, 'repeats': 1, 'long_lines': 0}; distinct 0.739; line points by round {0: 3.37, 1: 3.03, 2: 2.58} (last/first 0.766).  
 Decision vs -: **reference**. no toy-talk block; baseline for the held set.
 
 Synthetic scenarios, toy-generated lines. Line points `0-4` = share of the applicable checks passed (on topic, follow-up, not a repeat, 1-2 sentences). Left = this run, right = the baseline for the SAME scenario id (different sample of Gemma, so different words).

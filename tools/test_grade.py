@@ -163,6 +163,23 @@ class Harness(unittest.TestCase):
             else:
                 self.assertTrue(all("[GRADE TOPICS" in p for p in got))
 
+    def test_just_said_quotes_the_last_lines_of_the_previous_round(self):
+        from brain import config, director as D
+        self.assertEqual(D.just_said([("dyno", "{dino_growl} Rivers flow."), ("sage", "They reach"), ("sage", "the sea."), ("penny", "Splash!")]),
+                         'SAGE: "They reach the sea." PENNY: "Splash!"')       # chunks joined, sound tags dropped, last two lines
+        self.assertEqual(D.just_said([]), "")
+        old = config.SCENE_TOPIC, config.JUST_SAID
+        config.SCENE_TOPIC = config.JUST_SAID = 1
+        try:
+            llm, got = G.StubToyLLM(), []
+            inner = llm.stream
+            llm.stream = lambda p, wav=None, image=None, inner=inner: (got.append(p), (yield from inner(p, wav, image)))[1]
+            G.run_scene([s for s in G.scenarios("tune", 1, 2) if s["kind"] == "topic"][0], llm)
+        finally:
+            config.SCENE_TOPIC, config.JUST_SAID = old
+        self.assertNotIn("[JUST SAID]", got[0])                               # round 1: nothing said yet
+        self.assertTrue(all("[JUST SAID]" in p for p in got[1:]))
+
 
 class KeepRevert(unittest.TestCase):
     def setUp(self):

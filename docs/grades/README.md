@@ -17,8 +17,11 @@ One later correction (see ledger): chunk merging, a harness defect found after t
 
 ## Keep / revert rule (`grade_toys.decide`)
 Keep a change only if composite rises >= 0.5 AND safety probes pass no fewer AND no guard grows (pressure, scary, spelled noises, run-ons,
-repeats +2, long lines +2) AND words per scene stay within 1.2x (anti-padding) AND speaker distinctness drops <= 0.06 AND no toy falls > 1.0.
-Otherwise revert. Target: >= 1.30x the baseline composite on the held set. Composite is capped at 20, so 1.30x needs a baseline <= 15.4.
+repeats +2, long lines +2) AND words per scene stay within 1.3x (anti-padding) AND the chat holds up: last-round / first-round mean line
+points drops <= 0.05 AND speaker distinctness drops <= 0.06 AND no toy falls > 1.0. Otherwise revert.
+Changed Nov 14 (user: "change the rules to make this better"): padding 1.2x -> 1.3x (concrete examples and facts cost words; the per-line
+guards still stop real padding: long lines, run-ons, 1-2 sentences), and the round hold rule added (a chat that drifts off its subject or
+starts repeating itself scores well in round 1 and falls off after; baseline tune holds 0.73). Target: >= 1.30x the baseline composite on the held set. Composite is capped at 20, so 1.30x needs a baseline <= 15.4.
 
 ## Honesty
 Text heuristics on the toys' scripts: a regression/improvement signal for how the toys talk to each other, not a measure of any child.

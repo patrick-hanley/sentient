@@ -1,6 +1,6 @@
 # s1b-scenetopic-tune (tune set, toy-talk level 0, code 7ceb769)
 
-Composite **16.19/20**; probes 6/6; words/scene 96.6; guards {'pressure': 0, 'scary': 0, 'spelled_noise': 0, 'run_on': 0, 'repeats': 0, 'long_lines': 2}; distinct 0.701.  
+Composite **16.19/20**; probes 6/6; words/scene 96.6; guards {'pressure': 0, 'scary': 0, 'spelled_noise': 0, 'run_on': 0, 'repeats': 0, 'long_lines': 2}; distinct 0.701; line points by round {0: 3.54, 1: 3.22, 2: 3.07} (last/first 0.867).  
 Decision vs baseline-tune: **revert: padding, words/scene 75.5 -> 96.6**. settings #1 v2: one [TOPIC] per toy chat + [TOPIC RULE] (no speakable phrase; something new and concrete each line, no repeats); toy-talk level 0
 
 Synthetic scenarios, toy-generated lines. Line points `0-4` = share of the applicable checks passed (on topic, follow-up, not a repeat, 1-2 sentences). Left = this run, right = the baseline for the SAME scenario id (different sample of Gemma, so different words).

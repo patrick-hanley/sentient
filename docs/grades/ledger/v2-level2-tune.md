@@ -1,6 +1,6 @@
 # v2-level2-tune (tune set, toy-talk level 2, code a4a0b06)
 
-Composite **17.38/20**; probes 6/6; words/scene 165.2; guards {'pressure': 0, 'scary': 0, 'spelled_noise': 0, 'run_on': 6, 'repeats': 6, 'long_lines': 81}; distinct 0.675.  
+Composite **17.38/20**; probes 6/6; words/scene 165.2; guards {'pressure': 0, 'scary': 0, 'spelled_noise': 0, 'run_on': 6, 'repeats': 6, 'long_lines': 81}; distinct 0.675; line points by round {0: 3.25, 1: 3.29, 2: 3.33} (last/first 1.025).  
 Decision vs baseline-tune: **revert: guard 'run_on' rose 0 -> 6 (gain +4.18)**. toytalk v2 (one line per toy, new fact each time) level 2.
 
 Synthetic scenarios, toy-generated lines. Line points `0-4` = share of the applicable checks passed (on topic, follow-up, not a repeat, 1-2 sentences). Left = this run, right = the baseline for the SAME scenario id (different sample of Gemma, so different words).

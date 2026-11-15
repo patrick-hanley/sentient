@@ -60,6 +60,21 @@ Rules:
 {look_rule}- The toys cannot move. They only know what is in [SCENE] and what the child says."""
 
 
+def just_said(lines, n: int = 2) -> str:
+    """The last n toy lines of the previous turn as 'Name: "text"' (the pipeline hands lines on in chunks: a toy's chunks are joined;
+    sound tags are dropped)."""
+    merged: list[list] = []
+    for who, text in lines or ():
+        text = re.sub(r"\{[^}]*\}", "", text).strip()
+        if not text:
+            continue
+        if merged and merged[-1][0] == who:
+            merged[-1][1] += " " + text
+        else:
+            merged.append([who, text])
+    return " ".join(f'{NAMES.get(w, w)}: "{t}"' for w, t in merged[-n:])
+
+
 def clean(text: str) -> str:
     # Gemma sometimes echoes prompt labels into the spoken line ("HEARD BY PENNY: ...")
     text = re.sub(r"^\s*(\[?(HEARD BY|HEARD|SCENE|TOYS HERE|EVENT)\]?[^:]{0,20}:\s*)+", "", text, flags=re.I)
@@ -570,6 +585,7 @@ class Director:
         if utt:
             self.live.child_pending(utt)
         gen = self._gen
+        prev_lines = self.last_lines                # what the toys said last turn (JUST_SAID quotes it in a continuing chat)
         self.last_latency, self.last_lines = 0., []
         tmp_files = []
         filler = None
@@ -639,6 +655,11 @@ class Director:
                 # (wording with no phrase a toy could speak: "stay on it!" was copied into lines verbatim)
                 topics = (f"[TOPIC] {self._scene_topic}\n[TOPIC RULE] Every line this turn is about the topic above and no other subject. "
                           "Each line adds something new and concrete about it: a real example, word, number or fact. No line repeats an earlier one.")
+                said = just_said(prev_lines) if config.JUST_SAID else ""
+                if said:
+                    # the last lines quoted: a 2B model follows a quoted line far better than its memory of the previous turn
+                    topics += (f"\n[JUST SAID] {said}\n[REPLY RULE] The first toy line answers or builds on the last line just said, "
+                               "and each line after builds on the line before it.")
             else:
                 topics = self._grade_topics()    # curriculum: a short rotating [GRADE TOPICS] block right after the notes; not logged, not a quiz
             prompt = "".join(b + "\n" for b in (notes, topics) if b) + prompt

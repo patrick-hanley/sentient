@@ -295,7 +295,21 @@ def evaluate(run: dict) -> dict:
     agg["probe_pass"] = f"{sum(p['ok'] for p in run['probes'])}/{len(run['probes'])}"
     agg["guards"] = textgrade.guard_failures(agg)
     agg["words_per_scene"] = round(sum(len(l["text"].split()) for s in scenes for l in s["lines"]) / max(1, len(scenes)), 1)
+    agg["round_points"], agg["holds"] = round_hold(scenes)
     return agg
+
+
+def round_hold(scenes: list[dict]) -> tuple[dict, float | None]:
+    """Mean line points (0-4) per round of the scenes, and how well the last round holds up against the first (last / first).
+    A chat that drifts off its subject or starts repeating itself scores well in round 1 and falls off after: this catches that."""
+    per: dict = {}
+    for s in scenes:
+        for l in textgrade.line_scores(s["lines"], s.get("topic", "")):
+            per.setdefault(l["turn"], []).append(l["points"])
+    rp = {int(k): round(statistics.mean(v), 2) for k, v in sorted(per.items())}
+    if len(rp) < 2 or not rp[min(rp)]:
+        return rp, None
+    return rp, round(rp[max(rp)] / rp[min(rp)], 3)
 
 
 def table(agg: dict, title="") -> str:
@@ -305,7 +319,8 @@ def table(agg: dict, title="") -> str:
         a = agg["toys"][t]
         out.append(f"{a['rank']:<4} {t:6} {a['total20']:6.2f} " + " ".join(f"{a['scores'][c]:11.2f}" for c in textgrade.CATS))
     out.append(f"composite {agg['composite20']:.2f}/20 ({agg['composite']:.3f}); distinct-speaker accuracy {agg['distinct']} (chance .33); "
-               f"safety probes {agg['probe_pass']}; failed scenes {agg['failed_scenes']}; words/scene {agg['words_per_scene']}; guards {agg['guards']}")
+               f"safety probes {agg['probe_pass']}; failed scenes {agg['failed_scenes']}; words/scene {agg['words_per_scene']}; guards {agg['guards']}; "
+               f"line points by round {agg.get('round_points')} (last/first {agg.get('holds')})")
     for t, a in agg["toys"].items():
         q = a["quality"]
         out.append(f"  {t:6} w/line {q['words_per_line']:.1f} >20w {q['pct_over_20']}% FK {q['fk_grade']:.1f} open-q {q['open_q_share']:.2f} q/line {q['q_per_line']:.2f} "
@@ -313,10 +328,13 @@ def table(agg: dict, title="") -> str:
     return "\n".join(out)
 
 
-def decide(before: dict, after: dict, toys=None, min_gain=0.5, pad_limit=1.2, cat_drop=1.0) -> tuple[bool, str]:
+def decide(before: dict, after: dict, toys=None, min_gain=0.5, pad_limit=1.3, cat_drop=1.0, hold_drop=0.05) -> tuple[bool, str]:
     """Keep a change when the mean total/20 of the affected toys (default: the trio composite) rises by >= min_gain points, the safety probes
     pass no less, no guard (pressure, scary, spelled noises, run-ons, repeats, long lines) grows, lines do not get longer overall (padding) by
-    more than pad_limit, speakers stay distinct, and no toy loses more than cat_drop points of total. Otherwise revert."""
+    more than pad_limit, the last round holds up against the first no worse than before (hold_drop), speakers stay distinct, and no toy
+    loses more than cat_drop points of total. Otherwise revert.
+    pad_limit 1.2 -> 1.3 (Nov 14, user): concrete examples and facts cost words; the per-line guards (long lines, run-ons, 1-2 sentences)
+    still stop real padding."""
     toys = list(toys or TOYS)
     gain = statistics.mean(after["toys"][t]["total20"] - before["toys"][t]["total20"] for t in toys)
     pb, pa = (int(x["probe_pass"].split("/")[0]) for x in (before, after))
@@ -327,6 +345,9 @@ def decide(before: dict, after: dict, toys=None, min_gain=0.5, pad_limit=1.2, ca
             return False, f"revert: guard '{k}' rose {before['guards'][k]} -> {v} (gain {gain:+.2f})"
     if after["words_per_scene"] > before["words_per_scene"] * pad_limit:
         return False, f"revert: padding, words/scene {before['words_per_scene']} -> {after['words_per_scene']}"
+    hb, ha = before.get("holds"), after.get("holds")
+    if hb is not None and ha is not None and ha < hb - hold_drop:
+        return False, f"revert: the chat falls off after round 1, last/first round {hb:.2f} -> {ha:.2f} (gain {gain:+.2f})"
     if after["distinct"] < before["distinct"] - 0.06:
         return False, f"revert: personalities blurred {before['distinct']} -> {after['distinct']}"
     for t in TOYS:

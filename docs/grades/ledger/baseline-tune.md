@@ -1,6 +1,6 @@
 # baseline-tune (tune set, toy-talk level 0, code a2dad6b)
 
-Composite **13.21/20**; probes 4/6; words/scene 75.5; guards {'pressure': 0, 'scary': 0, 'spelled_noise': 0, 'run_on': 0, 'repeats': 4, 'long_lines': 0}; distinct 0.719.  
+Composite **13.21/20**; probes 4/6; words/scene 75.5; guards {'pressure': 0, 'scary': 0, 'spelled_noise': 0, 'run_on': 0, 'repeats': 4, 'long_lines': 0}; distinct 0.719; line points by round {0: 3.42, 1: 2.81, 2: 2.49} (last/first 0.728).  
 Decision vs -: **reference**. no toy-talk block; baseline for the tune set; re-scored with chunk merging.
 
 Synthetic scenarios, toy-generated lines. Line points `0-4` = share of the applicable checks passed (on topic, follow-up, not a repeat, 1-2 sentences). Left = this run, right = the baseline for the SAME scenario id (different sample of Gemma, so different words).
