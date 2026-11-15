@@ -1,5 +1,10 @@
 # Gemma conversation settings: what the ledger shows and what to change
 
+**Status (Nov 14, night):** #1 (one topic per chat) and #2 (line jobs, fixed by persona) are graded keeps and ON by default
+(`SENTIENT_SCENE_TOPIC=1`, `SENTIENT_BEATS=1`). Tune 13.21 -> 16.59/20, follow-up 1.38 -> 2.48, round 3 / round 1 0.73 -> 0.88;
+held 13.82 -> 15.58 against a baseline on the same code. #3 (quote the last lines) gave no gain and stays off. Details: docs/grades/ledger.md.
+The grading rules were changed with the user: padding limit 1.3x, plus a rule that the last round must hold up against the first.
+
 Source: every run in `docs/grades/ledger/` (baseline-tune, baseline-held, v2 to v7; synthetic scenarios only, real Gemma 4 E2B
 on the Jetson). Goal: toy-to-toy talk that stays on one subject, answers what was just asked, and makes sense. Nothing here
 is applied yet; each item names the place in the code to change.
