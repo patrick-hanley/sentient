@@ -66,6 +66,147 @@ def wants_look(text: str) -> bool:
     return not (idiom and idiom.start() <= hit.start() < idiom.end())
 
 
+# ---- the I spy game ("I spy with my little eye something red", "I see something blue") ----
+_ISPY = re.compile(r"\b(?:i|eye|ai)\s*spy\b|\bi\s+see\s+something\b|\bguess\s+what\s+i\s+(?:see|spy|am\s+looking\s+at|m\s+looking\s+at)\b"
+                   r"|\bspy\s+(?:with|something)\b|\byour\s+turn\s+to\s+spy\b")
+_ISPY_STOP = re.compile(r"\b(?:stop|done|quit|finish|no\s+more)\b.{0,20}\b(?:spy|game|playing|guessing)\b|\bgame\s+over\b"
+                        r"|\b(?:let\s+s|lets|can\s+we)\s+play\s+something\s+else\b|\bi\s+don\s?t\s+want\s+to\s+play\b")
+
+
+def wants_ispy(text: str) -> bool:
+    """True when the child starts (or plays a turn of) I spy."""
+    t = _norm(text)
+    return bool(_ISPY.search(t)) and not _ISPY_STOP.search(t)
+
+
+def ispy_stop(text: str) -> bool:
+    return bool(_ISPY_STOP.search(_norm(text)))
+
+
+SEEN_PROMPT = ("[I SPY LIST] Look at the attached picture. List every thing you can really see in it, each with its main color, "
+               "like: red apple, green leaf, white plate. Only things that are really in the picture, at most eight. "
+               "Reply with the list only, on one line.")
+
+
+SEEN_SYSTEM = ("You look at one picture and list the things in it. Reply with one line: the things, each with its main color, "
+               "separated by commas, like: red apple, green leaf, white plate. No other words.")
+
+
+def parse_seen(text: str) -> list[str]:
+    """'Red apple, green leaf and a white plate.' -> ['red apple', 'green leaf', 'white plate'] (at most 8 short items)."""
+    out = []
+    text = re.sub(r"(?im)^\s*(?:dyno|sage|penny|heard)\s*:\s*", "", text or "")     # in case it answered in the toys' format
+    for part in re.split(r",|;|\n|\band\b", text.lower()):
+        p = re.sub(r"^[\s*\-\d.)]+|\b(?:a|an|the|some)\b|[^a-z \-]", " ", part)
+        p = " ".join(p.split())
+        if p and len(p.split()) <= 4 and p not in out and not p.startswith(("i spy", "list", "here")):
+            out.append(p)
+    return out[:8]
+
+
+def ispy_prompt(toy_name: str, view_text: str, got_picture: bool, said: str | None = None, secret: str | None = None,
+                seen: list[str] | None = None) -> str:
+    """The [CAMERA] block for a turn of I spy. `seen` = what a first, picture-only call listed; ISpyReferee then holds the toy's
+    line to it (a 2B model given only rules still guessed an apple for "something purple")."""
+    ask = f'The child said: "{said}"' if said else "The child's words are the ones you just heard."
+    spied = (f"\n[SECRET] {toy_name} is spying: {secret}. If the child guesses it, cheer; if not, say no and give a hint about it."
+             if secret else "")
+    if not got_picture:
+        return (f"[CAMERA] [I SPY] You are playing I spy with the child, but {toy_name}'s camera did not work this time, so nothing can be "
+                f"seen. {ask}{spied}\n{toy_name} says kindly that it cannot see right now and asks the child for a hint about the thing (its shape, "
+                f"or what it is used for). Guess only from the child's hints, never pretend to see. Reply in the usual format.")
+    things = ", ".join(seen) if seen else "nothing clear"
+    return (f"[CAMERA] [I SPY] You are playing I spy with the child. {toy_name} sees: {things}.{(' ' + view_text) if view_text else ''}\n"
+            f"{ask}{spied}\nOnly {toy_name} speaks, in ONE short line. If the child gave a clue, {toy_name} guesses ONE thing from that list "
+            f"that matches it, as a question (\"Is it the red cup?\"); if nothing in the list matches, {toy_name} says it does not see "
+            f"anything like that and asks for another hint. Never guess a thing that is not in the list.")
+
+
+COLORS = ("red", "orange", "yellow", "green", "blue", "purple", "pink", "brown", "black", "white", "gray", "grey", "gold", "silver")
+_COLOR_RE = re.compile(r"\b(" + "|".join(COLORS) + r")\b", re.I)
+_MY_TURN = re.compile(r"\byour turn\b|\byou spy\b|\bspy something for me\b|\byou (?:go|pick)\b")
+_NO = re.compile(r"^\s*(?:no|nope|nah|not it|wrong|guess again|try again)\b")
+_STOPW = {"is", "it", "the", "a", "an", "that", "this", "your", "my", "something", "see", "spy", "you", "maybe", "oh", "hmm",
+          "little", "eye", "with", "big", "small", "one", "thing", "ooh", "wow"} | set(COLORS)
+
+
+def _nouns(x: str) -> set[str]:
+    return {w.rstrip("s") for w in re.findall(r"[a-z]+", (x or "").lower()) if w not in _STOPW and len(w) > 2}
+
+
+class ISpyReferee:
+    """Holds one I spy turn to the rules, in code, with what the picture call listed (`seen`, e.g. ['red apple', 'green leaf']):
+      - the child's clue is a color nothing in `seen` has  -> "Hmm, I don't see anything purple from here. Can you give me another hint?"
+      - a match exists: the toy's guess must name a matching thing not guessed before, else "Is it the <thing>?"
+      - every match was already guessed                    -> "... anything else purple ..."
+      - the child said "no": the same clue goes on (next fresh match)
+      - the child asked the toy to spy: "I spy with my little eye something <color>!" about a listed thing, which becomes the SECRET
+    The clue comes from the transcript or, for the audio-native model, the HEARD line (the reply is held until then: one short line).
+    No list (camera dead, list call failed) -> the line passes unchanged."""
+
+    def __init__(self, said: str = "", seen: list[str] | None = None, secret: str | None = None, guessed: list[str] | None = None,
+                 clue: str | None = None):
+        self.seen, self.secret, self.guessed = list(seen or []), secret, list(guessed or [])
+        self.clue, self.said = clue, said or ""
+
+    def _clue_from(self, words: str) -> None:
+        t = _norm(words)
+        if not t:
+            return
+        if _MY_TURN.search(t):
+            self.clue = "my turn"
+            return
+        m = _COLOR_RE.search(t)
+        if m:
+            self.clue, self.guessed = m.group(1).lower(), []          # a new clue starts a new round of guesses
+            if self.secret and not _NO.search(t):
+                self.secret = None
+        elif _NO.search(t):
+            pass                                                         # "no": keep guessing the same clue
+
+    def decide(self, line: str, heard: str = "") -> str:
+        self._clue_from(self.said or heard)
+        if not self.seen:
+            return line
+        low = line.lower()
+        if self.clue == "my turn":
+            m = re.search(r"\bi spy\b.*?\bsomething\s+(\w+)", low)
+            if m and any(m.group(1) in s for s in self.seen):
+                self.secret = next(s for s in self.seen if m.group(1) in s)
+                return line
+            for thing in self.seen:
+                c = _COLOR_RE.search(thing)
+                if c:
+                    self.secret = thing
+                    return f"I spy with my little eye something {c.group(1).lower()}!"
+            return line
+        if self.clue not in COLORS:
+            return line
+        color = self.clue
+        has = [s for s in self.seen if re.search(rf"\b{color}", s)]              # "red apple", "blueberries", or a bare "yellow"
+        named = [s for s in has if _nouns(s)]                                      # ...with a thing named
+        bare = len(has) > len(named)                                               # the list saw the color but named no thing
+        fresh = [m for m in named if m not in self.guessed]
+        said_things = _nouns(low)
+        if "?" in line:
+            hit = [m for m in fresh if _nouns(m) & said_things]
+            if hit:                                                                # the toy guessed a listed thing: keep its words
+                self.guessed.append(hit[0])
+                return line
+            old = set().union(*(_nouns(g) for g in self.guessed)) if self.guessed else set()
+            if bare and not fresh and re.search(rf"\b{color}\b", low) and said_things and not (said_things & old):
+                self.guessed.append(line)                                          # color seen, thing unnamed: trust the toy's own look
+                return line
+        if fresh:
+            self.guessed.append(fresh[0])
+            return f"Is it the {fresh[0]}?"
+        if self.guessed:
+            return f"Hmm, I don't see anything else {color} from here. Can you give me another hint?"
+        if bare:
+            return f"I see something {color}, but I can't tell what it is. Can you give me a hint?"
+        return f"Hmm, I don't see anything {color} from here. Can you give me another hint?"
+
+
 # ---- the LOOK handshake with the audio-native model ----
 LOOK_WORD = "LOOK"
 _HEARD = re.compile(r"HEARD\s*:\s*(.*)", re.I)
@@ -128,12 +269,27 @@ def look_prompt(toy_name: str, view_text: str, got_picture: bool, said: str | No
     return (f"[CAMERA] {toy_name}'s camera just took ONE picture (attached) because the child asked. It is small and may be dark "
             f"or blurry. {view_text}\n{ask}\n"
             f"Answer from the picture in {toy_name}'s voice first, in one or two short lines; say honestly if you cannot tell "
-            f"and ask the child to hold it closer to {toy_name}'s eyes. Never guess a person's name. Reply in the usual format.")
+            f"and ask the child to hold it closer to {toy_name}'s eyes. Never guess a person's name. If the child is playing I spy, "
+            f"guess only one thing in this picture that matches their clue, or say honestly that nothing here matches. Reply in the usual format.")
 
 
 PROMPT_RULE = (
     '- Your cameras are OFF. Only when the child asks you to look or asks what you see ("what do you see", "look at this", '
-    '"what is this", "can you see...", "what am I holding"), reply with exactly one word, LOOK, and nothing else: the camera '
+    '"what is this", "can you see...", "what am I holding"), or plays I spy ("I spy with my little eye...", "I see something..."), '
+    'reply with exactly one word, LOOK, and nothing else: the camera '
     "then takes one picture and you get a [CAMERA] block with it, and you answer from that. Never say LOOK for anything else, "
     "and never claim to see anything unless a [CAMERA] block is there."
 )
+
+PROMPT_RULE_OFF = (
+    "- Your cameras are switched OFF by a grown-up, so you cannot see anything. If the child asks what you see or wants to play "
+    "I spy, say kindly that your eyes are off right now and ask the child to tell you about it instead. Never claim to see anything."
+)
+
+
+def prompt_rule() -> str:
+    """The camera line of the system prompt for the current camera mode."""
+    from . import config
+    if config.CAPTURE_CONTINUOUS:
+        return ""
+    return (PROMPT_RULE if config.LOOK_ON_REQUEST else PROMPT_RULE_OFF) + "\n"

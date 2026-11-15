@@ -80,7 +80,7 @@ TOPICS = [
 BANTER_SEEDS = [
     "a times-table quiz", "a spelling bee word", "a riddle", "rhyming words", "20 questions about an animal",
     "which planet is the biggest", "a math word problem", "fractions with pizza slices", "states and their capitals",
-    "the water cycle", "a favorite board game", "I spy with colors", "a homework tip", "the Three Little Pigs",
+    "the water cycle", "a favorite board game", "the colors of the rainbow", "a homework tip", "the Three Little Pigs",
     "a tricky spelling word", "how plants grow", "a favorite toy", "counting by fives",
 ]
 # Voice settings changed from the dashboard persist here and override TOYS at startup.
@@ -138,6 +138,13 @@ BARGE_MS = 160               # ...for this long, in a row
 BARGE_WARMUP_MS = 300        # learn the leakage level first
 # Cross-toy echo cancellation (brain/aec.py, docs/aec.md): the listeners' mics keep working while a toy talks
 AEC = os.environ.get("SENTIENT_AEC", "1") == "1"             # ON by default (fw 3.9 fixed the lost mic audio; docs/aec.md); SENTIENT_AEC=0 turns it off
+# Fact guard (brain/factcheck.py): every toy line is checked before it is spoken; wrong sums, letter counts, spellings, counting runs,
+# known counts (legs, sides, days...), planets and capitals are fixed in place, or the sentence is dropped. The facts can not be wrong.
+FACT_GUARD = os.environ.get("SENTIENT_FACT_GUARD", "1") == "1"
+# Toy chats about a curriculum item get its verified one-line summary as [TRUE FACTS] (the facts the chat may use)
+TRUE_FACTS = os.environ.get("SENTIENT_TRUE_FACTS", "0") == "1"   # s4 16.34, s4c 16.00 vs 16.59: not a graded keep yet
+# the stronger facts sentence in the system prompt (s4: repeats 1 -> 9 with it; off until graded clean). The fact guard does not need it.
+STRICT_FACTS_PROMPT = os.environ.get("SENTIENT_STRICT_FACTS", "0") == "1"
 AEC_PARTS = 8                # filter = 8 x 20 ms blocks = 160 ms of room echo
 AEC_MU = float(os.environ.get("SENTIENT_AEC_MU", "0.5"))
 AEC_SEARCH_S = 0.4           # seconds of the clip heard before the first GCC-PHAT lag search (warm starts skip it)
@@ -204,6 +211,39 @@ def pin(cores) -> None:
 # ("what do you see", "look at this", "what is this"), from the toy that heard the child, and the camera is off again after.
 # Continuous capture (the old behaviour: greet familiar faces, always-fresh [SCENE]) is opt-in: SENTIENT_CAMERA_CONTINUOUS=1.
 CAPTURE_CONTINUOUS = os.environ.get("SENTIENT_CAMERA_CONTINUOUS", "0") == "1"
+# Camera mode, switchable from the dashboard and kept across restarts (brain/data/camera_mode.json):
+#   off      the toys never take a picture (asked what they see, they say their eyes are off)
+#   request  the default: one picture only when the child asks (look / I spy), camera off again after
+#   always   continuous capture (CAPTURE_CONTINUOUS)
+CAMERA_MODES = ("off", "request", "always")
+CAMERA_MODE_FILE = DATA / "camera_mode.json"
+LOOK_ON_REQUEST = True
+
+
+def set_camera_mode(mode: str, save: bool = True) -> str:
+    global CAMERA_MODE, CAPTURE_CONTINUOUS, LOOK_ON_REQUEST
+    if mode not in CAMERA_MODES:
+        raise ValueError(mode)
+    CAMERA_MODE, CAPTURE_CONTINUOUS, LOOK_ON_REQUEST = mode, mode == "always", mode != "off"
+    if save:
+        try:
+            CAMERA_MODE_FILE.write_text(json.dumps({"mode": mode}))
+        except OSError:
+            pass
+    return mode
+
+
+try:
+    CAMERA_MODE = json.loads(CAMERA_MODE_FILE.read_text())["mode"]
+    if CAMERA_MODE not in CAMERA_MODES or os.environ.get("SENTIENT_CAMERA_CONTINUOUS"):
+        raise ValueError
+except (OSError, ValueError, KeyError, TypeError):
+    CAMERA_MODE = "always" if CAPTURE_CONTINUOUS else "request"
+set_camera_mode(CAMERA_MODE, save=False)
+# I spy (brain/camera.py): when the child plays I spy, every turn of the game takes ONE picture from the toy that heard them and the
+# toys guess only things in it (or say nothing there matches). The game ends after ISPY_GAME_S without the child, or on "stop playing".
+ISPY = os.environ.get("SENTIENT_ISPY", "1") == "1"
+ISPY_GAME_S = float(os.environ.get("SENTIENT_ISPY_GAME_S", "90"))
 CAPTURE_FPS = 0.5            # continuous mode only: one snapshot per toy every 2 s; paused entirely during a turn
 FACE_MATCH = 0.40            # SFace cosine; OpenCV suggests 0.363
 PET_MATCH = 0.60

@@ -74,6 +74,9 @@ main{max-width:1400px;margin:0 auto;padding:6px 16px 48px}
 .lvl{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.12)}
 .lvl div{height:100%;background:var(--ok);width:0;transition:width .15s}
 .view{margin:0;min-height:2.9em}
+.camsel{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--dim)}
+.look{font-size:13px;line-height:1.4;margin:0}
+.look b{color:var(--dim);font-weight:500}
 .row{display:flex;align-items:center;gap:8px}
 .row output{min-width:64px;text-align:right;color:var(--dim)}
 .row output.muted{color:var(--bad);font-weight:600}
@@ -154,6 +157,8 @@ pre{margin:0;font:12px/1.5 var(--mono);white-space:pre-wrap;overflow-x:auto;colo
     <button class="tog" id="muteall" type="button" aria-pressed="false" title="Mute or unmute every toy's speaker">Speakers on</button>
     <button class="tog" id="mutemic" type="button" aria-pressed="false" title="Mute or unmute the brain's microphones">Mics live</button>
     <button class="tog" id="idle" type="button" aria-pressed="false" title="Turn toy-to-toy chatter on or off">Idle chatter on</button>
+    <label class="camsel" title="Off: the toys never take a picture. On request: one picture when the child asks (look, I spy). Always on: continuous.">Cameras
+      <select id="cammode"><option value="off">Off</option><option value="request">On request</option><option value="always">Always on</option></select></label>
   </div>
 </div></header>
 
@@ -187,6 +192,7 @@ pre{margin:0;font:12px/1.5 var(--mono);white-space:pre-wrap;overflow-x:auto;colo
   </form>
   <form class="tool" id="enrollform">
     <h2>Enroll a face or pet from a camera</h2>
+    <p class="dim" style="margin:0 0 8px">To teach the toys who the child, parents and family are, use <a id="teachlink" href="#">Teach the camera on the Parent Board</a> (encrypted with the family PIN). This quick enroll is for testing.</p>
     <div class="row">
       <label class="sr" for="nm">Name</label><input type="text" id="nm" class="grow" placeholder="Name" autocomplete="off">
       <label class="sr" for="et">Camera</label><select id="et"></select>
@@ -231,6 +237,8 @@ $('toys').append(...T.map(t=>el('article',{class:'toy off',id:'b_'+t,'aria-label
   el('div',{class:'toy-h'},el('span',{class:'dot',style:'background:'+COLOR[t]}),el('h2',{text:t.toUpperCase()}),el('span',{class:'badge',id:'talk_'+t,hidden:true,text:'speaking'}),el('span',{class:'dim mono ip',id:'s_'+t,text:'offline'})),
   el('div',{class:'cam'},el('img',{id:'i_'+t,alt:t+' camera view',hidden:true}),el('div',{class:'nocam',id:'nc_'+t,text:'No camera'}),el('div',{class:'lvl','aria-hidden':'true'},el('div',{id:'l_'+t}))),
   el('p',{class:'view',id:'v_'+t}),
+  el('div',{class:'row'},el('button',{type:'button',id:'lk_'+t,onclick:()=>lookNow(t),text:'What do you see?',title:'Take ONE picture with this toy and ask it what it sees (who it recognises is named)'})),
+  el('p',{class:'look',id:'lr_'+t,'aria-live':'polite'}),
   el('div',{class:'row'},el('label',{class:'dim',for:'hv_'+t,text:'Volume'}),
     el('input',{type:'range',id:'hv_'+t,min:0,max:255,step:5,onchange:function(){setVol(t,this.value)}}),
     el('output',{id:'hvv_'+t,for:'hv_'+t}),
@@ -265,6 +273,8 @@ function renderState(s){
     const hv=$('hv_'+t),v=(x.health||{}).vol,e=$('hvv_'+t);
     if(v!==undefined&&v!==null&&document.activeElement!==hv){hv.value=v;e.textContent=+v===0?'Muted':v+' / 255';e.className=+v===0?'muted':''}
     const vc=x.voice||{};$('vc_'+t).textContent=vc.engine?`Voice: ${vc.label} (${vc.engine}${vc.quant?' '+vc.quant:''})`:'Voice';
+    $('lk_'+t).disabled=!x.online||!x.cam||s.camera_mode==='off'||lookBusy[t];
+    if((lookHold[t]||0)>Date.now()){}else
     if(x.online&&x.cam&&!document.hidden&&!frameBusy[t]){frameBusy[t]=true;const im=$('i_'+t);
       im.onload=()=>{frameBusy[t]=false;im.hidden=false;$('nc_'+t).hidden=true};
       im.onerror=()=>{frameBusy[t]=false;im.hidden=true;$('nc_'+t).hidden=false;$('nc_'+t).textContent='Camera off'};
@@ -277,7 +287,21 @@ function renderState(s){
   const ma=$('muteall');ma.textContent=anyOn?'Speakers on':'Speakers muted';ma.setAttribute('aria-pressed',String(!anyOn));
   const mm=$('mutemic');mm.textContent=s.muted?'Mics muted':'Mics live';mm.setAttribute('aria-pressed',String(!!s.muted));
   const id=$('idle');id.textContent=s.idle?'Idle chatter on':'Idle chatter off';id.setAttribute('aria-pressed',String(!s.idle));
+  const cm=$('cammode');if(s.camera_mode&&document.activeElement!==cm)cm.value=s.camera_mode;
 }
+const lookBusy={},lookHold={};
+async function lookNow(t){
+  const b=$('lk_'+t),out=$('lr_'+t);lookBusy[t]=true;b.disabled=true;b.textContent='Looking…';out.textContent='';
+  try{const r=await fetch('/look?toy='+t,{method:'POST'});const j=await r.json();
+    if(j.error){out.textContent=j.error;return}
+    if(j.frame){const im=$('i_'+t);im.src='data:image/jpeg;base64,'+j.frame;im.hidden=false;$('nc_'+t).hidden=true;lookHold[t]=Date.now()+30000}
+    out.replaceChildren(el('b',{text:'Recognised: '}),(j.seen&&j.seen.length?j.seen.join(', '):'nobody it knows'),el('br'),
+      el('b',{text:'Said: '}),j.said||(j.picture?'(nothing)':'(no picture: camera did not answer)'))}
+  catch(e){out.textContent='Look failed: '+e.message}
+  finally{lookBusy[t]=false;b.textContent='What do you see?';tick()}
+}
+$('teachlink').href=location.protocol+'//'+location.hostname+':'+(location.port==='18080'?'18090':'8090')+'/';
+$('cammode').onchange=function(){post('cameras?mode='+this.value).then(tick)};
 async function tick(){
   if(busy)return;busy=true;
   try{

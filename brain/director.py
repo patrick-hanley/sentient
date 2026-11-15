@@ -12,7 +12,7 @@ import threading
 import time
 import wave
 
-from . import camera, canned, config, curriculum, curriculum_picks, debugrec, nonspeech, scripted, toytalk
+from . import camera, canned, config, curriculum, curriculum_picks, debugrec, factcheck, nonspeech, scripted, toytalk
 from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
@@ -32,7 +32,11 @@ def system_prompt() -> str:
     topics = "\n".join(f"- {t}" for t in config.TOPICS)
     from .sfx import Sounds
     sounds = Sounds().prompt_list() or "none"
-    look_rule = "" if config.CAPTURE_CONTINUOUS else camera.PROMPT_RULE + "\n"   # camera policy: cameras off unless the child asks
+    facts_rule = ('- Facts, arithmetic and spellings must be exactly right for 2nd to 5th grade. Only say a fact, number or spelling you are '
+                  'completely sure of; work every sum out before saying it. If unsure, a toy asks a question or says "Let\'s find out together!" '
+                  'instead of guessing.' if config.STRICT_FACTS_PROMPT else
+                  "- Facts, arithmetic and spellings must be accurate and right for 2nd to 5th grade. If unsure, say so and explore together.")
+    look_rule = camera.prompt_rule()   # camera policy: off / one picture when the child asks / continuous
     return f"""You are the voice director for three plush toy friends who play with {config.AUDIENCE}.
 The toys:
 {toys}
@@ -47,7 +51,7 @@ Rules:
 - EVERY line must be about those topics. The toys never talk about their own hobbies, food, or where they live.
 - If the child brings up something else (video games, TV, movies, anything), reply kindly in at most five words, then ask a school, homework or learning-game question.
 - Never sing or recite song lyrics or movie lines.
-- Facts, arithmetic and spellings must be accurate and right for 2nd to 5th grade. If unsure, say so and explore together.
+{facts_rule}
 - Penny is whimsical and silly through wordplay, playful comparisons and clearly marked make-believe. She gives careful answers and never makes deliberate factual or spelling mistakes.
 - If the child says a toy's name, THAT toy answers first. Otherwise the toy in [HEARD BY] answers first. Toys may talk to each other.
 - If a toy sees someone or a pet by name in [SCENE], use that name. "the child" means the child you are playing with.
@@ -57,7 +61,8 @@ Rules:
 - Sound effects: a toy may put ONE sound tag at the start of a line, e.g. "DYNO: {{knock}} Who could be at the door?". Use them for stories, animals and fun moments, not every line. Available {sounds}
 - Never ask for personal information like addresses, schools or full names. Nothing scary.
 - If the child sounds hurt, scared or sad, the first toy says something kind AND suggests telling a grown-up they trust, like a parent or teacher. This rule beats every other rule.
-{look_rule}- The toys cannot move. They only know what is in [SCENE] and what the child says."""
+{look_rule}- I spy: the toys guess only things that are really in an attached picture. With no picture, they ask for hints and never pretend to see.
+- The toys cannot move. They only know what is in [SCENE] and what the child says."""
 
 
 def just_said(lines, n: int = 2) -> str:
@@ -101,6 +106,7 @@ def line_jobs(names: list[str], start: int = 0, before: str | None = None) -> st
 def clean(text: str) -> str:
     # Gemma sometimes echoes prompt labels into the spoken line ("HEARD BY PENNY: ...")
     text = re.sub(r"^\s*(\[?(HEARD BY|HEARD|SCENE|TOYS HERE|EVENT)\]?[^:]{0,20}:\s*)+", "", text, flags=re.I)
+    text = re.sub(r"\b(?:SECRET|SEEN|CLUE)\s*:.*$", "", text)   # I spy's hidden notes are never spoken (ISpyReferee takes them off the front)
     text = re.sub(r"\*[^*]*\*|\([^)]*\)|\[[^\]]*\]", "", text)
     text = re.sub(r"[^\x20-\x7E’']", "", text)
     return " ".join(text.split()).strip(" \"'")
@@ -139,8 +145,13 @@ class ReplyLines:
     CLAUSE_MIN_WORDS = 5   # each TTS call has ~0.4 s fixed cost on the Pi; don't split tiny clauses
     FIRST_CLAUSE_MIN_WORDS = 3   # ...but the first piece of a reply sets time-to-first-audio (Kokoro renders ~1x real time)
 
-    def __init__(self, online, on_line, on_heard):
+    def __init__(self, online, on_line, on_heard, guard: "factcheck.FactGuard | None" = None, ispy: "camera.ISpyReferee | None" = None):
         self.online, self.on_line, self.on_heard = set(online), on_line, on_heard
+        self.ispy = ispy          # an I spy turn: the one toy line is held until HEARD, then the referee checks it against the picture
+        self.ispy_line: tuple[str, str] | None = None
+        # the fact guard checks every piece before it is spoken (wrong sums, letter counts, spellings, ... are fixed or dropped)
+        self.guard = guard if guard is not None else (factcheck.FactGuard() if config.FACT_GUARD else None)
+        self.line_so_far = ""   # what has been spoken of the line in progress (after fixes): claims can straddle a clause cut
         self.buffer = ""
         self.header, self.closed, self.in_thought, self.count = False, False, False, 0
         self.by_name = {value: key for key, value in NAMES.items()}
@@ -158,7 +169,7 @@ class ReplyLines:
 
     def _partial(self):
         """Speak finished sentences of the line still being written (saves ~1-2 s on long lines)."""
-        if self.closed or self.in_thought or re.search(r"<(?:think|analysis)>", self.buffer, re.I):
+        if self.ispy or self.closed or self.in_thought or re.search(r"<(?:think|analysis)>", self.buffer, re.I):
             return
         match = LINE.match(self.buffer)
         if not match or match.group(1).upper() not in self.by_name:
@@ -167,6 +178,8 @@ class ReplyLines:
         ends = list(self.SENTENCE_END.finditer(rest))
         if ends:
             cut = ends[-1].end()
+        elif self.guard and factcheck.numbers(rest):
+            cut = 0   # a sum or count must reach the fact guard whole: wait for the sentence end
         else:   # no sentence end yet: release a long clause so synthesis can start sooner
             need = self.CLAUSE_MIN_WORDS if self.pieces else self.FIRST_CLAUSE_MIN_WORDS
             cut = next((m.end() for m in self.CLAUSE_END.finditer(rest)
@@ -180,7 +193,11 @@ class ReplyLines:
             allowed = toy in self.online and self.count < config.MAX_LINES
             self.count += allowed
             self.cur = (toy, allowed)
+            self.line_so_far = ""
         text = clean(raw_text)
+        if self.cur[1] and text and self.guard:
+            text = self.guard.check(text, self.line_so_far)
+            self.line_so_far = (self.line_so_far + " " + text).strip()
         if self.cur[1] and text:
             self.pieces += 1
             self.on_line(toy, text)
@@ -213,27 +230,50 @@ class ReplyLines:
             # Answer-first format puts HEARD last: record it and close, so a second
             # drafted reply can never be mixed into speech. HEARD-first still works.
             self.on_heard(text)
+            self._release_ispy(text)
             if self.count:
                 self.closed = True
             else:
                 self.header = True
             return
+        elif who in self.by_name and self.ispy:
+            if self.ispy_line is None and self.by_name[who] in self.online:   # one guesser: the first toy line, held for the referee
+                self.ispy_line = (self.by_name[who], text)
+                self.count = 1
+            self.cur = None
         elif who in self.by_name:
             # Speak the rest of the line now that it's complete (sentences already
             # spoken by _partial are skipped); no HEARD gate, which cost ~1-1.5 s.
+            body = match.group(2)
             remainder = match.group(2)[spoken:]
             if text and (remainder.strip() or self.cur is None):
-                self._speak(self.by_name[who], remainder if spoken else match.group(2))
+                self._speak(self.by_name[who], remainder if spoken else body)
             self.cur = None
             if self.count >= config.MAX_LINES:
                 self.closed = True
         else:
             self.cur = None
 
+    def _release_ispy(self, heard: str = ""):
+        if self.ispy and self.ispy_line and not self.closed:
+            toy, line = self.ispy_line
+            self.ispy_line = None
+            self.cur, self.line_so_far = None, ""
+            final = self.ispy.decide(line, heard if heard != "-" else "")
+            self.cur = (toy, True)
+            if self.guard:
+                final = self.guard.check(final)
+            if final:
+                self.pieces += 1
+                self.on_line(toy, final)
+            self.cur = None
+            self.closed = True
+
     def finish(self):
         if self.buffer:
             self._line(self.buffer)
             self.buffer = ""
+        self._release_ispy()
 
 
 class Director:
@@ -255,6 +295,15 @@ class Director:
         self._barge_t = 0.0                        # wall time of the last barge-in: the child's words from then on survive _flush()
         self.cue_hold = threading.Event()          # set while a parent cue speaks: the reply waits at its next line boundary
         self._rotation = curriculum.Rotation()     # which grade topics were offered recently (rotates, no repeats)
+        self.turn_lines: list = []                 # lines handed to speech this turn (recorded even when the speakers are muted)
+        self.last_look = None                      # the dashboard look: what the recogniser found + annotated frame (popped at once)
+        self._ispy_until = 0.0                     # an I spy game is on until then (each turn of the game takes one picture)
+        self._ispy_secret: str | None = None       # what a toy is spying (I spy, the toys' turn); kept in RAM for the game only
+        self._ispy_guessed: list[str] = []         # things already guessed for the current clue (a "no" gets a new guess)
+        self._ispy_clue: str | None = None         # the child's current clue (a color, or "my turn")
+        self._ispy_seen: list[str] | None = None   # this turn's picture list
+        self.fact_stats = {"fixed": 0, "dropped": 0}   # wrong facts the guard caught (counts only)
+        self._scene_fact: str | None = None        # the verified curriculum summary for that subject ([TRUE FACTS])
         self._scene_topic: str | None = None       # SCENE_TOPIC: the one subject of the current toy-to-toy chat (None = no chat going)
         self._scene_line = 0                       # BEATS: lines of this chat so far (the line jobs continue across rounds)
         self._scene_last: str | None = None        # BEATS: who spoke the last line of the previous round
@@ -563,9 +612,12 @@ class Director:
 
     def _banter_seed(self) -> str:
         """Idle banter draws its topic from the grade's curriculum; falls back to the fixed seeds if the data is missing."""
+        self._scene_fact = None
         try:
             grade, boost, skip = curriculum_picks.context_for_bound_child(self.parent)
-            seed = curriculum.banter_seed(grade, self._rotation, boost, skip)
+            item = curriculum.banter_item(grade, self._rotation, boost, skip)
+            seed = item["title"].lower() if item else None
+            self._scene_fact = (item or {}).get("summary") or None   # the curriculum's verified summary: the facts this chat may use
         except Exception:   # noqa: BLE001
             seed = None
         return seed or random.choice(config.BANTER_SEEDS)
@@ -613,7 +665,7 @@ class Director:
             self.live.child_pending(utt)
         gen = self._gen
         prev_lines = self.last_lines                # what the toys said last turn (JUST_SAID quotes it in a continuing chat)
-        self.last_latency, self.last_lines = 0., []
+        self.last_latency, self.last_lines, self.turn_lines = 0., [], []
         tmp_files = []
         filler = None
         pipeline = None
@@ -634,6 +686,9 @@ class Director:
                 tmp_files.append(image)
             exclude = set(event.get("exclude", ())) if isinstance(event, dict) else set()
             speakers = [t for t in online if t not in exclude] or online
+            asked_look = event.get("look") if isinstance(event, dict) else None   # the dashboard's "what do you see?"
+            if asked_look in online:
+                toy, speakers = asked_look, [asked_look]
             event_text = event["text"] if isinstance(event, dict) else event
             here = ", ".join(NAMES[t] for t in speakers)
             prompt = f"[TOYS HERE] {here} (only these toys may speak)\n[SCENE] {scene}\n"
@@ -663,7 +718,29 @@ class Director:
             # Camera policy (brain/camera.py). With a transcript (whisper path) the rules decide here, so the picture goes with the
             # first call. The audio-native model has no transcript yet: it answers LOOK and the loop below takes the picture.
             looks = self._can_look(toy)
-            if said and looks and camera.wants_look(said):
+            if asked_look and config.LOOK_ON_REQUEST and self._has_cam(toy):
+                prompt, image = self._look_turn(toy, prompt, scene, "What do you see right now?", image, tmp_files, trace)
+            if said and camera.ispy_stop(said):
+                self._ispy_until = 0.0
+            ispy = bool(utt) and config.ISPY and (self._ispy_on() or bool(said and camera.wants_ispy(said)))
+            self._ispy_seen = None     # set by this turn's picture-list call (I spy turns only)
+            if ispy and (looks or config.CAPTURE_CONTINUOUS) and toy in speakers:
+                # one guesser per turn: with all three toys talking, the others guessed things not in the picture or spied on their own
+                prompt = prompt.replace(f"[TOYS HERE] {here} ", f"[TOYS HERE] {NAMES[toy]} ", 1)
+                speakers = [toy]
+            if ispy and looks:
+                # I spy: every turn of the game takes ONE picture from the toy that heard the child; guesses come only from it
+                self._ispy_until = time.time() + config.ISPY_GAME_S
+                prompt, image = self._look_turn(toy, prompt, scene, said or None, image, tmp_files, trace, game="ispy")
+            elif ispy and config.CAPTURE_CONTINUOUS and v and v.jpeg and 0 <= time.time() - v.ts <= config.VISION_MAX_AGE_S:
+                self._ispy_until = time.time() + config.ISPY_GAME_S       # continuous cameras: play on the latest frame
+                if not image:
+                    image = self._tmp(v.jpeg, ".jpg")
+                    tmp_files.append(image)
+                self._ispy_seen = self._list_seen(image, trace)
+                prompt = prompt.replace("[SCENE] " + scene, camera.ispy_prompt(NAMES[toy], v.describe() if v.things else "", True, said or None,
+                                                                               self._ispy_secret, self._ispy_seen), 1)
+            elif said and looks and camera.wants_look(said):
                 prompt, image = self._look_turn(toy, prompt, scene, said, image, tmp_files, trace)
             log.info("→ gemma: %s", prompt.replace("\n", " | "))
             notes = ((self.parent.notes_block() + "\n" + getattr(self.parent, "told_block", lambda: "")()).strip() if self.parent else "")   # added AFTER the log line: notes are never logged
@@ -677,11 +754,15 @@ class Director:
                 self._notes_sent = notes
             if utt:
                 self._scene_topic = None     # the child spoke: their subject leads now; the next idle chat picks a new topic
-            if config.SCENE_TOPIC and not utt and self._scene_topic:
+            if config.SCENE_TOPIC and not utt and not asked_look and self._scene_topic:
                 # a toy-to-toy chat keeps ONE subject: no fresh rotating curriculum items each turn (they made rounds 2-3 jump topics)
                 # (wording with no phrase a toy could speak: "stay on it!" was copied into lines verbatim)
                 topics = (f"[TOPIC] {self._scene_topic}\n[TOPIC RULE] Every line this turn is about the topic above and no other subject. "
                           "Each line adds something new and concrete about it: a real example, word, number or fact. No line repeats an earlier one.")
+                if config.TRUE_FACTS and self._scene_fact:
+                    # the verified curriculum card: facts come from here, so a 2B model has something true to say instead of guessing
+                    topics += (f"\n[TRUE FACTS] {self._scene_fact}\n[FACT RULE] Facts and numbers come from [TRUE FACTS] or are basic facts "
+                               "you are completely sure of. Never guess a number, date, name or spelling.")
                 said = just_said(prev_lines) if config.JUST_SAID else ""
                 if said:
                     # the last lines quoted: a 2B model follows a quoted line far better than its memory of the previous turn
@@ -711,6 +792,7 @@ class Director:
             def line_ready(who, text):
                 if self._gen != gen:
                     return
+                self.turn_lines.append((who, text))
                 if scripted.leaks_note(text):   # a toy must never reveal that a parent wrote anything: play something safe, once
                     if deflected:
                         return
@@ -721,12 +803,22 @@ class Director:
 
             def heard(text):
                 text = nonspeech.clean(text) if text and text != "-" else ""   # words only; "[snoring]" etc. are not speech
+                if text and utt and config.ISPY and (looks or config.CAPTURE_CONTINUOUS):
+                    # audio-native model: the words arrive only now. A child who started I spy keeps the game (and its pictures) on
+                    if camera.ispy_stop(text):
+                        self._ispy_until = 0.0
+                    elif camera.wants_ispy(text):
+                        self._ispy_until = time.time() + config.ISPY_GAME_S
                 if text:
                     self.last_heard = text
                     self._remember(text)
                     self.live.child_text(text)   # audio-mode models report the words here (no-op once STT supplied them)
 
-            parser = ReplyLines(speakers, line_ready, heard)
+            # context for the fact guard: a question asked at the end of the last turn (or by the child) is answered now
+            guard = factcheck.FactGuard(context=[t for _w, t in prev_lines[-1:]] + [said]) if config.FACT_GUARD else None
+            referee = (camera.ISpyReferee(said, self._ispy_seen, self._ispy_secret, self._ispy_guessed, self._ispy_clue)
+                       if ispy and self._ispy_seen is not None else None)
+            parser = ReplyLines(speakers, line_ready, heard, guard, referee)
             kwargs = dict(wav=wav if self.llm.hears_audio else None, image=image)
             stream = getattr(self.llm, "stream", None)
             peel = camera.LookPeeler() if looks and utt and not image else None   # round 0 may be the one-word LOOK request
@@ -757,6 +849,12 @@ class Director:
                     kwargs, peel = dict(wav=None, image=image), None
                 parser.finish()
             trace.mark("model_done_ms")
+            if referee:
+                self._ispy_secret, self._ispy_guessed, self._ispy_clue = referee.secret, referee.guessed, referee.clue
+            if guard and (guard.fixed or guard.dropped):
+                self.fact_stats["fixed"] += guard.fixed
+                self.fact_stats["dropped"] += guard.dropped
+                log.info("fact guard: fixed %d, dropped %d", guard.fixed, guard.dropped)   # counts only, never the words
             if not parser.count:
                 raise ValueError("Model produced no labelled line for an online toy")
             pipeline.finish()
@@ -811,11 +909,55 @@ class Director:
 
     # ---------- helpers ----------
     # ---------- camera policy: look on request ----------
+    def _has_cam(self, toy) -> bool:
+        a = getattr(self.hub, "atoms", {}).get(toy)
+        return hasattr(self.eyes, "snap") and bool(a and getattr(a, "cam", False))
+
+    def set_camera_mode(self, mode: str) -> str:
+        """Dashboard switch: off / request / always. The system prompt's camera rule changes with it, so the toys' conversation
+        starts afresh with the new prompt; an I spy game ends; 'off' and 'request' forget every frame."""
+        config.set_camera_mode(mode)
+        getattr(self.eyes, "apply_mode", lambda: None)()
+        self._ispy_until = 0.0
+        self._ispy_on()
+        if hasattr(self.llm, "system"):
+            self.llm.system = system_prompt()
+        reset = getattr(self.llm, "reset_conversation", None)
+        if reset:
+            reset()
+        log.info("camera mode: %s", mode)
+        return mode
+
+    def look_now(self, toy: str, timeout: float = 45.0) -> dict:
+        """The dashboard's "what do you see?": ONE picture from `toy`, Gemma says what is in it (and who: enrolled faces are named by
+        the recogniser). Returns what the toy said, what the recogniser found and the annotated frame (RAM only, not kept)."""
+        if not config.LOOK_ON_REQUEST:
+            return {"error": "the cameras are off"}
+        if toy not in self.hub.online() or not self._has_cam(toy):
+            return {"error": f"{NAMES.get(toy, toy)} is offline or has no camera"}
+        if self.busy:
+            return {"error": "the toys are busy, try again in a moment"}
+        self.last_look = None
+        name = NAMES[toy]
+        done = threading.Event()
+
+        def run():
+            try:
+                self._turn(event={"text": f"A grown-up asked {name} what it sees right now. {name} answers from the picture in one or two "
+                                          f"short lines, naming anyone it recognises.", "look": toy})
+            finally:
+                done.set()
+        threading.Thread(target=run, daemon=True, name="look-now").start()
+        done.wait(timeout)
+        look, self.last_look = self.last_look or {}, None
+        return {"toy": toy, "said": " ".join(t for w, t in self.turn_lines if w == toy), "seen": look.get("seen", []),
+                "frame": look.get("frame"), "picture": bool(look)}
+
     def _can_look(self, toy) -> bool:
         """On-request looking is on (default), this toy has a camera and the perceiver can take a picture."""
         a = getattr(self.hub, "atoms", {}).get(toy)
         return (not config.CAPTURE_CONTINUOUS and hasattr(self.eyes, "snap") and bool(a and getattr(a, "cam", False))
-                and getattr(config, "LOOK_ON_REQUEST", True))
+                and config.LOOK_ON_REQUEST)
 
     def _vision_model(self):
         if not hasattr(self, "_vm"):
@@ -826,7 +968,30 @@ class Director:
                 self._vm = None
         return self._vm
 
-    def _look_turn(self, toy, prompt, scene, said, image, tmp_files, trace, replace=True):
+    def _list_seen(self, image, trace) -> list[str] | None:
+        """I spy: one short picture-only call that lists what is in the picture with colors ('red apple, green leaf'); the referee
+        holds the guesses to it. None when the call fails (then the line passes unchecked)."""
+        with trace.span("ispy_list_ms"):
+            try:
+                complete = getattr(self.llm, "complete", None)
+                if complete:   # its own throwaway conversation: in the toys' one, the toy-line format turned the list into banter
+                    out = complete(camera.SEEN_PROMPT, camera.SEEN_SYSTEM, image=image, max_tokens=80)
+                else:
+                    stream = getattr(self.llm, "stream", None)
+                    out = "".join(stream(camera.SEEN_PROMPT, wav=None, image=image)) if stream else self.llm.ask(camera.SEEN_PROMPT, image=image)
+                return camera.parse_seen(out)
+            except Exception:  # noqa: BLE001
+                log.warning("I spy list call failed")
+                return None
+
+    def _ispy_on(self) -> bool:
+        """An I spy game is going: the child started it and spoke again within ISPY_GAME_S."""
+        on = time.time() < self._ispy_until
+        if not on:
+            self._ispy_secret, self._ispy_guessed, self._ispy_clue = None, [], None   # game over: forget what was spied and guessed
+        return on
+
+    def _look_turn(self, toy, prompt, scene, said, image, tmp_files, trace, replace=True, game=None):
         """Turn `toy`'s camera on for ONE picture, then off. Returns (prompt, image path) for the model call that answers it.
         replace=True swaps the [SCENE] line of an existing prompt for the [CAMERA] block (transcript path); replace=False
         returns just the [CAMERA] block (the model already holds the question as audio). The frame lives in a RAM temp file that
@@ -838,7 +1003,10 @@ class Director:
                 if view is not None and view.jpeg:
                     path, got = self._tmp(view.jpeg, ".jpg"), True
                     tmp_files.append(path)
-                    text = view.describe()
+                    # the detector only knows faces, the toys, pets and books: when it found none, say nothing (its "sees nothing in
+                    # particular" made Gemma answer "I don't see anything" about an apple in plain view); Gemma looks at the picture itself
+                    text = view.describe() if view.things else ""
+                    self.last_look = {"toy": toy, "seen": [t.label for t in view.things], "frame": view.annotated}   # RAM; the dashboard pops it
                     vm = self._vision_model()
                     if vm:   # optional separate vision-to-text model (SENTIENT_VISION_MODEL != gemma): its caption goes in as text
                         cap = vm.describe(view.jpeg, said or "")
@@ -851,7 +1019,11 @@ class Director:
                 if close:
                     close(toy)
         trace.mark("look_done_ms")
-        block = camera.look_prompt(NAMES[toy], text, got, said)
+        if game == "ispy":
+            self._ispy_seen = self._list_seen(path, trace) if got else None
+            block = camera.ispy_prompt(NAMES[toy], text, got, said, self._ispy_secret, self._ispy_seen)
+        else:
+            block = camera.look_prompt(NAMES[toy], text, got, said)
         if replace:
             return prompt.replace("[SCENE] " + scene, block, 1), path
         return block, path

@@ -34,7 +34,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import trio  # noqa: E402
 import textgrade  # noqa: E402
-from brain import config, coaching, toytalk  # noqa: E402
+from brain import config, coaching, factcheck, toytalk  # noqa: E402
 
 TOYS = trio.NAMES
 WPS = 2.6                 # toy speech rate, words per second
@@ -245,7 +245,8 @@ def run_scene(sc: dict, llm, notes="", knobs=None) -> dict:
         if not hub.log:
             break
     prompt_ok = True
-    return {"id": sc["id"], "rep": sc["rep"], "kind": sc["kind"], "lead": sc["lead"], "topic": topic, "lines": lines, "failed": not lines, "grade_block": prompt_ok}
+    return {"id": sc["id"], "rep": sc["rep"], "kind": sc["kind"], "lead": sc["lead"], "topic": topic, "lines": lines, "failed": not lines, "grade_block": prompt_ok,
+            "facts": dict(getattr(d, "fact_stats", {}))}
 
 
 def run_probe(toy, text, llm) -> dict:
@@ -296,6 +297,9 @@ def evaluate(run: dict) -> dict:
     agg["guards"] = textgrade.guard_failures(agg)
     agg["words_per_scene"] = round(sum(len(l["text"].split()) for s in scenes for l in s["lines"]) / max(1, len(scenes)), 1)
     agg["round_points"], agg["holds"] = round_hold(scenes)
+    # facts: wrong checkable facts the toys SAID (brain/factcheck.py; must be 0) and what the guard caught from Gemma before speech
+    agg["guards"]["wrong_facts"] = sum(factcheck.errors([l["text"] for l in s["lines"]]) for s in scenes)
+    agg["fact_guard"] = {k: sum(s.get("facts", {}).get(k, 0) for s in scenes) for k in ("fixed", "dropped")}
     return agg
 
 
@@ -318,6 +322,7 @@ def table(agg: dict, title="") -> str:
     for t in sorted(agg["toys"], key=lambda t: agg["toys"][t]["rank"]):
         a = agg["toys"][t]
         out.append(f"{a['rank']:<4} {t:6} {a['total20']:6.2f} " + " ".join(f"{a['scores'][c]:11.2f}" for c in textgrade.CATS))
+    out.append(f"facts: wrong said {agg['guards'].get('wrong_facts', '?')}, caught by the guard {agg.get('fact_guard', {})}")
     out.append(f"composite {agg['composite20']:.2f}/20 ({agg['composite']:.3f}); distinct-speaker accuracy {agg['distinct']} (chance .33); "
                f"safety probes {agg['probe_pass']}; failed scenes {agg['failed_scenes']}; words/scene {agg['words_per_scene']}; guards {agg['guards']}; "
                f"line points by round {agg.get('round_points')} (last/first {agg.get('holds')})")
@@ -340,9 +345,11 @@ def decide(before: dict, after: dict, toys=None, min_gain=0.5, pad_limit=1.3, ca
     pb, pa = (int(x["probe_pass"].split("/")[0]) for x in (before, after))
     if pa < pb:
         return False, f"revert: safety probes {before['probe_pass']} -> {after['probe_pass']}"
+    if after["guards"].get("wrong_facts", 0) > 0:
+        return False, f"revert: the toys said {after['guards']['wrong_facts']} wrong fact(s) (the facts can not be wrong)"
     for k, v in after["guards"].items():
-        if v > before["guards"][k] + (2 if k in ("repeats", "long_lines", "run_on") else 0):
-            return False, f"revert: guard '{k}' rose {before['guards'][k]} -> {v} (gain {gain:+.2f})"
+        if v > before["guards"].get(k, 0) + (2 if k in ("repeats", "long_lines", "run_on") else 0):
+            return False, f"revert: guard '{k}' rose {before['guards'].get(k, 0)} -> {v} (gain {gain:+.2f})"
     if after["words_per_scene"] > before["words_per_scene"] * pad_limit:
         return False, f"revert: padding, words/scene {before['words_per_scene']} -> {after['words_per_scene']}"
     hb, ha = before.get("holds"), after.get("holds")

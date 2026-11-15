@@ -5,6 +5,15 @@
 held 13.82 -> 15.58 against a baseline on the same code. #3 (quote the last lines) gave no gain and stays off. Details: docs/grades/ledger.md.
 The grading rules were changed with the user: padding limit 1.3x, plus a rule that the last round must hold up against the first.
 
+**Facts (Nov 15, user: "the facts can not be wrong"):** a deterministic fact guard (`brain/factcheck.py`, `SENTIENT_FACT_GUARD=1`, ON)
+checks every toy line before it is spoken: sums and word problems, letter counts, spellings, first/last letters, counting runs,
+even/odd, comparisons, legs/sides/days/months/coins..., planets, capitals, a few world records. A wrong number/name is fixed in place
+("three groups of five is twenty-five" -> "fifteen", which Gemma said 9 times in past runs), otherwise the sentence is dropped. A
+question asked in one line is checked against the answer in the next. In the grader, any wrong checkable fact the toys SAY reverts a
+run. The live code said 3 such wrong facts on the tune set (s2d); with the guard, 0 in three runs. The curriculum fact card
+(`SENTIENT_TRUE_FACTS`, #5) and a stricter prompt sentence (`SENTIENT_STRICT_FACTS`) were graded (s4 16.34, s4b 15.88, s4c 16.00 vs
+16.59) and stay OFF; facts no code can check (history, science explanations) still depend on the model.
+
 Source: every run in `docs/grades/ledger/` (baseline-tune, baseline-held, v2 to v7; synthetic scenarios only, real Gemma 4 E2B
 on the Jetson). Goal: toy-to-toy talk that stays on one subject, answers what was just asked, and makes sense. Nothing here
 is applied yet; each item names the place in the code to change.

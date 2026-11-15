@@ -228,7 +228,13 @@ def topics_block(grade: int | None, rotation: Rotation, boost=frozenset(), skip=
             % grade_label(g)) + "; ".join(parts)
 
 
+def banter_item(grade: int | None, rotation: Rotation, boost=frozenset(), skip=frozenset()) -> dict | None:
+    """The curriculum item idle banter is about (title + its verified one-line summary); None when the data is empty."""
+    items = rotation.pick(DEFAULT_GRADE if grade is None else grade, boost, skip, n=1)
+    return items[0] if items else None
+
+
 def banter_seed(grade: int | None, rotation: Rotation, boost=frozenset(), skip=frozenset()) -> str | None:
     """A short phrase for idle banter ('the Gold Rush'), drawn from the grade's topics; None when the data is empty."""
-    items = rotation.pick(DEFAULT_GRADE if grade is None else grade, boost, skip, n=1)
-    return items[0]["title"].lower() if items else None
+    item = banter_item(grade, rotation, boost, skip)
+    return item["title"].lower() if item else None

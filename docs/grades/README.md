@@ -23,6 +23,10 @@ Changed Nov 14 (user: "change the rules to make this better"): padding 1.2x -> 1
 guards still stop real padding: long lines, run-ons, 1-2 sentences), and the round hold rule added (a chat that drifts off its subject or
 starts repeating itself scores well in round 1 and falls off after; baseline tune holds 0.73). Target: >= 1.30x the baseline composite on the held set. Composite is capped at 20, so 1.30x needs a baseline <= 15.4.
 
+Added Nov 15 (user: "the facts can not be wrong"): **wrong facts** is a hard guard. Every spoken line is re-checked with `brain/factcheck.py`
+(sums, letter counts, spellings, counting runs, legs/sides/days..., planets, capitals); any wrong checkable fact the toys SAID reverts the run.
+The table also reports how many wrong facts the live guard caught from Gemma (fixed in place or dropped) before they were spoken.
+
 ## Honesty
 Text heuristics on the toys' scripts: a regression/improvement signal for how the toys talk to each other, not a measure of any child.
 Anti-gaming: longer lines raise follow-up/relevance, so length, padding, repeats and run-ons are guards, not just categories.

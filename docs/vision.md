@@ -150,6 +150,55 @@ The extra latency of a look turn is one short model round trip (audio prefill pl
 
 Privacy: the frame exists in RAM and in one temp file that the end of the turn deletes (`tmp_files`), the `View` is dropped by `close()`, nothing is logged about what was seen.
 
+
+### I spy (Nov 15)
+
+When the child plays I spy ("I spy with my little eye something red", "I see something blue", "your turn to spy"), the toys guess
+**only from a picture**, and code holds them to it:
+
+1. Each turn of the game takes ONE picture from the toy that heard the child (same rules as a look: RAM temp file, deleted at the end
+   of the turn, camera off again). Only that toy speaks.
+2. A separate, stateless Gemma call (`llm.complete`, its own system prompt `camera.SEEN_SYSTEM`) lists what is in the picture with
+   colors: "red apple, red, yellow, brown". Inside the toys' conversation the toy-line format turned this list into banter.
+3. The toy's line is held until the reply ends and `camera.ISpyReferee` checks it against the list and the clue (from the transcript,
+   or the HEARD line of the audio-native model):
+   - nothing listed has the clue's color: "Hmm, I don't see anything purple from here. Can you give me another hint?"
+   - the guess names a listed thing: kept; otherwise "Is it the <listed thing>?"
+   - after a "no": the next listed thing, never the same guess; none left: "...anything else red..."
+   - the color is listed but no thing is named: the toy's own guess is kept, or "I see something yellow, but I can't tell what it is."
+   - "your turn to spy": "I spy with my little eye something <color of a listed thing>!", and that thing is kept as the secret (RAM,
+     game only) and given to later turns as `[SECRET]`.
+4. Dead camera: the toy says it cannot see and plays from the child's hints.
+
+The game is detected by `camera.wants_ispy` (transcript) or, for the audio-native Gemma, the LOOK rule plus the HEARD words. It ends
+after `SENTIENT_ISPY_GAME_S` (90 s) without the child, or on "stop playing" / "let's play something else" / "game over".
+`SENTIENT_ISPY=0` turns it off. Idle toy chats no longer use the "I spy with colors" seed (the cameras are off then).
+The face/tag detector's "sees nothing in particular" is no longer put in a look prompt (it only knows faces, toys, pets and books, and
+made Gemma deny an apple in plain view).
+
+Real-Gemma check (`tools/ispy_check.py`, Jetson, toy-camera-quality photos from `tools/vision_set`, 10 cases x 2):
+
+| version | passed | what failed |
+|---|---|---|
+| rules in the prompt only, all toys talk | 13/20 | guessed things not in the picture, toys spied unasked, a SECRET line was spoken |
+| + hidden SEEN/CLUE notes in the reply | 7/20, then 6/20 | the notes were written on the toy line; rules ignored ("SEEN: red" then "Is it the apple?" for purple) |
+| list call in the toys' conversation + referee | 8/20 | the list came back as toy banter |
+| **stateless list call + referee** | **20/20** | (before the bare-color fix: 16/20, "Is it the yellow?") |
+
+Cost: an I spy turn takes about 7 s on the Jetson (the list call plus a fresh toy conversation), against about 3 s for a turn
+without the list. Next step if that is too slow: let the stateless call also hear the child and write the line from a template,
+one call instead of two.
+
+### Dashboard: camera mode and "What do you see?" (Nov 15)
+
+- **Cameras** switch in the top bar: **Off** (no picture ever; asked, the toys say their eyes are off), **On request** (default),
+  **Always on** (continuous). Kept across restarts in `brain/data/camera_mode.json`; changing it restarts the toys' conversation with
+  the matching camera rule. `POST /cameras?mode=off|request|always`.
+- **What do you see?** on each toy card (`POST /look?toy=`): one picture, the toy answers from it (named: anyone enrolled on the
+  Parent Board), and the card shows the annotated frame, who was recognised and what the toy said. The frame is returned once and not
+  kept. Works while muted (the answer shows on the dashboard).
+- Teaching who people are: Parent Board, **Teach the camera** (child, parent, other people, toys, items; encrypted with the PIN).
+
 ## Teach the camera (Parent Board)
 
 Parent Board → **Teach the camera**. A parent can teach, by name:

@@ -240,10 +240,20 @@ class Perceiver:
 
     def start(self):
         if not config.CAPTURE_CONTINUOUS:
-            log.info("cameras are off: a toy looks only when the child asks (SENTIENT_CAMERA_CONTINUOUS=1 turns continuous capture back on)")
+            log.info("cameras: %s (a toy looks only when the child asks, or never when off)", config.CAMERA_MODE)
             return
+        self._polling = True
         for toy in config.TOY_ORDER:
             threading.Thread(target=self._loop, args=(toy,), daemon=True, name=f"eyes-{toy}").start()
+
+    def apply_mode(self):
+        """The camera mode changed (dashboard): start or stop continuous capture; anything but 'always' forgets every frame."""
+        if config.CAPTURE_CONTINUOUS and not getattr(self, "_polling", False):
+            self.start()
+        elif not config.CAPTURE_CONTINUOUS:
+            self._polling = False
+            for t in list(self.views):
+                self.views[t] = View(t)
 
     def snap(self, toy) -> View | None:
         """On demand: one frame from `toy`'s camera (allowed mid-turn), analysed and kept in RAM as that toy's View. No greeting
@@ -271,7 +281,7 @@ class Perceiver:
 
     def _loop(self, toy):
         period = 1.0 / config.CAPTURE_FPS
-        while True:
+        while getattr(self, "_polling", True) and config.CAPTURE_CONTINUOUS:
             t0 = time.time()
             # All cameras pause for the whole turn (Gemma thinking + toys talking): on a Pi the
             # face/pet models would otherwise compete with LiteRT for the CPU. The turn uses the

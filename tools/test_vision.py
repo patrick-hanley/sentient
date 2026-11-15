@@ -64,6 +64,38 @@ class IntentTests(unittest.TestCase):
             self.assertNotIn("cameras are OFF", system_prompt())
 
 
+class ISpyIntentTests(unittest.TestCase):
+    YES = ["I spy with my little eye something red", "i spy something blue", "Let's play I spy", "eye spy something green",
+           "I see something yellow", "guess what I see", "your turn to spy", "Sage, I spy something round"]
+    NO = ["I see a bird", "what is a spy", "spies are cool", "I don't want to play i spy anymore, stop the game", "see you later",
+          "what do you see", "can you spell spy"]
+
+    def test_starting_or_playing_i_spy_is_detected(self):
+        self.assertEqual([t for t in self.YES if not camera.wants_ispy(t)], [])
+
+    def test_everything_else_is_not(self):
+        self.assertEqual([t for t in self.NO if camera.wants_ispy(t)], [])
+
+    def test_stop_phrases(self):
+        for t in ("stop playing", "I'm done with this game", "let's play something else", "game over", "no more i spy"):
+            self.assertTrue(camera.ispy_stop(t), t)
+        self.assertFalse(camera.ispy_stop("is it the cup"))
+
+    def test_the_prompts_say_guess_only_what_is_in_the_picture(self):
+        b = camera.ispy_prompt("SAGE", "SAGE is looking at a red cup.", True, "I spy something red")
+        self.assertIn("[I SPY]", b)
+        self.assertIn("Never guess a thing that is not in the list", b)
+        self.assertIn("Only SAGE speaks", b)
+        self.assertIn("does not see anything like that", b)
+        self.assertNotIn("[SECRET]", b)
+        self.assertIn("[SECRET] SAGE is spying: yellow duck", camera.ispy_prompt("SAGE", "", True, None, "yellow duck"))
+        dead = camera.ispy_prompt("SAGE", "", False)
+        self.assertIn("did not work", dead)
+        self.assertIn("never pretend to see", dead)
+        self.assertIn("I spy", camera.PROMPT_RULE)
+        self.assertIn("I spy: the toys guess only things that are really in an attached picture", system_prompt())
+
+
 class PeelerTests(unittest.TestCase):
     def run_stream(self, pieces):
         p = camera.LookPeeler()
@@ -161,6 +193,10 @@ class CamerasOffTests(unittest.TestCase):
     def test_nothing_polls_by_default(self):
         hub = FakeHub()
         eyes = Perceiver(hub, FakeRec())
+        for th in threading.enumerate():                             # pollers left by earlier tests end once continuous is off
+            if th.name.startswith(("eyes-", "look-now")):
+                th.join(2)
+        time.sleep(.1)
         before = threading.active_count()
         eyes.start()
         time.sleep(.1)
@@ -285,6 +321,235 @@ class LookTurnTests(unittest.TestCase):
         with patch.object(config, "CAPTURE_CONTINUOUS", True):
             d._turn(utt=utt("dyno"))
         self.assertEqual(hub.captures, [])
+
+
+class RefereeTests(unittest.TestCase):
+    SEEN = ["red apple", "green leaf", "white plate"]
+
+    def test_the_picture_list_is_parsed(self):
+        self.assertEqual(camera.parse_seen("Red apple, green leaf and a white plate."), self.SEEN)
+        self.assertEqual(camera.parse_seen("- red apple\n- green leaf"), ["red apple", "green leaf"])
+
+    def test_a_color_nothing_has_gets_the_honest_line(self):
+        r = camera.ISpyReferee("I spy something purple", self.SEEN)
+        self.assertEqual(r.decide("Is it the apple?"), "Hmm, I don't see anything purple from here. Can you give me another hint?")
+
+    def test_a_matching_guess_passes_and_is_remembered(self):
+        r = camera.ISpyReferee("I spy something red", self.SEEN)
+        self.assertEqual(r.decide("Ooh, is it the apple?"), "Ooh, is it the apple?")
+        self.assertEqual(r.guessed, ["red apple"])
+
+    def test_a_guess_not_in_the_picture_is_replaced_by_one_that_is(self):
+        r = camera.ISpyReferee("I spy something green", self.SEEN)
+        self.assertEqual(r.decide("Is it a green frog?"), "Is it the green leaf?")
+        r = camera.ISpyReferee("I spy something red", self.SEEN)
+        self.assertEqual(r.decide("I spy with my little eye something red!"), "Is it the red apple?")   # echoing the child is not a guess
+
+    def test_after_a_no_the_same_clue_goes_on_and_nothing_is_guessed_twice(self):
+        r = camera.ISpyReferee("No, guess again!", self.SEEN, guessed=["red apple"], clue="red")
+        self.assertEqual(r.decide("Is it the apple?"), "Hmm, I don't see anything else red from here. Can you give me another hint?")
+
+    def test_my_turn_spies_a_thing_in_the_picture_and_keeps_it_secret(self):
+        r = camera.ISpyReferee("Your turn to spy, Penny", ["yellow duck", "blue tub"])
+        self.assertEqual(r.decide("Is it the yellow duck?"), "I spy with my little eye something yellow!")
+        self.assertEqual(r.secret, "yellow duck")
+        r = camera.ISpyReferee("your turn", ["yellow duck", "blue tub"])
+        self.assertEqual(r.decide("I spy with my little eye something blue!"), "I spy with my little eye something blue!")
+        self.assertEqual(r.secret, "blue tub")
+
+    def test_the_audio_model_clue_comes_from_heard(self):
+        r = camera.ISpyReferee("", self.SEEN)
+        self.assertEqual(r.decide("Is it the plate?", heard="I spy something purple"), "Hmm, I don't see anything purple from here. Can you give me another hint?")
+
+    def test_bare_colors_and_color_named_things(self):
+        r = camera.ISpyReferee("I spy something blue", ["blueberries", "dark blue", "beige"])
+        self.assertEqual(r.decide("Is it the blue ball?"), "Is it the blueberries?")
+        r = camera.ISpyReferee("I spy something yellow", ["cucumbers", "green", "yellow"])
+        self.assertEqual(r.decide("Is it the yellow banana?"), "Is it the yellow banana?")   # the list saw yellow, the toy named it
+        r = camera.ISpyReferee("I spy something yellow", ["cucumbers", "green", "yellow"])
+        self.assertEqual(r.decide("I spy something yellow!"), "I see something yellow, but I can't tell what it is. Can you give me a hint?")
+        r = camera.ISpyReferee("no", ["red apple", "red"], guessed=["red apple"], clue="red")
+        self.assertIn("anything else red", r.decide("Is it the red apple?"))
+
+    def test_no_list_changes_nothing(self):
+        self.assertEqual(camera.ISpyReferee("I spy something purple", []).decide("Is it the cup?"), "Is it the cup?")
+
+
+class SpokenVoices(FakeVoices):
+    def __init__(self):
+        self.said = []
+
+    def render(self, toy, text):
+        self.said.append((toy, text))
+        return super().render(toy, text)
+
+
+class ISpyModel(Model):
+    """Answers the picture-list call with `seen`; the turn calls get `replies` in order."""
+
+    def __init__(self, replies, seen="red cup, white plate", said=None):
+        super().__init__(replies)
+        self.seen, self.said, self.lists = seen, list(said or []), 0
+        self.hears_audio = said is None
+
+    def transcribe(self, wav):
+        return self.said.pop(0)
+
+    def stream(self, text, wav=None, image=None):
+        if text.startswith("[I SPY LIST]"):
+            self.lists += 1
+            yield self.seen
+            return
+        yield from super().stream(text, wav, image)
+
+
+def spy_director(model, hub=None):
+    hub = hub or FakeHub()
+    voices = SpokenVoices()
+    d = Director(hub, voices, Perceiver(hub, FakeRec()), model, {})
+    return d, hub, voices
+
+
+class ISpyTurnTests(unittest.TestCase):
+    def setUp(self):
+        p = patch.object(config, "PLAY_FILLERS", False)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_audio_model_i_spy_turns_the_game_on_and_the_next_guess_comes_with_a_fresh_picture(self):
+        model = ISpyModel(["LOOK", "SAGE: Is it the red cup?\nHEARD: I spy with my little eye something red",
+                           "DYNO: Is it the cup?\nHEARD: no"])
+        d, hub, voices = spy_director(model)
+        d._turn(utt=utt("sage"))
+        self.assertTrue(d._ispy_on())                               # the child's words (HEARD) started the game
+        d._turn(utt=utt("dyno"))
+        turn = model.calls[-1]
+        self.assertEqual(model.lists, 1)                            # one picture-list call for the I spy turn
+        self.assertIn("[I SPY]", turn["text"])
+        self.assertIn("DYNO sees: red cup, white plate", turn["text"])
+        self.assertIn("[TOYS HERE] DYNO ", turn["text"])           # one guesser
+        self.assertTrue(turn["wav"])                                # the model still hears the child's guess
+        self.assertEqual(hub.captures, [("sage", True), ("dyno", True)])
+        self.assertFalse(Path(turn["image"]).exists())              # RAM temp file deleted after the turn
+
+    def test_transcript_path_holds_the_line_to_the_picture(self):
+        model = ISpyModel(["SAGE: Is it the purple grape?\nDYNO: I spy something blue!"], said=["I spy something purple"])
+        d, hub, voices = spy_director(model)
+        d._turn(utt=utt("sage"))
+        self.assertEqual(voices.said, [("sage", "Hmm, I don't see anything purple from here. Can you give me another hint?")])
+        self.assertTrue(d._ispy_on())
+
+    def test_no_then_a_new_guess_from_the_picture(self):
+        model = ISpyModel(["SAGE: Is it the red cup?", "SAGE: Is it the cup?"], seen="red cup, red ball, white plate",
+                          said=["I spy something red", "No!"])
+        d, hub, voices = spy_director(model)
+        d._turn(utt=utt("sage"))
+        d._turn(utt=utt("sage"))
+        self.assertEqual([t for _w, t in voices.said], ["Is it the red cup?", "Is it the red ball?"])
+
+    def test_the_toys_turn_to_spy_and_the_secret_is_kept(self):
+        model = ISpyModel(["PENNY: Is it a duck?"], seen="yellow duck, blue tub", said=["Your turn to spy, Penny!"])
+        d, hub, voices = spy_director(model)
+        d._turn(utt=utt("penny"))
+        self.assertEqual(voices.said, [("penny", "I spy with my little eye something yellow!")])
+        self.assertEqual(d._ispy_secret, "yellow duck")
+
+    def test_the_game_ends_when_the_child_stops_or_goes_quiet(self):
+        model = ISpyModel(["SAGE: Is it the red cup?", "SAGE: Okay!", "SAGE: A cloud is water drops."],
+                          said=["I spy something red", "stop playing", "what is a cloud"])
+        d, hub, _ = spy_director(model)
+        for _ in range(3):
+            d._turn(utt=utt("sage"))
+        self.assertEqual(len(hub.captures), 1)                      # only the I spy turn looked
+        self.assertNotIn("[I SPY]", model.calls[1]["text"])
+        self.assertFalse(d._ispy_on())
+
+    def test_a_dead_camera_asks_for_hints_and_never_pretends(self):
+        hub = FakeHub()
+        hub.frame = None
+        model = ISpyModel(["DYNO: My eyes are not working! Give me a hint?"])
+        d, hub, voices = spy_director(model, hub)
+        d._ispy_until = time.time() + 60
+        d._turn(utt=utt("dyno"))
+        self.assertIn("did not work", model.calls[0]["text"])
+        self.assertIsNone(model.calls[0]["image"])
+        self.assertEqual(model.lists, 0)
+        self.assertEqual(" ".join(t for _w, t in voices.said), "My eyes are not working! Give me a hint?")
+
+    def test_a_toy_without_a_camera_takes_no_picture(self):
+        model = ISpyModel(["DYNO: Give me a hint!"])
+        d, hub, _ = spy_director(model, FakeHub(cam=False))
+        d._ispy_until = time.time() + 60
+        d._turn(utt=utt("dyno"))
+        self.assertEqual(hub.captures, [])
+
+    def test_hidden_notes_are_never_spoken(self):
+        from brain.director import clean
+        self.assertEqual(clean("I spy something green! SECRET: ball"), "I spy something green!")
+
+    def test_idle_chat_never_seeds_i_spy(self):
+        self.assertFalse(any("spy" in s.lower() for s in config.BANTER_SEEDS))
+
+
+class CameraModeTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        p = patch.object(config, "CAMERA_MODE_FILE", Path(self.tmp.name) / "camera_mode.json")
+        p.start()
+        self.addCleanup(p.stop)
+        self.addCleanup(config.set_camera_mode, "request", False)
+
+    def test_off_means_no_picture_ever_and_the_prompt_says_so(self):
+        model = Model(["DYNO: My eyes are off right now. Tell me about it!"])
+        d, hub, _ = make_director(model)
+        model.system = "old"
+        d.set_camera_mode("off")
+        self.assertIn("switched OFF", model.system)
+        self.assertNotIn("reply with exactly one word, LOOK", model.system)
+        d._ispy_until = time.time() + 60
+        d._turn(utt=utt("dyno"))
+        self.assertEqual(hub.captures, [])
+        self.assertEqual(d.look_now("dyno"), {"error": "the cameras are off"})
+        self.assertEqual(json.loads(config.CAMERA_MODE_FILE.read_text()), {"mode": "off"})   # kept across restarts
+
+    def test_request_and_always(self):
+        d, hub, eyes = make_director(Model([]))
+        d.set_camera_mode("request")
+        self.assertTrue(config.LOOK_ON_REQUEST and not config.CAPTURE_CONTINUOUS)
+        self.assertIn("reply with exactly one word, LOOK", system_prompt())
+        with patch.object(config, "CAPTURE_FPS", 50):
+            d.set_camera_mode("always")
+            time.sleep(.2)
+            self.assertGreater(len(hub.captures), 0)
+            d.set_camera_mode("request")                           # back off: polling stops, frames forgotten
+        time.sleep(.2)
+        n = len(hub.captures)
+        time.sleep(.2)
+        self.assertEqual(len(hub.captures), n)
+        self.assertFalse(any(v.eyes for v in eyes.views.values()))
+        for th in threading.enumerate():
+            if th.name.startswith("eyes-"):
+                th.join(2)                                           # the pollers have ended
+
+
+class LookNowTests(unittest.TestCase):
+    def test_the_dashboard_look_takes_one_picture_and_returns_what_was_said_and_seen(self):
+        model = Model(["PENNY: I see a red cup on the table!\nHEARD: -"])
+        d, hub, eyes = make_director(model)
+        r = d.look_now("penny")
+        self.assertEqual(hub.captures, [("penny", True)])
+        self.assertEqual(r["said"], "I see a red cup on the table!")
+        self.assertEqual(r["seen"], ["a red cup"])
+        self.assertTrue(r["frame"])                                  # annotated frame for the dashboard, not kept
+        self.assertIsNone(d.last_look)
+        self.assertIn("[CAMERA]", model.calls[0]["text"])
+        self.assertIn("[TOYS HERE] PENNY ", model.calls[0]["text"])
+        self.assertFalse(any(v.eyes for v in eyes.views.values()))   # camera off again
+
+    def test_offline_or_no_camera(self):
+        d, hub, _ = make_director(Model([]), FakeHub(cam=False))
+        self.assertIn("no camera", d.look_now("sage")["error"])
 
 
 # ---------------------------------------------------------------------------------------------------------------

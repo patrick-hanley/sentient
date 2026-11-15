@@ -119,7 +119,8 @@ def make_handler(hub, eyes, director, rec, voices):
                       "said": [(w, voices.sounds.display(t)) for w, t in director.last_lines], "latency": director.last_latency,
                       "latency_breakdown": director.latency_state(), "latency_profile": config.LATENCY_PROFILE,
                       "device": getattr(director.llm, "device", "server-configured"), "toys": {},
-                      "cameras": "always on" if config.CAPTURE_CONTINUOUS else "off (on request)"}
+                      "cameras": {"off": "off", "request": "on request", "always": "always on"}[config.CAMERA_MODE],
+                      "camera_mode": config.CAMERA_MODE}
                 for t in config.TOY_ORDER:
                     a = hub.atoms.get(t)
                     st["toys"][t] = {"online": t in online, "ip": a.ip if a else "", "cam": bool(a and a.cam),
@@ -184,6 +185,14 @@ def make_handler(hub, eyes, director, rec, voices):
                 # experiment (needs SENTIENT_AEC=1): toy `a` speaks `atext` through the normal path (echo canceller engaged),
                 # `delay` s later toy `c` plays `ctext` straight to its speaker as the "child". Notes go into the RAM dump.
                 threading.Thread(target=aec_trial, args=(hub, voices, q), daemon=True).start()
+            elif u.path == "/cameras" and q.get("mode") in config.CAMERA_MODES:
+                return self._send(200, json.dumps({"mode": director.set_camera_mode(q["mode"])}), "application/json")
+            elif u.path == "/look" and q.get("toy") in config.TOYS:
+                import base64
+                r = director.look_now(q["toy"])
+                if r.get("frame"):
+                    r["frame"] = base64.b64encode(r["frame"]).decode()
+                return self._send(409 if "error" in r else 200, json.dumps(r), "application/json")
             elif u.path == "/enroll":
                 return self._send(200, enroll_live(rec, hub, q.get("toy", "sage"), q.get("name", "").strip(),
                                                    q.get("pet") == "1"))
