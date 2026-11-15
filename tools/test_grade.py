@@ -183,10 +183,12 @@ class Harness(unittest.TestCase):
     def test_line_jobs_continue_across_rounds(self):
         from brain import config, director as D
         j = D.line_jobs(["DYNO", "SAGE", "PENNY", "DYNO"])
-        self.assertIn("1. DYNO asks SAGE", j)
-        self.assertIn("2. SAGE answers that exact question", j)
+        self.assertIn("1. DYNO asks SAGE one short", j)                    # each toy keeps its persona's job: Dyno asks,
+        self.assertIn("2. SAGE answers the question just asked", j)        # Sage answers with a fact,
+        self.assertIn("3. PENNY reacts to the line before with wordplay", j)   # Penny plays with words
         self.assertIn("4. DYNO asks one short", j)                          # last line: a question to everyone
-        self.assertTrue(D.line_jobs(["PENNY", "SAGE", "DYNO"], 4).startswith("1. PENNY answers"))   # the next round opens with its answer
+        self.assertIn("1. PENNY opens the topic", D.line_jobs(["PENNY", "SAGE", "DYNO"], 0))
+        self.assertIn("1. PENNY reacts to the line before", D.line_jobs(["PENNY", "SAGE", "DYNO"], 4))
         old = config.SCENE_TOPIC, config.BEATS
         config.SCENE_TOPIC = config.BEATS = 1
         try:

@@ -76,18 +76,21 @@ def just_said(lines, n: int = 2) -> str:
 
 
 def line_jobs(names: list[str], start: int = 0) -> str:
-    """One job per line of [ORDER]: ask a question, answer exactly that, react playfully, then again. `start` = lines already said in this
-    chat, so a round that begins after a question begins with its answer. A question on the last line is asked to everyone."""
+    """One job per line of [ORDER], fixed by each toy's persona so the three stay distinct (jobs rotated by position blurred them, ledger
+    s2-beats-tune): Dyno asks the next toy a question, Sage answers the question just asked with one true fact, Penny reacts to the line
+    before with wordplay. `start` = lines already said in this chat (0: the first line opens the topic)."""
+    by = {v: k for k, v in NAMES.items()}
     out = []
     for i, n in enumerate(names):
-        k = (start + i) % 3
-        if k == 0:
-            who = f" {names[i + 1]}" if i + 1 < len(names) else ""      # the last line asks everyone; the next round opens with the answer
-            out.append(f"{n} asks{who} one short question about the topic.")
-        elif k == 1:
-            out.append(f"{n} answers that exact question with one true, specific fact.")
+        toy, first = by.get(n.upper()), start == 0 and i == 0
+        nxt = names[i + 1] if i + 1 < len(names) else None
+        if toy == "dyno":
+            out.append(f"{n} asks {nxt + ' ' if nxt and nxt != n else ''}one short, curious question about the topic.")
+        elif toy == "sage":
+            out.append(f"{n} {'opens with' if first else 'answers the question just asked with'} one true, specific fact about the topic"
+                       f"{'' if first else ' (if nothing was asked, adds one)'}.")
         else:
-            out.append(f"{n} reacts to that answer with a playful twist, without a question.")
+            out.append(f"{n} {'opens the topic' if first else 'reacts to the line before'} with wordplay or a silly comparison, without a question.")
     return " ".join(f"{i + 1}. {j}" for i, j in enumerate(out))
 
 
