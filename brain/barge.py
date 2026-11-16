@@ -28,7 +28,7 @@ class BargeDetector:
 
     def _state(self, toy):
         return self.st.setdefault(toy, dict(ref=0.0, win=collections.deque(maxlen=5), run=0, voiced=0, n=0,
-                                            ring=collections.deque(maxlen=15), lag=collections.deque(maxlen=25)))
+                                            ring=collections.deque(maxlen=50), lag=collections.deque(maxlen=25)))
 
     def reset(self, session=None):
         self.session = session

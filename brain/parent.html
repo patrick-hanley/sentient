@@ -103,7 +103,7 @@ details>div{margin-top:10px}
 
 <section aria-labelledby=tc_h>
  <details style="border-top:0;padding-top:0"><summary id=tc_h>Teach the camera</summary><div>
-  <p class=mut>The toys' cameras are off. A toy looks only when the child asks what it sees. Here you can teach the toys who is who and what things are called. Teach once with any toy's camera (or a photo): every toy recognises it, and a toy that sees itself in a mirror or a picture says so. Only a numeric fingerprint is kept: no photos are saved, it is encrypted on the brain and you can delete any of it. A camera is on only while you press the button.</p>
+  <p class=mut>The toys' cameras are off. A toy looks only when the child asks what it sees. Here you can teach the toys who is who and what things are called. Teach once with any toy's camera (or a photo): every toy recognises it, and a toy that sees itself in a mirror or a picture says so. The toys also learn the voice of each person you teach (when the toy sees only that face while someone talks, when they say "I'm Dad", or with Learn voice). Only a numeric fingerprint is kept: no photos or sound are saved, it is encrypted on the brain and you can delete any of it. A camera is on only while you press the button.</p>
   <div class=panel style="margin-top:10px;display:grid;gap:8px">
    <div class=row><select id=tc_kind aria-label="What to teach" style="width:auto"><option value=person>A parent or family member</option><option value=child>The child</option><option value=toy>A toy (how it looks)</option><option value=item>A household item</option></select>
     <input id=tc_name placeholder="Name" aria-label="Name"><select id=tc_toy aria-label="Which toy" hidden style="width:auto"></select></div>
@@ -212,7 +212,11 @@ function drawTeach(){
  const box=$("tc_list");box.textContent="";
  if(!TC.entries.length){box.append(el("p","Nothing taught yet.","mut"));return}
  TC.entries.forEach(e=>{const row=el("div","","card"),t=el("div","","txt");t.append(e.kind=="child"?"The child":e.kind=="toy"?(TC.toys.find(x=>x.id==e.name)||{name:e.name}).name:e.name,el("span",KIND_LABEL[e.kind]+" · "+e.photos+" photo"+(e.photos==1?"":"s"),"tag"));
-  const a=el("div","","acts"),x=el("button","Delete","q danger");x.setAttribute("aria-label","Delete "+e.name);x.onclick=async()=>{await api("/api/teach/delete",{id:e.id});await teachList()};a.append(x);row.append(t,a);box.append(row)})}
+  if(e.kind=="person"||e.kind=="child")t.append(el("span",e.voices?(e.voices+" voice sample"+(e.voices==1?"":"s")):"voice not learned yet","tag"));
+  const a=el("div","","acts"),x=el("button","Delete","q danger");x.setAttribute("aria-label","Delete "+e.name);x.onclick=async()=>{await api("/api/teach/delete",{id:e.id});await teachList()};
+  if(e.kind=="person"||e.kind=="child"){const v=el("button","Learn voice","q");v.setAttribute("aria-label","Learn the voice of "+e.name);v.onclick=async()=>{try{await api("/api/teach/voice",{id:e.id});$("tc_msg").textContent=(e.kind=="child"?"The child":e.name)+": say four short sentences near any toy in the next minute. Only a numeric voice print is kept, never the sound.";setTimeout(teachList,62000)}catch(err){$("tc_msg").textContent=err.message}};a.append(v);
+   if(e.voices){const f=el("button","Forget voice","q");f.setAttribute("aria-label","Forget the voice of "+e.name);f.onclick=async()=>{await api("/api/teach/forget_voice",{id:e.id});await teachList()};a.append(f)}}
+  a.append(x);row.append(t,a);box.append(row)})}
 ["tc_kind","tc_toy","tc_cam","tc_ok"].forEach(i=>$(i).onchange=drawTeach);
 async function teachSend(files){
  const k=$("tc_kind").value,name=k=="toy"?$("tc_toy").value:$("tc_name").value.trim(),msg=$("tc_msg");

@@ -129,6 +129,7 @@ ENERGY_FLOOR = 100.0         # min RMS for speech; the adaptive NOISE_MULT term 
                              # Measured: quiet room ~12 / voice 140-1060; noisy venue 60-440 / voice 700-6000
 NOISE_MULT = 4.0             # speech must be 4x the measured room noise (quiet ~100, venue ~600)
 START_FRAMES = 6             # voiced frames out of last 10 to open an utterance
+VAD_PREROLL_FRAMES = 50      # audio kept before the onset (1 s): a soft first word ("Dyno,") must not be cut
 END_SILENCE_MS = 500
 MIN_SPEECH_MS = 500
 MAX_UTTER_MS = 8000
@@ -155,7 +156,7 @@ AEC_MIN_SCORE = 6.0          # PHAT peak over the search range's other lags: wea
 AEC_DT_RATIO = 2.0           # residual amplitude over the predicted leftover echo + noise that marks a second voice
 AEC_MIN_RMS = 250.0          # ...and it must be at least this loud (int16 RMS)
 AEC_BARGE_MS = 120           # ...for this long, mostly speech to webrtcvad, to cut the toy
-AEC_PREROLL_FRAMES = 15      # residual frames kept before the first loud one, so the first word is not lost
+AEC_PREROLL_FRAMES = 35      # residual frames (0.7 s) kept before the first loud one, so a soft first word is not lost ("Dyno, what..." came out as "color shirt...")
 AEC_EXPLAIN_RATIO = 0.45     # a loud residual that a re-adapted filter removes this much of is echo-path change, not the child
 AEC_WARM = 0                 # 1 = a later clip of a pair starts cancelling at once with the last filter and lag (verified after AEC_WARM_S)
 AEC_WARM_S = 0.2             # audible echo heard before the warm lag is checked with a narrow GCC-PHAT
@@ -253,6 +254,9 @@ IDLE_BANTER_S = 45           # 0 disables idle toy-to-toy chatter
 # The child leads (Nov 15, user: "the conversations should center around what the human wants to talk about"): answer the child's
 # subject first and stay on it; questions about the parent's notes are answered; "stop" quiets the toys.
 CHILD_LEADS = os.environ.get("SENTIENT_CHILD_LEADS", "1") == "1"
+# The audio-native model writes the child's words FIRST (HEARD line), so the code knows them before any toy speaks: only the named
+# toy answers, "stop" says nothing but "I'm listening", the I spy clue is known. Costs the time to write the words (~0.5-1 s).
+HEARD_FIRST = os.environ.get("SENTIENT_HEARD_FIRST", "1") == "1"
 CHILD_MAX_LINES = int(os.environ.get("SENTIENT_CHILD_MAX_LINES", "2"))   # the child spoke: one answer + at most one short add-on
 IDLE_AFTER_CHILD_S = float(os.environ.get("SENTIENT_IDLE_AFTER_CHILD_S", "180"))   # no toy-to-toy chat this soon after the child spoke
 STOP_QUIET_S = float(os.environ.get("SENTIENT_STOP_QUIET_S", "600"))              # after "stop": no toy-to-toy chat for this long

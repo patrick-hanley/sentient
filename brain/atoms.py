@@ -7,6 +7,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import collections
 import json
 from dataclasses import dataclass, field
 
@@ -42,6 +43,9 @@ def encode_for_atom(pcm16k: bytes) -> tuple[bytes, str]:
     return x.astype("<i2").tobytes(), f"fmt=pcm&rate={rate}"
 
 
+TAIL_FRAMES = int(config.MIC_TAIL_S * 50) + 10   # 20 ms frames: the whole post-playback mic tail and a little more
+
+
 @dataclass
 class Atom:
     mac: str
@@ -65,6 +69,7 @@ class Atom:
     flags: dict = field(default_factory=dict)   # from HELLO: fw, codec repair counters (sfix/sfail/mfix/mfail), clips
     clips: dict = field(default_factory=dict)   # clip name -> seconds, stored in the Atom's flash (firmware 3+)
     fs: tuple = (0, 0)                          # (total, used) bytes of clip storage
+    tail: collections.deque = field(default_factory=lambda: collections.deque(maxlen=TAIL_FRAMES))   # mic frames of the MIC_TAIL window
 
 
 class AtomHub:
@@ -266,7 +271,15 @@ class AtomHub:
                         log.exception("echo canceller failed; falling back to the loudness barge-in detector")
                         self.aec = None
                 clean = out.pcm if out is not None and (out.cancelling or out.mag) else pcm
+                if self.muted() and not self.force_mute and not self.talking and not self._barged:
+                    a.tail.append(clean)        # the MIC_TAIL after a toy stops: kept, so a child who starts right away is not cut
+                elif self.talking:
+                    a.tail.clear()
                 if not self.muted() or (self._barged and a.toy == self._barge_toy):   # after a barge the child's mic is live at once
+                    if a.tail:
+                        tail, a.tail = list(a.tail), collections.deque(maxlen=TAIL_FRAMES)
+                        for f in tail:
+                            self.on_audio(a.toy, f)
                     if self._barge_frames and a.toy == self._barge_toy:   # the start of the interrupting speech, kept in RAM
                         frames, self._barge_frames = self._barge_frames, []
                         for f in frames[:-1]:

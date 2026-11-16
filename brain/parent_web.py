@@ -221,6 +221,14 @@ def make_handler(parent: P.Parent, director=None):
             if path == "/api/teach/delete":
                 self._teacher().store.delete(str(b.get("id", "")))
                 return self._send(200, {"ok": True})
+            if path == "/api/teach/voice":     # "Learn voice": the next few things said near any toy are this person (prints only)
+                if not (director and getattr(director, "voiceid", None)):
+                    raise RuntimeError("Voice prints are not installed on this brain.")
+                self._teacher().store.listen_for_voice(str(b.get("id", "")), n=4, secs=60)
+                return self._send(200, {"ok": True, "secs": 60})
+            if path == "/api/teach/forget_voice":
+                self._teacher().store.forget_voice(str(b.get("id", "")))
+                return self._send(200, {"ok": True})
             if path == "/api/setup":
                 tok = parent.setup(str(b.get("pin", "")), str(b.get("code", "")))
                 return self._send(200, {"ok": True}, cookie=self._cookie(tok))

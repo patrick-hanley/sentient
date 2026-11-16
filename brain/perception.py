@@ -20,7 +20,17 @@ log = logging.getLogger("perception")
 ARUCO_TO_TOY = {t["aruco"]: k for k, t in config.TOYS.items()}
 PET_CLASSES = {"dog", "cat"}
 SELF_LABEL = "itself (in a mirror or a picture)"   # a toy whose camera recognises its own look or tag
-OBJ_CLASSES = ["dog", "cat", "book", "teddy bear"]
+OBJ_CLASSES = ["dog", "cat", "book", "teddy bear", "person"]   # "person" only to veto pets: a lone cat/dog class made people "a cat"
+PET_MIN_SCORE = 0.6       # detector score a cat/dog needs (0.35 named people and plush toys as pets, Nov 15)
+
+
+def _overlap(a, b) -> float:
+    """Share of box a covered by box b."""
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    iw = max(0, min(ax + aw, bx + bw) - max(ax, bx))
+    ih = max(0, min(ay + ah, by + bh) - max(ay, by))
+    return iw * ih / max(1, aw * ah)
 
 
 @dataclass
@@ -47,8 +57,9 @@ class View:
             return f"{name}'s eyes are closed."
         if not self.things:
             return f"{name} sees nothing in particular."
-        others = [t.label for t in self.things if t is not self.looking_at]
-        s = f"{name} is looking at {self.looking_at.label}"
+        label = lambda t: f"ITSELF, {name} (a mirror or a picture of {name})" if t.label == SELF_LABEL else t.label   # noqa: E731
+        others = [label(t) for t in self.things if t is not self.looking_at]
+        s = f"{name} is looking at {label(self.looking_at)}"
         return s + (f"; also sees {', '.join(others)}." if others else ".")
 
 
@@ -192,10 +203,14 @@ class Recognizer:
                 x, y, w, h = cv2.boundingRect(c.astype(np.int32))
                 # the tag is on the chest; widen the box to roughly the whole toy. Its own tag: a mirror or a picture of itself
                 things.append(Thing("toy", SELF_LABEL if toy == own_toy else config.TOYS[toy]["name"].upper(), (x - w, y - 2 * w, 3 * w, 4 * w)))
-        objs = self.objects(img)
+        allobjs = self.objects(img)
+        objs = [o for o in allobjs if o[0] != "person"]
         things += self._taught(img, gal, own_toy, objs, {t.label for t in things if t.kind == "toy"})
+        people = [b for c, b, _ in allobjs if c == "person"] + [t.box for t in things if t.kind in ("person", "child", "toy")]
         for cls, box, sc in objs:
             if cls in PET_CLASSES:
+                if sc < PET_MIN_SCORE or any(_overlap(box, p) > 0.3 or _overlap(p, box) > 0.5 for p in people):
+                    continue                  # a person, a face or a toy, not a pet
                 pet = self.which_pet(cls, self.embed(img, box))
                 things.append(Thing("pet", f"{cls} {pet}" if pet else f"a {cls}", box, sc))
             elif cls == "book":
@@ -314,6 +329,7 @@ class Perceiver:
         self.views[toy] = v
         now = time.time()
         for t in things if greet else ():
-            if t.kind in ("person", "pet") and now - self._last_greet.get(t.label, 0) > config.GREET_COOLDOWN_S:
-                self._last_greet[t.label] = now
+            key = f"{toy}:self" if t.label == SELF_LABEL else t.label
+            if (t.kind in ("person", "pet") or t.label == SELF_LABEL) and now - self._last_greet.get(key, 0) > config.GREET_COOLDOWN_S:
+                self._last_greet[key] = now
                 self.on_seen(toy, t)

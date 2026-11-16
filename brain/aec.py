@@ -379,7 +379,7 @@ class Pair:
         self.lag0: int | None = None         # where the echo sits against the placed reference when the filter was last good
         self.run = self.voiced = 0
         self.run_start = None
-        self.res_ring: collections.deque = collections.deque(maxlen=40)   # (n, residual int16) for the true start
+        self.res_ring: collections.deque = collections.deque(maxlen=80)   # (n, residual int16) for the true start (AEC_PREROLL_FRAMES + run)
         self.x_ring: collections.deque = collections.deque(maxlen=30)     # reference blocks, for the mismatch check
         self.d_ring: collections.deque = collections.deque(maxlen=30)     # mic blocks, same
         self.audible = 0                     # blocks of this clip with audible echo, while placing

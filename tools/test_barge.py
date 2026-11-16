@@ -37,7 +37,7 @@ class BargeTests(unittest.TestCase):
         i, frames = self.run_seq(lv)
         self.assertIsNotNone(i)
         self.assertLess((i - 60) * 0.02, 0.3)
-        self.assertEqual(len(frames), 15)    # the start of the speech is kept in RAM for the segmenter
+        self.assertEqual(len(frames), 50)    # the start of the speech (1 s) is kept in RAM for the segmenter
 
     def test_short_bump_does_not_trigger(self):
         i, _ = self.run_seq([150] * 60 + [1500] * 4 + [150] * 60)

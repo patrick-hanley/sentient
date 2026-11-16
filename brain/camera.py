@@ -19,6 +19,7 @@ _LOOK_RULES = [re.compile(p) for p in (
     r"\bwhat (do|can|could|does|did) (you|u|ya|yall) see\b",
     r"\bwhat (are|r) (you|u) (looking|seeing|looking) at\b",
     r"\bwhat (are|r) (you|u) seeing\b",
+    r"\bwho (do|can|did|does) (you|u|ya|he|she|it|dyno|sage|penny) see\b",
     r"\b(can|could|do|did|will|would) (you|u|ya|yall) (even )?(see|look)\b",
     r"\b(do|can|could) (you|u) see (me|my|this|that|it|what)\b",
     r"\b(look|looks|looking|peek|peep) (at|over here|here|what)\b",
@@ -28,6 +29,8 @@ _LOOK_RULES = [re.compile(p) for p in (
     r"\bwhat( is|s|re| are) (this|that|these|those)\b",
     r"\bwhat( is|s) (it|in my hand|in my hands|on my|in front of you|over here|here)\b(?! (called|time|day))",
     r"\bwhat am i (holding|wearing|showing|pointing)\b",
+    r"\bwhat colou?r\b.{0,20}\b(am i|is my|are my|do i have|i am)\b",
+    r"\b(am i|i am|im) wearing\b",
     r"\bwhat (do|did) i (have|got|hold|made|draw|drew|bring|brought)\b",
     r"\bwhat( is|s)? (colou?r|shape|animal|kind of \w+|type of \w+|number|letter|word) (is|are) (this|that|these|those|it)\b",
     r"\bwhat colou?r (is|are) (my|this|that|the)\b",
@@ -64,6 +67,17 @@ def wants_look(text: str) -> bool:
     # an idiom only cancels the match when it IS the match ("look for my shoes" is not a request to look at the camera)
     idiom = _IDIOM.search(t)
     return not (idiom and idiom.start() <= hit.start() < idiom.end())
+
+
+# ---- "who am I?" (Nov 15): answered from the face the toy sees and the voice it hears (brain/voiceid.py), never from old lines ----
+_WHOAMI = re.compile(r"\bwho\s+am\s+i\b|\bwho\s+is\s+(?:talking|speaking)\b|\bwhos\s+(?:talking|speaking)\b"
+                     r"|\bdo\s+you\s+know\s+(?:me|who\s+i\s+am|my\s+name)\b|\bwhats\s+my\s+name\b|\bwhat\s+is\s+my\s+name\b"
+                     r"|\bguess\s+who\s+(?:i\s+am|this\s+is|is\s+talking)\b|\bknow\s+who\s+i\s+am\b|\bremember\s+me\b|\bsay\s+my\s+name\b")
+
+
+def wants_whoami(text: str) -> bool:
+    """True when the speaker asks whether the toy knows who they are."""
+    return bool(_WHOAMI.search(_norm(text)))
 
 
 # ---- the I spy game ("I spy with my little eye something red", "I see something blue") ----
@@ -223,6 +237,20 @@ def wants_stop(text: str) -> bool:
     return bool(t) and len(t.split()) <= 8 and bool(_STOP.search(t)) and not re.search(r"\bstop (?:sign|light|watch)\b|\bbus stop\b", t)
 
 
+_NAMES = {"dyno": r"dyno|dino|dinoh|dyna|dynamo", "sage": r"sage|saige|sayge", "penny": r"penny|pennie|peni|pennys"}
+_ALL = re.compile(r"\b(?:everyone|everybody|all of you|you guys|you all|yall|toys|guys)\b")
+
+
+def addressed(text: str) -> str | None:
+    """The one toy the child is talking to ("Penny, what's your favorite animal?", "hey dyno"), or None (no name, two names,
+    or the child speaks to everyone)."""
+    t = _norm(text)
+    if not t or _ALL.search(t):
+        return None
+    hits = {k for k, rx in _NAMES.items() if re.search(rf"\b(?:{rx})\b", t)}
+    return hits.pop() if len(hits) == 1 else None
+
+
 class LookPeeler:
     """Sits between the model's stream and the reply parser. If the reply STARTS with the word LOOK (and nothing else of a
     toy line), the toy is asking for its camera: everything is swallowed, `looking` turns True and `heard` may carry the
@@ -235,6 +263,7 @@ class LookPeeler:
         self.rest = ""
         self.words = tuple(words)     # one-word requests the model may answer with: LOOK (camera), STOP (the child said stop)
         self.word: str | None = None
+        self.head = ""                # a HEARD line written before the request (HEARD-first format)
 
     @property
     def looking(self) -> bool:
@@ -255,24 +284,39 @@ class LookPeeler:
         s = self.buf.lstrip(" \t\r\n*#-[`\"'").upper()
         if not s:
             return ""
+        if "HEARD".startswith(s[:5]) and not self.head:            # HEARD-first: hold the HEARD line, decide on what follows it
+            if "\n" not in self.buf:
+                return ""
+            line, rest = self.buf.split("\n", 1)
+            self.head, self.buf = line + "\n", ""
+            return self.feed(rest)
+        if self.head and self.state == "undecided" and not s:
+            return ""
         for w in self.words:
             if s.startswith(w):
-                self.state, self.rest, self.buf, self.word = "look", s[len(w):], "", w
+                self.state, self.rest, self.buf, self.word = "look", self.head + s[len(w):], "", w
                 return ""
         if any(w.startswith(s) for w in self.words):      # "L", "LO", "LOO" / "S", "ST", "STO": wait for one more piece
             return ""
-        self.state, out, self.buf = "reply", self.buf, ""
+        self.state, out, self.buf = "reply", self.head + self.buf, ""
         return out
 
     def finish(self) -> str:
         """End of stream: release anything still held (an undecided stub like 'LOO' is not a request)."""
-        out, self.buf = self.buf, ""
+        out, self.buf = (self.head + self.buf) if self.state == "undecided" else self.buf, ""
         if self.state == "undecided":
             self.state = "reply"
         return out
 
 
 # ---- prompts ----
+def friends_line() -> str:
+    """What each toy looks like, so a toy in a picture is called by its name ("a green dinosaur" is Dyno)."""
+    from . import config
+    return "The toy friends look like this: " + "; ".join(f"{t['name'].upper()} is {t['looks']}" for t in config.TOYS.values()) + \
+           ". If one of them is in the picture, call it by its name (never just 'a dinosaur')."
+
+
 def look_prompt(toy_name: str, view_text: str, got_picture: bool, said: str | None = None) -> str:
     """The [CAMERA] block for the second half of a look turn. `said` is the transcript when there is one (otherwise the
     child's question is in the audio the model already heard)."""
@@ -281,7 +325,7 @@ def look_prompt(toy_name: str, view_text: str, got_picture: bool, said: str | No
         return (f"[CAMERA] {toy_name}'s camera did not work this time, so nothing could be seen. {ask}\n"
                 f"{toy_name} says so kindly in one short line and asks the child to tell what it is. Reply in the usual format.")
     return (f"[CAMERA] {toy_name}'s camera just took ONE picture (attached) because the child asked. It is small and may be dark "
-            f"or blurry. {view_text}\n{ask}\n"
+            f"or blurry. {view_text}\n{friends_line()} The child is the person you are playing with.\n{ask}\n"
             f"Answer from the picture in {toy_name}'s voice first, in one or two short lines; say honestly if you cannot tell "
             f"and ask the child to hold it closer to {toy_name}'s eyes. Never guess a person's name. If {toy_name} sees itself, it says so "
             f"happily (\"Hey, that's me!\"). If the child is playing I spy, "
@@ -302,9 +346,16 @@ PROMPT_RULE_OFF = (
 )
 
 
+PROMPT_RULE_ALWAYS = (
+    "- Your cameras watch the room: [SCENE] says who and what each toy notices. To see details (a color, what the child holds or "
+    "wears, a drawing, I spy), reply with exactly one word, LOOK, and nothing else: you then get a [CAMERA] block with a picture "
+    "and answer from it. Never claim a detail you have not seen in a [CAMERA] picture."
+)
+
+
 def prompt_rule() -> str:
     """The camera line of the system prompt for the current camera mode."""
     from . import config
     if config.CAPTURE_CONTINUOUS:
-        return ""
+        return PROMPT_RULE_ALWAYS + "\n"
     return (PROMPT_RULE if config.LOOK_ON_REQUEST else PROMPT_RULE_OFF) + "\n"

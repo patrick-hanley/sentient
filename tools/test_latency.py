@@ -291,7 +291,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(director.hub.played, ["penny", "sage"])
         self.assertEqual(director.voices.rendered[0], ("penny", "Two feet for a tiny penguin parade!"))
 
-    def test_penny_followup_also_works_when_heard_header_is_missing(self):
+    def test_a_question_to_penny_is_answered_by_penny_only(self):   # Nov 15, user: "when I address a toy, that toy should respond and not the others"
         class PennyBackend(Backend):
             hears_audio = False
             def transcribe(self, wav):
@@ -303,7 +303,7 @@ class PipelineTests(unittest.TestCase):
         utterance = Utterance("penny", time.time()-1, time.time(), np.ones(16000,np.int16), 5000, now-.5, now)
         director._turn(utt=utterance)
         self.assertEqual(director.last_trace["status"], "ok")
-        self.assertEqual(director.hub.played, ["penny", "sage"])
+        self.assertEqual(director.hub.played, ["penny"])
 
     def test_penny_spelling_and_child_corrections_reach_tts_unchanged(self):
         for question, reply in [

@@ -25,7 +25,7 @@ from .director import Director, system_prompt
 from .llm import make_backend
 from .perception import Perceiver, Recognizer
 from .spectrum import Monitor
-from . import parent as parent_mod, parent_web, scripted, teach
+from . import parent as parent_mod, parent_web, scripted, teach, voiceid
 from .tts import KITTEN_VOICES, Voices
 from . import debugrec
 from .vad import Segmenter
@@ -380,6 +380,7 @@ def main():
     rec = Recognizer()
     eyes = Perceiver(hub, rec)
     director = Director(hub, voices, eyes, llm, segs)
+    director.voiceid = voiceid.VoiceID()   # who is talking, by voice print (brain/voiceid.py); off if the model is missing
     hub.on_imu = director.on_imu
     hub.on_barge = director.barge_in
     for t in config.TOY_ORDER:

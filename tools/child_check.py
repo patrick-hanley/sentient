@@ -40,7 +40,9 @@ CASES = [
     ("subject: volcanoes", "sage", "Can you tell me how volcanoes work?", ["volcano", "lava", "magma"], "answer"),
     ("subject: minecraft", "penny", "I want to talk about Minecraft. I built a castle!", ["minecraft", "castle", "build", "built", "block"], "answer"),
     ("subject: my day", "dyno", "I had a really fun day at the park today.", ["park", "fun", "day"], "answer"),
-    ("named toy", "sage", "Penny, what's your favorite animal?", [], "penny_first"),
+    ("named: penny", "sage", "Penny, what's your favorite animal?", [], "named:penny"),
+    ("named: dyno", "penny", "Dyno, what is your favorite food?", [], "named:dyno"),
+    ("named: sage", "dyno", "Sage, how do plants grow?", [], "named:sage"),
     ("stop", "dyno", "Stop talking.", [], "stop"),
     ("quiet", "sage", "Be quiet please.", [], "stop"),
     ("stop (model)", "penny", "Okay toys, stop talking now.", [], "stop_model"),    # the live audio path: Gemma itself must answer STOP
@@ -75,7 +77,14 @@ class GemmaAudio:
     def transcribe(self, wav): return self.said
     def reset_conversation(self): self.be.reset_conversation()
     def maybe_warm(self): pass
-    def stream(self, prompt, wav=None, image=None): yield from self.be.stream(prompt, wav=wav, image=image)
+    def stream(self, prompt, wav=None, image=None):
+        t0, text, self.first_line_s = time.time(), "", None
+        for d in self.be.stream(prompt, wav=wav, image=image):
+            text += d
+            if self.first_line_s is None and re.search(r"(?m)^\s*(?:DYNO|SAGE|PENNY)\s*:.*\S.*\n", text):
+                self.first_line_s = round(time.time() - t0, 2)    # model start -> first complete toy line
+            yield d
+        self.raw = text
 
 
 def run_case(llm, toy, said, notes, model_stop=False):
@@ -106,9 +115,10 @@ def judge(kind, want, lines, d):
     if kind in ("stop", "stop_model"):
         ok = len(lines) == 1 and d._quiet_until > time.time()
         return ok, "quiet" if ok else f"{len(lines)} lines, quiet={d._quiet_until > time.time()}"
-    if kind == "penny_first":
-        ok = bool(lines) and lines[0][0] == "penny"
-        return ok, f"first: {lines[0][0] if lines else '-'}"
+    if kind.startswith("named:"):
+        want_toy = kind.split(":")[1]
+        ok = bool(lines) and all(w == want_toy for w, _x in lines)
+        return ok, f"spoke: {', '.join(w for w, _x in lines) or '-'}"
     hit = any(w in first for w in want)
     one = len(lines) <= 2
     nodef = not DEFLECT.search(alltext)
@@ -135,8 +145,14 @@ def main(argv=None):
             llm.reset_conversation()
             lines, d = run_case(llm, toy, said, head + NOTES, model_stop=kind == "stop_model")
             ok, why = judge(kind, want, lines, d)
-            res.append({"case": name, "rep": rep, "ok": ok, "why": why, "child": said, "toys": lines})
-            print(f"{'PASS' if ok else 'FAIL'}  {name:20} {why}\n      child: {said}\n      toys:  " + " / ".join(f"{w}: {x}" for w, x in lines), flush=True)
+            fl = getattr(llm, "first_line_s", None)
+            res.append({"case": name, "rep": rep, "ok": ok, "why": why, "child": said, "toys": lines, "first_line_s": fl,
+                        "raw": getattr(llm, "raw", "")})
+            print(f"{'PASS' if ok else 'FAIL'}  {name:20} {why}  first line {fl} s\n      child: {said}\n      toys:  " + " / ".join(f"{w}: {x}" for w, x in lines)
+                  + (f"\n      raw:   {getattr(llm, 'raw', '')[:160]!r}" if a.audio else ""), flush=True)
+    fls = sorted(r["first_line_s"] for r in res if r.get("first_line_s"))
+    if fls:
+        print(f"model start -> first toy line: median {fls[len(fls) // 2]} s (HEARD_FIRST={int(config.HEARD_FIRST)})")
     n = sum(r["ok"] for r in res)
     print(f"\n{n}/{len(res)} passed (CHILD_LEADS={int(config.CHILD_LEADS)}, {'audio' if a.audio else 'text'})")
     Path(a.out).write_text(json.dumps({"passed": n, "total": len(res), "child_leads": config.CHILD_LEADS, "results": res}, indent=1))

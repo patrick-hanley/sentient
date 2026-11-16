@@ -727,7 +727,7 @@ class RecognizerTests(unittest.TestCase):
         seen = r.analyze(blob((40, 200, 60)), own_toy="dyno")
         self.assertEqual([x.label for x in seen], [perception.SELF_LABEL])            # a mirror or a picture of itself
         v = View("dyno", time.time(), True, seen, seen[0])
-        self.assertIn("DYNO is looking at itself", v.describe())
+        self.assertIn("DYNO is looking at ITSELF, DYNO", v.describe())
         self.assertIn("that's me", camera.look_prompt("DYNO", v.describe(), True))
         self.assertEqual([x.label for x in r.analyze(blob((40, 200, 60)), own_toy="sage")], ["DYNO"])   # another toy sees Dyno
 

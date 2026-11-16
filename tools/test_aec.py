@@ -182,7 +182,7 @@ class BargeTests(unittest.TestCase):
             # the frames returned reach back before the onset: the segmenter sees the true start
             first = r.barge_frame - len(r.barge_frames) + 1
             self.assertLessEqual(first, onset_frame)
-            self.assertGreater(first, onset_frame - 30)
+            self.assertGreater(first, onset_frame - 30 - (config.AEC_PREROLL_FRAMES - 15))   # pre-roll 0.7 s (a soft first word)
         print(f"\n  barge-in latency, child +6 dB over the toy: {np.round(np.array(lat) * 1000)} ms after onset")
         self.assertLess(max(lat), 0.6)
 
@@ -217,7 +217,7 @@ class BargeTests(unittest.TestCase):
             child = r.child[int(2.5 * 16000):int(2.5 * 16000) + 4800]
             cc = np.correlate(u.pcm.astype(float), child, "valid")
             pos = int(np.argmax(np.abs(cc))) / 16000
-            self.assertLess(pos, 0.4)                                 # the child's onset is at the head of the utterance
+            self.assertLess(pos, 0.4 + (config.AEC_PREROLL_FRAMES - 15) * 0.02)   # the onset is at the head (after the 0.7 s pre-roll)
             self.assertGreater(len(u.pcm) / 16000, 1.8)              # and the whole 2 s sentence is in it
 
     def test_stop_cuts_the_reference_so_no_phantom_echo_is_subtracted(self):
@@ -361,7 +361,7 @@ class HubGlueTests(unittest.TestCase):
         self.assertTrue(all(t == "sage" for t, _ in self.heard))
         self.assertGreater(len(self.heard), 40)
         # no frame from before the child began (apart from the pre-roll) was handed on while the toy talked
-        self.assertLessEqual(len(self.heard), nfr - onset + 30)
+        self.assertLessEqual(len(self.heard), nfr - onset + 30 + (config.AEC_PREROLL_FRAMES - 15))   # pre-roll 0.7 s since Nov 15
 
 
 class DirectorGlueTests(unittest.TestCase):
@@ -382,11 +382,11 @@ class DirectorGlueTests(unittest.TestCase):
         self.assertIs(d.utter_q.get_nowait(), new)
         self.assertTrue(d.utter_q.empty())
         self.assertEqual(resets, ["dyno"])                    # the child is mid-sentence on sage: do not cut it
-        d._barge_t = 0.0                                      # no barge: the old behaviour, everything dropped
+        d._barge_t = 0.0                                      # no barge: finished utterances are dropped...
         d.utter_q.put(new)
         d._flush()
         self.assertTrue(d.utter_q.empty())
-        self.assertEqual(sorted(resets), ["dyno", "dyno", "sage"])
+        self.assertEqual(sorted(resets), ["dyno", "dyno"])    # ...but a sentence in progress is the child's: never cut (Nov 15)
 
 
 if __name__ == "__main__":

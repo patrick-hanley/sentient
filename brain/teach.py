@@ -102,6 +102,7 @@ def regions(img, boxes=()) -> list[tuple[int, int, int, int]]:
 class Gallery:
     people: list = field(default_factory=list)   # (name, role, [vec])   role: parent | family | child
     things: list = field(default_factory=list)   # (kind, name, embedder, [vec])   kind: toy | item
+    voices: list = field(default_factory=list)   # (entry id, name, role, [vec])   voice prints (brain/voiceid.py)
 
     def __bool__(self):
         return bool(self.people or self.things)
@@ -186,7 +187,7 @@ class TeachStore:
         """What the board shows: never the vectors."""
         self._need()
         return [{"id": e["id"], "kind": e["kind"], "name": e["name"], "role": e["role"], "photos": e.get("shots") or len(e["vecs"]),
-                 "added": e["added"], "child": e.get("child")} for e in self._entries()]
+                 "added": e["added"], "child": e.get("child"), "voices": len(e.get("voice") or [])} for e in self._entries()]
 
     def gallery(self) -> Gallery:
         """Matching snapshot for the Recognizer; empty while the board is locked. Cheap: cached until something changes."""
@@ -197,7 +198,11 @@ class TeachStore:
                 for e in entries:
                     vecs = [np.asarray(v, dtype=np.float32) for v in e["vecs"]]
                     if e["kind"] in ("person", "child"):
-                        g.people.append((e["name"], e["role"], vecs))
+                        if vecs:
+                            g.people.append((e["name"], e["role"], vecs))
+                        if e.get("voice"):
+                            g.voices.append((e["id"], e["name"], e["role"],
+                                             [np.asarray(v, dtype=np.float32) for v in e["voice"]]))
                     else:
                         g.things.append((e["kind"], e["name"], e["embedder"], vecs))
                 self._gallery = g
@@ -242,6 +247,61 @@ class TeachStore:
             e["consent"] = dt.date.today().isoformat()
             self._save()
             return {"id": e["id"], "kind": kind, "name": e["name"], "role": e["role"], "photos": e.get("shots") or len(e["vecs"])}
+
+    # ---- voice prints (brain/voiceid.py): stored in the person's own entry, deleted with it ----
+    def person_for(self, label: str = "", name: str = "") -> str | None:
+        """Entry id of an enrolled person: a camera label ("dad", "the child") or a name someone said ("dad", the child's name)."""
+        with self._lock:
+            entries = [e for e in self._entries() if e["kind"] in ("person", "child")]
+            if label == "the child":
+                kids = [e for e in entries if e["kind"] == "child"]
+                return kids[0]["id"] if len(kids) == 1 else None
+            want = (label or name).strip().lower()
+            hit = [e for e in entries if want and e["name"].strip().lower() == want]
+            return hit[0]["id"] if len(hit) == 1 else None
+
+    def voice_prints(self, eid: str) -> list:
+        with self._lock:
+            e = next((x for x in self._entries() if x["id"] == eid), None)
+            return [np.asarray(v, dtype=np.float32) for v in (e or {}).get("voice") or []]
+
+    def add_voice(self, eid: str, vec) -> int:
+        """Append one voice print to an enrolled person (consent was given when they were taught). Returns their print count."""
+        from . import voiceid
+        with self._lock:
+            self._need()
+            e = next((x for x in self._entries() if x["id"] == eid and x["kind"] in ("person", "child")), None)
+            if e is None:
+                raise KeyError(eid)
+            e["voice"] = ((e.get("voice") or []) + [[round(float(x), 5) for x in vec]])[-voiceid.MAX_PRINTS:]
+            self._save()
+            return len(e["voice"])
+
+    def forget_voice(self, eid: str):
+        with self._lock:
+            self._need()
+            e = next((x for x in self._entries() if x["id"] == eid), None)
+            if e is None:
+                raise KeyError(eid)
+            e.pop("voice", None)
+            self._save()
+
+    def listen_for_voice(self, eid: str, n: int = 4, secs: float = 60.0):
+        """The Parent Board's "Learn voice": the next n things said near any toy (within secs) are this person."""
+        with self._lock:
+            self._need()
+            if not any(x["id"] == eid and x["kind"] in ("person", "child") for x in self._entries()):
+                raise KeyError(eid)
+            self.voice_pending = {"id": eid, "left": n, "until": time.time() + secs}
+
+    def take_pending_voice(self) -> str | None:
+        with self._lock:
+            p = getattr(self, "voice_pending", None)
+            if not p or time.time() > p["until"] or p["left"] <= 0 or self.parent._dek is None:
+                self.voice_pending = None
+                return None
+            p["left"] -= 1
+            return p["id"]
 
     def delete(self, eid: str):
         with self._lock:

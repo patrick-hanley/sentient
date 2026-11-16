@@ -37,7 +37,7 @@ class Segmenter:
         self.reset()
 
     def reset(self):
-        self.pre = collections.deque(maxlen=15)
+        self.pre = collections.deque(maxlen=config.VAD_PREROLL_FRAMES)
         self.hist = collections.deque(maxlen=10)
         self.active = False
         self.buf: list[np.ndarray] = []

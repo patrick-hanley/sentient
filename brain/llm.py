@@ -151,11 +151,16 @@ class LiteRTBackend:
             try:
                 send_stream = getattr(self.conv, "send_message_async", None)
                 chunks = send_stream(msg) if send_stream else (self.conv.send_message(msg),)
-                for chunk in chunks:
-                    delta = _text(chunk)
-                    if delta:
-                        emitted = True
-                        yield delta
+                try:
+                    for chunk in chunks:
+                        delta = _text(chunk)
+                        if delta:
+                            emitted = True
+                            yield delta
+                except GeneratorExit:             # the reader stopped early; an engine error below is handled as before
+                    if send_stream:
+                        self._abort(chunks)
+                    raise
                 self.turns += 1
                 return
             except Exception as exc:
@@ -164,6 +169,24 @@ class LiteRTBackend:
                 if emitted or attempt:
                     raise
                 log.warning("send failed before output (%s) — retrying with a new conversation", exc)
+
+    def _abort(self, chunks):
+        """The reader stopped early (a forced look, a barge-in, stop). The engine is still generating on its own thread and
+        calls back into Python; the next message would replace that callback while it is in use and crash the process
+        (SEGV/SIGILL, Nov 15). Cancel the generation and read it to its end before anyone sends again (we hold the lock)."""
+        try:
+            self.conv.cancel_process()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("cancel failed (%s)", exc)
+        try:
+            for _ in chunks:                  # ends on the engine's CANCELLED (or final) chunk
+                pass
+        except Exception:  # noqa: BLE001
+            pass
+        close = getattr(chunks, "close", None)
+        if close:
+            close()
+        self.new_conversation()               # a cancelled conversation answers nothing after (measured on the Jetson)
 
     def ask(self, text: str, wav: str | None = None, image: str | None = None) -> str:
         return "".join(self.stream(text, wav=wav, image=image))
