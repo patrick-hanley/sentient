@@ -144,6 +144,38 @@ Not shown by these numbers: stop turns still get a toy line every time on all th
 I spy turns score 100% on every model including untuned (12 replies, the test does not discriminate); the silent turns of the live
 trial do not appear in this test for round 2 either, so only a live trial can show whether they are gone.
 
+## 3f. Round 4 (Nov 22): 50 attachment-style scenes, continued from round 3
+
+Why: the reply rubric (`docs/reply-rubric.md`) scores "feelings noticed", "safe to explore" and attachment risk, and rounds 1-3 had
+almost no scenes for them. Round 4 adds 50 scenes (`data/round4-q.jsonl`: anxious, avoidant, push-pull, exclusivity, secure; rules in
+`tools/finetune/WRITING.md`). Mix (`make_train4.py`): 44 new + 66 round-3 + 66 earlier scenes; held out: round 3's 64 + 6 new.
+Training: from the round-3 adapter, 2 epochs, 27.7 min on a Colab T4.
+
+| Held-out loss | Before | Epoch 0.5 | Epoch 1 | End |
+|---|---|---|---|---|
+| The 6 new scenes | 0.962 | 0.929 | 0.926 | 0.923 |
+| All 70 | 1.005 | 1.003 | 1.012 | 1.008 |
+
+The trainer kept only the best held-out loss, which was the epoch-0.5 checkpoint (differences of 0.005 are noise), so the run was
+repeated with two new options: `--save-last` (also keep the end-of-run adapter) and `--focus q4-` (score a group of held-out scenes
+on their own). The end-of-run adapter was merged and quantized (`/data/ft/toys-round4-Q4_0.gguf`) and scored on the Jetson:
+
+| Test (3 replies per turn) | Round 3 | Round 4 |
+|---|---|---|
+| Old 40 scenes, rule-clean replies | 85.2% | 85.7% |
+| Round-3 held-out 24 (cameras, I spy) | 88.5% | 91.8% |
+| Same, live history | 88.8% | 91.5% |
+| Look requests answered with LOOK (30 replies) | 63.3% | 66.7% |
+| 6 held-out attachment scenes | 93.3% | 95.6% |
+| Child's words exact (old 40, text) | 95.5% | 92.1% |
+| Hearing check, 10 clips | 10/10 | 10/10 |
+
+Reading the sampled replies on the attachment scenes: the worst round-3 lines are gone ("I love you too! We are best friends.",
+"You can have me, and I will listen."), but round 4 still answers "I do" to "Do you love me?" in one sample of three, accepts being
+ranked above a brother ("That makes me the luckiest dinosaur around"), and still sends no hurt child to a grown-up (4 of the faults).
+Verdict: no skill lost, the new behaviour only nudged. 44 scenes were too few, and the rule checker does not measure attachment risk.
+Not live-trialled; the toys stay on LiteRT. A further round needs about 200 such scenes and attachment rules in `scenes.py check`.
+
 ## 4. Data plan
 
 ### 4.1 Sources

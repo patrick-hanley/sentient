@@ -111,6 +111,9 @@ def main():
     ap.add_argument("--accum", type=int, default=8)
     ap.add_argument("--max-len", type=int, default=3072)
     ap.add_argument("--init", default="", help="an earlier adapter dir to continue from (same rank and modules)")
+    ap.add_argument("--save-last", action="store_true", help="also save the adapter as it is at the end, in <out>-last (the best "
+                    "held-out loss can be an early checkpoint that has hardly seen the new scenes: round 4 saved epoch 0.5)")
+    ap.add_argument("--focus", default="", help="an id prefix (\"q4-\"): held-out scenes with it are also scored on their own")
     ap.add_argument("--dry", action="store_true", help="load, list the LoRA modules, encode the data, one step, then stop")
     a = ap.parse_args()
 
@@ -164,8 +167,16 @@ def main():
     rng, seen, step, t0, run = random.Random(0), 0, 0, time.time(), []
     every, best = max(1, int(len(train) * a.eval_every)), float("inf")
 
+    focus = [e for e in (encode(tok, json.loads(l)["messages"], a.max_len) for l in Path(a.val).read_text().splitlines()
+                         if l.strip() and a.focus and json.loads(l)["id"].startswith(a.focus)) if e]
+    if focus:
+        print(f"{len(focus)} held-out scenes with id {a.focus}*: loss before {val_loss(model, focus):.3f}", flush=True)
+        model.train()
+
     def check(tag):
         nonlocal best
+        if focus:
+            print(f"== {tag} loss on the {len(focus)} {a.focus}* scenes {val_loss(model, focus):.3f}", flush=True)
         v = val_loss(model, val)
         keep = v < best
         if keep:
@@ -206,13 +217,16 @@ def main():
     sample(model, tok, a.val)
     # llama.cpp's converter expects the checkpoint's tensor names (model.language_model.layers.N...)
     from safetensors.torch import load_file, save_file
-    f = Path(a.out) / "adapter_model.safetensors"
-    sd = load_file(str(f))
-    fixed = {}
-    for k, v in sd.items():
-        k2 = k if "language_model" in k else re.sub(r"^(base_model\.model\.)(?:model\.)?layers\.", r"\1model.language_model.layers.", k)
-        fixed[k2] = v.float()
-    save_file(fixed, str(f))
+    if a.save_last:
+        model.save_pretrained(a.out + "-last")
+    for d in [a.out] + ([a.out + "-last"] if a.save_last else []):
+        f = Path(d) / "adapter_model.safetensors"
+        sd = load_file(str(f))
+        fixed = {}
+        for k, v in sd.items():
+            k2 = k if "language_model" in k else re.sub(r"^(base_model\.model\.)(?:model\.)?layers\.", r"\1model.language_model.layers.", k)
+            fixed[k2] = v.float()
+        save_file(fixed, str(f))
     print("saved", a.out, len(fixed), "tensors, e.g.", next(iter(fixed)))
 
 
