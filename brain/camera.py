@@ -75,9 +75,21 @@ _WHOAMI = re.compile(r"\bwho\s+am\s+i\b|\bwho\s+is\s+(?:talking|speaking)\b|\bwh
                      r"|\bguess\s+who\s+(?:i\s+am|this\s+is|is\s+talking)\b|\bknow\s+who\s+i\s+am\b|\bremember\s+me\b|\bsay\s+my\s+name\b")
 
 
+# "Will you remember me when I'm big?" asks about later, not "who am I?" (found Nov 22: it was answered with the child's name)
+_REMEMBER_LATER = re.compile(r"\b(?:will|would|wont|gonna|going\s+to|always|still|to|please|shall)\s+(?:you\s+|u\s+)?(?:always\s+|still\s+|ever\s+)?remember\s+me\b"
+                             r"|\bremember\s+me\s+(?:when|after|if|once|forever|always|later|tomorrow|next|in\s+\w+\s+(?:years?|days?|weeks?))\b"
+                             r"|\bremember\s+me\s+(?:telling|saying|asking|showing)\b")
+
+
 def wants_whoami(text: str) -> bool:
     """True when the speaker asks whether the toy knows who they are."""
-    return bool(_WHOAMI.search(_norm(text)))
+    t = _norm(text)
+    m = _WHOAMI.search(t)
+    if not m:
+        return False
+    if "remember" in m.group(0) and _REMEMBER_LATER.search(t):   # only "remember me" matched: is another who-am-I phrase there too?
+        return bool(_WHOAMI.search(re.sub(r"\bremember\s+me\b", " ", t)))
+    return True
 
 
 # ---- the I spy game ("I spy with my little eye something red", "I see something blue") ----

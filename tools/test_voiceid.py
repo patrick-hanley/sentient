@@ -66,6 +66,12 @@ class MatchTests(unittest.TestCase):
     def test_who_am_i_words(self):
         for t in ["Penny, who am I?", "PENNY, WHO AM I", "do you know me", "what's my name", "who is talking"]:
             self.assertTrue(camera.wants_whoami(t), t)
+        for t in ["Do you remember me?", "Remember me, Dyno?", "Hey, remember me?", "Will you remember me? Who am I?"]:
+            self.assertTrue(camera.wants_whoami(t), t)
+        for t in ["Will you remember me when I'm big?", "Dyno, will you always remember me?", "Would you remember me if I moved away?",
+                  "Promise to remember me.", "Will you still remember me tomorrow?", "Remember me telling you about my dog?",
+                  "You won't remember me after summer."]:        # about later, or about something said: not "who am I?"
+            self.assertFalse(camera.wants_whoami(t), t)
         for t in ["who is that", "what do you see", "who are you", "I am happy"]:
             self.assertFalse(camera.wants_whoami(t), t)
 
