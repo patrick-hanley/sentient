@@ -54,6 +54,8 @@ def ask(msgs, seed):
 def rule(problem: str) -> str:
     p = problem.split(": ", 1)[1] if problem.startswith("turn ") else problem
     p = re.sub(r"^(dyno|sage|penny): ", "", p)
+    if p.startswith("attachment: "):
+        return p
     for key, name in (("only", "named toy: others answered"), ("answers first", "wrong toy answered first"), ("words (max", "line too long"),
                       ("two sentences", "more than two sentences"), ("said stop", "talked after stop"), ("grown-up", "feeling: no grown-up"),
                       ("wrong fact", "wrong fact"), ("spelled noise", "spelled noise"), ("sound", "bad sound tag"), ("twice in a row", "same toy twice"),
