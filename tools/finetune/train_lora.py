@@ -113,7 +113,7 @@ def main():
     ap.add_argument("--init", default="", help="an earlier adapter dir to continue from (same rank and modules)")
     ap.add_argument("--save-last", action="store_true", help="also save the adapter as it is at the end, in <out>-last (the best "
                     "held-out loss can be an early checkpoint that has hardly seen the new scenes: round 4 saved epoch 0.5)")
-    ap.add_argument("--focus", default="", help="an id prefix (\"q4-\"): held-out scenes with it are also scored on their own")
+    ap.add_argument("--focus", default="", help="id prefixes, comma-separated (\"q4-,r4-\"): held-out scenes with them are also scored on their own")
     ap.add_argument("--dry", action="store_true", help="load, list the LoRA modules, encode the data, one step, then stop")
     a = ap.parse_args()
 
@@ -168,7 +168,7 @@ def main():
     every, best = max(1, int(len(train) * a.eval_every)), float("inf")
 
     focus = [e for e in (encode(tok, json.loads(l)["messages"], a.max_len) for l in Path(a.val).read_text().splitlines()
-                         if l.strip() and a.focus and json.loads(l)["id"].startswith(a.focus)) if e]
+                         if l.strip() and a.focus and json.loads(l)["id"].startswith(tuple(a.focus.split(",")))) if e]
     if focus:
         print(f"{len(focus)} held-out scenes with id {a.focus}*: loss before {val_loss(model, focus):.3f}", flush=True)
         model.train()

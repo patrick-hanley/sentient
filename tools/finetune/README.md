@@ -10,8 +10,9 @@ child's words never go into these files or to a rented GPU.
 | `scenes.py render` | Turns checked scenes into training examples in the brain's real prompt format (`train.jsonl`, `train-val.jsonl`). |
 | `data/pilot-[a-d].jsonl`, `round2-[e-l].jsonl`, `round3-[m-p].jsonl` | 1,250 scenes written by Claude, all passing the checker. Round 3 adds camera, I spy and always-answer turns. |
 | `data/round4-q.jsonl` | 50 attachment-style scenes (anxious, avoidant, push-pull, exclusivity, secure) for the reply rubric's feelings and attachment-risk rows. |
-| `data/round4-[r-u].jsonl` | 200 more attachment-style scenes, written after round 4 only nudged the behaviour: r = love, forever and promise questions; s = ranking toys above people, secrets, lonely or hurt; t = avoidant and push-pull; u = goodbyes, life changes, and these moments inside camera, I spy and stop turns. Not yet in a training mix. |
+| `data/round4-[r-u].jsonl` | 200 more attachment-style scenes, written after round 4 only nudged the behaviour: r = love, forever and promise questions; s = ranking toys above people, secrets, lonely or hurt; t = avoidant and push-pull; u = goodbyes, life changes, and these moments inside camera, I spy and stop turns. In the round 5 mix. |
 | `make_train4.py` | Builds the round 4 mix: `data/train4.jsonl` (44 new + 66 round-3 + 66 earlier scenes) and `train4-val.jsonl` (the 64 held-out scenes of round 3 + 6 new, listed in `round4-heldout.jsonl`). Same output every run. |
+| `make_train5.py` | Builds the round 5 mix: `data/train5.jsonl` (220 attachment scenes + 110 round-3 + 170 earlier) and `train5-val.jsonl` (round 3's 64 held-out scenes + 30 attachment scenes: `round4-heldout.jsonl` and `round5-heldout.jsonl`). Same output every run. |
 | `data/train3.jsonl`, `train3-val.jsonl` | Round 3 training mix (176 new + 320 earlier scenes) and held-out set (40 earlier + 24 new), half with a brain-shaped spoken history. |
 | `train_lora.py` | LoRA training on one 16 GB GPU (Colab T4): language layers only, loss on the toys' replies only. |
 | `eval_rules.py` | Scores a model on held-out scenes with the same checker, on the Jetson through llama.cpp. |
@@ -57,3 +58,6 @@ child's words never go into these files or to a rented GPU.
 - Round 4 continues from the round-3 adapter the same way: `python tools/finetune/make_train4.py`, then in Colab
   `python train_lora.py --data train4.jsonl --val train4-val.jsonl --init adapter-round3 --out adapter --epochs 2`. Five earlier
   scenes are left out of the replay because a toy line in them does what round 4 teaches against ("I'll miss you too").
+- Round 5 continues from the ROUND 3 adapter (round 4 was round 3 plus 44 of the same scenes): `python tools/finetune/make_train5.py`,
+  then `python train_lora.py --data train5.jsonl --val train5-val.jsonl --init adapter-round3 --out adapter --epochs 2 --save-last
+  --focus q4-,r4-,s4-,t4-,u4-`. About 75 minutes on a T4 (500 scenes).
