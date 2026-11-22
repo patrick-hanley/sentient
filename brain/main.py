@@ -23,6 +23,7 @@ from . import config
 from .atoms import AtomHub, encode_for_atom
 from .director import Director, system_prompt
 from .llm import make_backend
+from .storyears import StoryEars
 from .perception import Perceiver, Recognizer
 from .spectrum import Monitor
 from . import parent as parent_mod, parent_web, scripted, teach, voiceid
@@ -374,12 +375,20 @@ def main():
         threading.Thread(target=llm.warm, daemon=True, name="llm-warm").start()
     segs = {}
     director = None
-    hub = AtomHub(on_audio=lambda toy, pcm: segs[toy].feed(pcm) if toy in segs else None,
+    ears = None
+
+    def on_audio(toy, pcm):
+        if toy in segs:
+            segs[toy].feed(pcm)
+        if ears is not None:
+            ears.feed(toy, pcm)
+    hub = AtomHub(on_audio=on_audio,
                   on_button=lambda toy, kind: director.on_button(toy, kind))
     hub.monitor = Monitor()
     rec = Recognizer()
     eyes = Perceiver(hub, rec)
     director = Director(hub, voices, eyes, llm, segs)
+    ears = StoryEars(director.story_words, director._story_on)   # story mode: sounds within a second of their word
     director.voiceid = voiceid.VoiceID()   # who is talking, by voice print (brain/voiceid.py); off if the model is missing
     hub.on_imu = director.on_imu
     hub.on_barge = director.barge_in

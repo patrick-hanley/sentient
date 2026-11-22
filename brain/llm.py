@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import threading
 import time
+import urllib.error
 import urllib.request
 
 from . import config, nonspeech
@@ -235,21 +236,31 @@ class LlamaCppBackend:
     def request_options(self):
         return {"chat_template_kwargs": {"enable_thinking": False}}
 
-    def __init__(self, system: str):
+    def __init__(self, system: str, gpu: bool = False):
         self.system, self.history = system, []
-
-    def reset_conversation(self):
-        self.history = []
         self.http = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         self.server = None
+        # Audio straight into Gemma (the mmproj carries the audio encoder), like LiteRT-LM: no Whisper step. This is the runtime a
+        # fine-tune can ship on (gemma-kids-social-model-plan.md): a LoRA adapter or a merged GGUF loads here, not in a .litertlm.
+        self.hears_audio = bool(config.LLAMA_AUDIO and config.MMPROJ_GGUF.exists())
+        self.device = "gpu" if gpu else "cpu"
+        if self.hears_audio:
+            self.name = "llama.cpp (audio)" + (" + LoRA" if config.LLAMA_LORA else "")
         if not self._healthy():
-            exe = shutil.which("llama-server") or next(
+            exe = config.LLAMA_SERVER or shutil.which("llama-server") or next(
                 (str(x) for x in sorted(config.OFFLINE.glob("llamacpp-*/*/llama-server"))), None)
             if not exe:
                 raise RuntimeError("llama-server not found (offline/llamacpp-macos-x64/ or brew)")
-            cmd = [exe, "-m", str(config.MODEL_GGUF), "--port", config.LLAMA_URL.rsplit(":", 1)[1], "-c", "4096"]
+            cmd = [exe, "-m", str(config.MODEL_GGUF), "--port", config.LLAMA_URL.rsplit(":", 1)[1],
+                   "-c", "8192" if self.hears_audio else "4096"]   # audio turns are token-heavy: 4096 filled after ~15 turns
             if config.MMPROJ_GGUF.exists():
                 cmd += ["--mmproj", str(config.MMPROJ_GGUF)]
+            if gpu:
+                cmd += ["-ngl", "99"]
+            if self.hears_audio:
+                cmd += ["-np", "1", "--reasoning-budget", "0"]   # one slot keeps the system prompt cached between turns
+            if config.LLAMA_LORA:
+                cmd += ["--lora", config.LLAMA_LORA]
             log.info("starting %s", " ".join(cmd))
             self.server = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             for _ in range(240):
@@ -258,7 +269,11 @@ class LlamaCppBackend:
                 time.sleep(1)
             else:
                 raise RuntimeError("llama-server did not come up")
-        self._init_transcriber()
+        if not self.hears_audio:
+            self._init_transcriber()
+
+    def reset_conversation(self):
+        self.history = []
 
     def _init_transcriber(self):
         self.whisper = shutil.which("whisper-cli") or shutil.which("whisper-cpp")
@@ -286,19 +301,33 @@ class LlamaCppBackend:
 
     def stream(self, text: str, wav: str | None = None, image: str | None = None):
         content = text
+        media = []
+        if wav and self.hears_audio:
+            with open(wav, "rb") as source:
+                media.append({"type": "input_audio", "input_audio": {"data": base64.b64encode(source.read()).decode(), "format": "wav"}})
         if image:
             with open(image, "rb") as source:
                 b64 = base64.b64encode(source.read()).decode()
-            content = [{"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
-                       {"type": "text", "text": text}]
-        msgs = [{"role": "system", "content": self.system}] + self.history[-2 * config.RESET_AFTER_TURNS:] \
-            + [{"role": "user", "content": content}]
-        body = json.dumps({"messages": msgs, "max_tokens": 120, "temperature": 0.8,
-                           "stream": True, **self.request_options()}).encode()
-        req = urllib.request.Request(self.base_url + "/v1/chat/completions", data=body,
-                                     headers={"Content-Type": "application/json"})
+            media.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
+        if media:
+            content = media + [{"type": "text", "text": text}]
+        self.history = self.history[-2 * config.RESET_AFTER_TURNS:]
+        while True:
+            msgs = [{"role": "system", "content": self.system}] + self.history + [{"role": "user", "content": content}]
+            body = json.dumps({"messages": msgs, "max_tokens": 120, "temperature": 0.8,
+                               "stream": True, **self.request_options()}).encode()
+            req = urllib.request.Request(self.base_url + "/v1/chat/completions", data=body,
+                                         headers={"Content-Type": "application/json"})
+            try:
+                response = self.http.open(req, timeout=120)
+                break
+            except urllib.error.HTTPError as e:     # 400 = the conversation no longer fits the context: forget the older half
+                if e.code != 400 or not self.history:
+                    raise
+                self.history = self.history[len(self.history) // 4 * 2 + 2:]
+                log.info("llama.cpp: conversation too long, %d turns of history kept", len(self.history) // 2)
         parts = []
-        with self.http.open(req, timeout=120) as response:
+        with response:
             for event in _sse(response):
                 for choice in event.get("choices", []):
                     if choice.get("index", 0) != 0:
@@ -311,9 +340,11 @@ class LlamaCppBackend:
                     if isinstance(delta, str) and delta:
                         parts.append(delta)
                         yield delta
-        self.history += [{"role": "user", "content": text},
-                         {"role": "assistant", "content": "".join(parts)}]
-        self.history = self.history[-2 * config.RESET_AFTER_TURNS:]
+        reply = "".join(parts)
+        if any((":" in line and not line.upper().startswith("HEARD")) or line.strip() in ("LOOK", "STOP") for line in reply.splitlines()):
+            self.history += [{"role": "user", "content": text}, {"role": "assistant", "content": reply}]
+            self.history = self.history[-2 * config.RESET_AFTER_TURNS:]
+        # else: a reply with no toy line is never remembered (seen live: one empty reply in the history and every later turn was empty too)
 
     def ask(self, text: str, wav: str | None = None, image: str | None = None) -> str:
         return "".join(self.stream(text, wav=wav, image=image))
@@ -356,4 +387,4 @@ def make_backend(kind: str, system: str, gpu: bool):
             if kind == "litert":
                 raise
             log.warning("litert_lm not installed here — using llama.cpp fallback")
-    return LlamaCppBackend(system)
+    return LlamaCppBackend(system, gpu=gpu and bool(config.LLAMA_AUDIO))

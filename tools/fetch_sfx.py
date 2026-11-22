@@ -31,12 +31,15 @@ UA = {"User-Agent": "Mozilla/5.0 (sentient-toys sfx fetcher)"}
 
 # name: (search query, max seconds kept, toy that owns it or None for story sounds, description)
 SOUNDS = {
+    "donkey":      ("donkey bray", 2.0, None, "Donkey braying (hee-haw)"),
+    "glass":       ("glass smash", 1.5, None, "Glass breaking"),
     "dino_roar":   ("dinosaur roar", 2.0, "dyno", "Dyno's roar"),
     "dino_growl":  ("monster growl small", 1.5, "dyno", "Dyno's friendly growl"),
     "penguin":     ("penguin", 1.5, "penny", "Penny's penguin call"),
     "penguin_honk": ("penguin squawk", 1.2, "penny", "Penny's squawk"),
-    "sparkle":     ("magic sparkle chime", 1.8, "sage", "Sage's magic sparkle"),
-    "whinny":      ("horse whinny", 1.8, "sage", "Sage's unicorn whinny"),
+    "sparkle":     ("magic sparkle chime", 1.8, "sage", "Sage's candle-glow sparkle"),
+    "pumpkin_thump": ("pumpkin banging", 1.5, "sage", "Sage's hollow pumpkin thump"),
+    "candle_flicker": ("candle flame flickers", 2.0, "sage", "Sage's candle flickering"),
     "knock":       ("door knock", 1.8, None, "knock at the door"),
     "doorbell":    ("doorbell ding dong", 2.0, None, "doorbell"),
     "door_creak":  ("door creak", 2.0, None, "creaky door"),

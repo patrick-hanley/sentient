@@ -1,0 +1,12 @@
+{"seed": 4, "toys": ["dyno", "sage", "penny"],
+ "room": {"leak": 0.12, "delay_ms": 30, "cross": 0.35, "noise": 15},
+ "config": {"PLAY_FILLERS": false, "IDLE_BANTER_S": 9999},
+ "turns": [{"at": 0.5, "toy": "dyno", "clip": "say:Dyno, tell me a long story about a dragon."},
+           {"at": 9.5, "toy": "sage", "clip": "say:Stop!", "expect": "stop"},
+           {"at": 16.0, "toy": "sage", "clip": "say:Sage, tell me all about the ocean."},
+           {"at": 25.0, "toy": "sage", "clip": "say:Please stop talking.", "expect": "stop"},
+           {"at": 31.0, "toy": "penny", "clip": "say:Penny, what do penguins eat?"},
+           {"at": 40.0, "toy": "dyno", "clip": "say:Okay, be quiet.", "expect": "stop"}],
+ "model": {"prefill_base_s": 0.3, "prefill_per_audio_s": 0.2, "first_token_s": 0.2, "lines": 1, "tts_rtf": 0.05, "voice": "noise",
+           "text": "Once upon a time there was a little dragon who lived on a hill, and every single morning the dragon flew over the village to say hello to all of the people who lived there."},
+ "settle_s": 10}

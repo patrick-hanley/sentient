@@ -12,13 +12,21 @@ has "played", like the real speaker.
 not Gemma. Against the Pi, point it at the real brain (virtual Atoms pick their toy with the test-only `toy=` flag,
 and nothing is saved to the brain's toy map).
 
+A scenario with a "room" block (scenarios/stop_while_talking.json) streams every mic all the time with capture times, and
+each mic hears the child and the other toys' speakers: that exercises the clock sync, the echo canceller and the barge-in
+cut. A turn with "expect": "stop" is scored by score_run.py (was the talking toy cut, how fast, did the toys stay quiet).
+Story mode (tools/scenarios/story_read_aloud.json): the child reads aloud; "expect" is "sound:<name>" (that sound and no
+words), "quiet" (nothing at all), "story_start" / "ask" / "end" / "talk" (a spoken line). score_run.py reports them under "story".
+
 Output: a JSONL event log (default runs/<scenario>-<time>.jsonl). Audio stays in RAM; clips are synthesised or read
 from the scenario, and nothing the brain plays is written to disk. Score it with tools/score_run.py.
 """
 from __future__ import annotations
 
 import argparse
+import collections
 import json
+import logging
 import os
 import random
 import socket
@@ -73,11 +81,14 @@ class Events:
 
 
 class VirtualAtom:
-    def __init__(self, toy, brain, events, speed=1.0, on_reply=None):
+    def __init__(self, toy, brain, events, speed=1.0, on_reply=None, room=None, skew=1000.0):
         self.toy, self.brain, self.ev, self.speed, self.on_reply = toy, brain, events, speed, on_reply
         self.mac = "VA:%s" % toy[:4].upper()
         self.playing = False
-        self.clock_skew = 1000.0   # the Atom's clock is not the brain's: SYNC must recover this offset
+        self.clock_skew = skew     # the Atom's clock is not the brain's: SYNC must recover this offset
+        # room model (scenario "room"): the mic streams all the time (with the capture time, like firmware 3.7+) and hears
+        # the child, the child at the other toys (gain "cross") and the other toys' speakers ("leak", after "delay_ms")
+        self.room, self.peers, self.sources, self.src_lock = room, {}, [], threading.Lock()
         self.halt = threading.Event()
         self.seq = 0
         self.stop = threading.Event()
@@ -124,6 +135,40 @@ class VirtualAtom:
         threading.Thread(target=self.http.serve_forever, daemon=True).start()
         threading.Thread(target=self._hello, daemon=True).start()
         threading.Thread(target=self._drain, daemon=True).start()
+        if self.room is not None:
+            threading.Thread(target=self._mic, daemon=True).start()
+
+    def hear(self, pcm, gain, at):
+        """Room model: `pcm` (16 kHz) reaches this mic from time `at`. Returns the source (set src["end"] to cut it short)."""
+        src = {"t0": at, "pcm": pcm.astype(np.float32) * gain, "end": len(pcm)}
+        with self.src_lock:
+            self.sources.append(src)
+        return src
+
+    def _mic(self):
+        rng = np.random.default_rng(abs(hash(self.toy)) % 2**32)
+        t0, i, noise = time.monotonic(), 0, float(self.room.get("noise", 15))
+        while not self.stop.is_set():
+            due = t0 + i * .02
+            wait = due - time.monotonic()
+            if wait > 0:
+                time.sleep(wait)
+            i += 1
+            acc = rng.normal(0, noise, FRAME).astype(np.float32)
+            with self.src_lock:
+                for src in list(self.sources):
+                    k = int(round((due - src["t0"]) * SR))
+                    if k >= src["end"]:
+                        self.sources.remove(src)
+                    elif k + FRAME > 0:
+                        a, b = max(k, 0), min(k + FRAME, src["end"])
+                        acc[a - k:b - k] += src["pcm"][a:b]
+            if self.playing:      # the firmware gates its own mic while its speaker plays
+                continue
+            frame = np.clip(acc, -32768, 32767).astype("<i2").tobytes()
+            cap = int(self._clock(due) * 1e6).to_bytes(8, "little", signed=True)
+            self.sock.sendto(b"M" + (self.seq & 0xFFFF).to_bytes(2, "little") + frame + cap, self.brain)
+            self.seq += 1
 
     def _hello(self):
         msg = f"HELLO {self.mac} cam=0 mic=1 spk=1 fw=virtual toy={self.toy} hport={self.hport}".encode()
@@ -131,8 +176,11 @@ class VirtualAtom:
             self.sock.sendto(msg, self.brain)
             self.stop.wait(1.0)
 
+    def _clock(self, t):     # the Atom's own clock at brain time t: an offset, and a crystal that runs "drift_ppm" fast
+        return t * (1 + (self.room or {}).get("drift_ppm", 0) * 1e-6) + self.clock_skew
+
     def _us(self):
-        return int((time.monotonic() + self.clock_skew) * 1e6)
+        return int(self._clock(time.monotonic()) * 1e6)
 
     def _drain(self):
         while not self.stop.is_set():
@@ -157,20 +205,36 @@ class VirtualAtom:
         self.ev.add(ev="play_start", toy=self.toy, dur=round(dur, 3), bytes=len(body))
         self.halt.clear()
         self.sock.sendto(b"PLAYING %d" % self._us(), self.brain)
-        self.halt.wait(dur / self.speed)
+        t_play, leaks = time.monotonic(), []
+        if self.room is not None and self.room.get("leak", 0):
+            heard = resample(pcm, rate, SR)
+            leaks = [p.hear(heard, self.room["leak"], t_play + self.room.get("delay_ms", 30) / 1000)
+                     for p in self.peers.values() if p is not self]
+        cut = self.halt.wait(dur / self.speed)        # True: the brain sent STOP (barge-in, "stop")
+        played = time.monotonic() - t_play
+        for src in leaks:
+            src["end"] = min(src["end"], int(played * SR))
         self.playing = False
         self.sock.sendto(b"PLAYED %d" % self._us(), self.brain)
-        self.ev.add(ev="play_end", toy=self.toy, dur=round(dur, 3))
+        self.ev.add(ev="play_end", toy=self.toy, dur=round(dur, 3), cut=bool(cut), played=round(played, 3))
         if self.ev.audio is not None:   # --transcribe: RAM only, never written to disk
             self.ev.audio.append((self.toy, round(started, 4), resample(pcm, rate, SR)))
         if self.on_reply:
             self.on_reply(self.toy, resample(pcm, rate, SR), dur)
         return b"OK %d" % int(dur * 1000)
 
-    def say(self, pcm: np.ndarray, label: str):
+    def say(self, pcm: np.ndarray, label: str, **tags):
         """Send `pcm` as mic frames in real time. Suppressed while playing, like the firmware's rx_busy."""
         n = len(pcm) // FRAME
-        self.ev.add(ev="speech_start", toy=self.toy, label=label, dur=round(n * .02, 3))
+        self.ev.add(ev="speech_start", toy=self.toy, label=label, dur=round(n * .02, 3), **tags)
+        if self.room is not None:      # the mic thread does the sending; the child is heard at every toy
+            if label != "silence":
+                at = time.monotonic() + .02
+                for p in self.peers.values():
+                    p.hear(pcm, 1.0 if p is self else self.room.get("cross", 0.3), at)
+            time.sleep(n * .02)
+            self.ev.add(ev="speech_end", toy=self.toy, label=label, frames=n)
+            return
         t0 = time.monotonic()
         sent = 0
         for i in range(n):
@@ -246,6 +310,7 @@ class FakeLLM:
 
     def __init__(self, cfg, rng):
         self.cfg, self.rng = cfg, rng
+        self.heard = collections.deque()   # the scenario's words, in order: the fake "hears" them (stop / names are found in code)
 
     def stream(self, prompt, wav=None, image=None):
         import re
@@ -260,7 +325,11 @@ class FakeLLM:
         m = re.search(r"\[HEARD BY\] (\w+)", prompt)
         online = re.search(r"\[TOYS HERE\] ([^(]+)\(", prompt).group(1).split(", ")
         who = (m.group(1) if m else online[0]).strip().upper()
-        yield "HEARD: something\n"
+        said = "something"
+        if wav and self.heard:        # the newest words spoken: an utterance the brain missed must not shift the later ones
+            said = self.heard[-1]
+            self.heard.clear()
+        yield f"HEARD: {said}\n"
         lines = int(c.get("lines", 1))
         order = [who] + [x.strip().upper() for x in online if x.strip().upper() != who]
         for i in range(min(lines, len(order))):
@@ -275,8 +344,15 @@ class FakeVoices:
 
     def render(self, toy, text, persist=False):
         dur = max(.6, len(text) * .06)
-        time.sleep(dur * self.cfg.get("tts_rtf", .9))
+        if text.startswith("{") and text.endswith("}"):   # a lone sound effect (story mode): a recording, no synthesis
+            dur = self.cfg.get("sfx_s", 2.0)
+        else:
+            time.sleep(dur * self.cfg.get("tts_rtf", .9))
         t = np.arange(int(dur * SR)) / SR
+        if self.cfg.get("voice") == "noise":   # speech-like wide-band sound: an echo canceller cannot lock onto a pure tone
+            x = np.random.default_rng(len(text)).normal(0, 1, len(t))
+            x = np.convolve(x, np.ones(4) / 4, "same") * (0.55 + 0.45 * np.sin(2 * np.pi * 4 * t))
+            return (3000 * x / x.std()).astype(np.int16).tobytes()
         return (3000 * np.sin(2 * np.pi * 200 * t)).astype(np.int16).tobytes()
 
     def clip_id(self, toy, text):
@@ -299,6 +375,7 @@ def selfhost(cfg, toys):
     director = Director(hub, FakeVoices(cfg.get("model", {})), eyes, llm, segs)
     for t in config.TOY_ORDER:
         segs[t] = Segmenter(t, director.utter_q)
+    hub.on_barge = director.barge_in      # as brain/main.py wires it: the child talks over a toy -> cut it
     hub.start()
     director.start()
     return hub, director
@@ -339,10 +416,36 @@ def run(args):
             atoms[target].silence(1.2)
         threading.Thread(target=go, daemon=True).start()
 
-    for t in toys:
-        atoms[t] = VirtualAtom(t, brain, ev, speed=args.speed, on_reply=on_reply)
-        atoms[t].start()
+    room = sc.get("room")
+    for i, t in enumerate(toys):
+        atoms[t] = VirtualAtom(t, brain, ev, speed=args.speed, on_reply=on_reply, room=room, skew=1000.0 + 777.7 * i)
+        atoms[t].peers = atoms
+    for a in atoms.values():
+        a.start()
     time.sleep(2.0)
+    if director is not None:
+        class BargeLog(logging.Handler):       # how the brain noticed the child over a toy
+            def emit(self, r):
+                m = r.getMessage()
+                if m.startswith("barge-in: "):
+                    ev.add(ev="barge", mode="echo canceller" if "echo canceller" in m else "loudness")
+        logging.getLogger("atoms").addHandler(BargeLog())
+
+        class StoryLog(logging.Handler):       # story mode: which sound the brain chose, and when the mode turned on/off
+            def emit(self, r):
+                m = r.getMessage()
+                if m.startswith("story sound: "):
+                    for i, part in enumerate(m[13:].split(", ")):     # several: they play one after another
+                        name, _, toy = part.partition(" on ")
+                        ev.add(ev="story_sound", sound=name, toy=toy, nth=i)
+                elif m.startswith("story mode "):
+                    ev.add(ev="story_mode", on=m.startswith("story mode on"))
+        logging.getLogger("director").addHandler(StoryLog())
+        logging.getLogger("director").setLevel(logging.INFO)
+        logging.getLogger("atoms").setLevel(logging.INFO)
+        if room is not None:
+            director.hub.sync_clocks()
+            time.sleep(.3)
     clips = {}
     threads = []
     for turn in sc["turns"]:
@@ -354,7 +457,9 @@ def run(args):
     def fire(turn):
         time.sleep(max(0, turn["at"] / args.speed - (time.monotonic() - ev.t0)))
         a = atoms[turn["toy"]]
-        a.say(clips[turn["clip"]], turn["clip"])
+        if director is not None and hasattr(director.llm, "heard"):
+            director.llm.heard.append(turn.get("text") or turn["clip"].partition(":")[2])
+        a.say(clips[turn["clip"]], turn["clip"], **({"expect": turn["expect"]} if turn.get("expect") else {}))
         a.silence(turn.get("tail_s", 1.2))   # the brain needs silence to close the utterance
     for turn in sc["turns"]:
         th = threading.Thread(target=fire, args=(turn,))
@@ -363,6 +468,11 @@ def run(args):
     for th in threads:
         th.join()
     time.sleep(sc.get("settle_s", 12) / args.speed)
+    if director is not None and room is not None:   # did SYNC recover each Atom's clock? (the echo canceller places audio with it)
+        for t, a in atoms.items():
+            h, now = director.hub.atoms.get(t), time.monotonic()
+            ok = h is not None and h.clock_off is not None
+            ev.add(ev="clock_sync", toy=t, err_ms=round((h.off(now) - (a._clock(now) - now)) * 1000, 2) if ok else None)
     ev.save()
     if args.transcribe:
         transcribe(ev, str(out) + ".transcript.json", [(t["toy"], t["label"], t["t"]) for t in ev.items
@@ -383,7 +493,11 @@ if __name__ == "__main__":
     ap.add_argument("--out")
     ap.add_argument("--set", action="append", default=[], metavar="KEY=JSON",
                     help="override a brain config value in --selfhost, e.g. --set END_SILENCE_MS=700 --set PLAY_FILLERS=false")
+    ap.add_argument("--log", action="store_true", help="print the brain's own log (--selfhost)")
     ap.add_argument("--transcribe", action="store_true",
                     help="after the run, transcribe what each toy said (RAM only) into <out>.transcript.json")
-    run(ap.parse_args())
+    a = ap.parse_args()
+    if a.log:
+        logging.basicConfig(level=logging.INFO, format="%(relativeCreated)7d %(name)s %(message)s")
+    run(a)
     os._exit(0)

@@ -3,7 +3,7 @@
 A toy cannot hear while its own speaker plays (shared codec), but the other toys' mics keep streaming. While one toy
 talks, each of the others is watched for a voice clearly louder than that toy's own speech leaking into the room:
 `ref` is the loudest 100 ms of leakage seen so far in this clip (it decays slowly), and a voice must beat it by
-BARGE_RATIO for BARGE_MS in a row, above BARGE_MIN_RMS, and be speech to webrtcvad. Audio is RAM only: a 300 ms ring
+BARGE_RATIO for BARGE_MS in a row (the leakage level is learned from the moment the toy becomes audible in that mic), above BARGE_MIN_RMS, and be speech to webrtcvad. Audio is RAM only: a 300 ms ring
 per toy, handed to the normal segmenter on a trigger so the first word is not lost."""
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ class BargeDetector:
         self.max_ratio = 0.0     # for calibration: highest loudness-over-leakage ratio seen in the last clip
 
     def _state(self, toy):
-        return self.st.setdefault(toy, dict(ref=0.0, win=collections.deque(maxlen=5), run=0, voiced=0, n=0,
+        return self.st.setdefault(toy, dict(ref=0.0, win=collections.deque(maxlen=5), run=0, voiced=0, n=0, on=None,
                                             ring=collections.deque(maxlen=50), lag=collections.deque(maxlen=25)))
 
     def reset(self, session=None):
@@ -48,7 +48,15 @@ class BargeDetector:
         s["n"] += 1
         m = sum(s["win"]) / len(s["win"])
         s["ref"] = max(s["ref"] * 0.9985, m) if s["n"] > 5 else max(s["ref"], m)   # ~half-life 7 s at 50 frames/s
-        if s["n"] < config.BARGE_WARMUP_MS // FRAME_MS:
+        # A clip starts quiet (network and speaker start-up, Sage's lead-in silence): the first sound in this mic is the toy
+        # itself. Learning the leakage level begins THERE, not at the clip's start: learned from the silence, the toy's own
+        # first words looked like a child 60x louder than "the leakage" and the toy cut itself off (seen live, Nov 21).
+        if s["on"] is None:
+            if m > config.BARGE_ONSET_RMS or s["n"] * FRAME_MS >= config.BARGE_ONSET_WAIT_MS:
+                s["on"] = s["n"]
+            else:
+                return None
+        if s["n"] - s["on"] < config.BARGE_WARMUP_MS // FRAME_MS:
             return None
         # compare with the leakage level from 0.5 s ago, before this voice rose (ref already includes the current frames)
         s["lag"].append(s["ref"])

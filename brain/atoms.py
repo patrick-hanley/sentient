@@ -57,11 +57,35 @@ class Atom:
     pkts: int = 0
     lost: int = 0                               # mic packets missing by sequence number (UDP loss)
     last_seq: int = -1
-    clock_off: float | None = None              # atom_clock - brain_monotonic, seconds (from SYNC/SYNCR, lowest RTT wins)
+    clock_off: float | None = None              # atom_clock - brain_monotonic at clock_ref, seconds (from SYNC/SYNCR); use off()
+    clock_rate: float = 0.0                     # how fast that offset moves (the two crystals differ by tens of ppm), s per s
+    clock_ref: float = 0.0
     sync_rtt: float = 9.9
+    sync_samples: collections.deque = field(default_factory=lambda: collections.deque(maxlen=400))
     sync_sent: dict = field(default_factory=dict)
     hport: int = 0                              # test rigs only: HTTP port of a virtual Atom (real ones use 80)
     local_until: float = 0.0                    # the toy is playing one of its own flash clips until then (mics stay off)
+
+    def add_sync(self, sent: float, rtt: float, atom_s: float) -> None:
+        """One SYNC round trip. The offset is re-estimated from the last SYNC_WINDOW_S of pings: the ones with the shortest
+        round trips (least skewed, NTP-style), with a straight line through them so the offset follows the crystals' drift.
+        (Before: the single best ping EVER was kept, so the offset went stale by the drift, about 0.1 s per hour at 30 ppm.)"""
+        mid = sent + rtt / 2
+        self.sync_samples.append((mid, atom_s - mid, rtt))
+        recent = [s for s in self.sync_samples if s[0] >= mid - config.SYNC_WINDOW_S]
+        best = min(recent, key=lambda s: s[2])
+        good = [s for s in recent if s[2] <= best[2] * 1.5 + 0.001]
+        self.sync_rtt, self.clock_ref = best[2], mid
+        if len(good) >= 8 and good[-1][0] - good[0][0] >= 30:
+            t = np.array([s[0] - mid for s in good])
+            rate, off = np.polyfit(t, np.array([s[1] for s in good]), 1)
+            self.clock_rate, self.clock_off = float(np.clip(rate, -3e-4, 3e-4)), float(off)
+        else:
+            self.clock_rate, self.clock_off = 0.0, best[1]
+
+    def off(self, now: float) -> float:
+        """atom_clock - brain_monotonic at brain time `now`."""
+        return self.clock_off + self.clock_rate * (now - self.clock_ref)
 
     @property
     def base(self) -> str:
@@ -252,7 +276,7 @@ class AtomHub:
                 pcm = np.frombuffer(data[3:643], "<i2") if len(data) >= 643 else np.frombuffer(data[3:], "<i2")
                 cap = None
                 if len(data) >= 651 and a.clock_off is not None:
-                    cap = int.from_bytes(data[643:651], "little", signed=True) / 1e6 - a.clock_off   # brain time
+                    cap = int.from_bytes(data[643:651], "little", signed=True) / 1e6 - a.off(time.monotonic())   # brain time
                 a.last_seen, a.pkts = now, a.pkts + 1
                 seq = data[1] | data[2] << 8
                 if a.last_seq >= 0:
@@ -320,9 +344,7 @@ class AtomHub:
                 a = self.by_addr.get((ip, port)) or self.by_ip.get(ip)
                 parts = data.split()
                 if a and len(parts) == 3 and (sent := a.sync_sent.pop(parts[1], None)) is not None:
-                    rtt = time.monotonic() - sent
-                    if rtt < a.sync_rtt:   # NTP-style: the sample with the shortest round trip is the least skewed
-                        a.sync_rtt, a.clock_off = rtt, int(parts[2]) / 1e6 - (sent + rtt / 2)
+                    a.add_sync(sent, time.monotonic() - sent, int(parts[2]) / 1e6)
             elif data[:3] == b"IMU":
                 a = self.by_addr.get((ip, port)) or self.by_ip.get(ip)
                 parts = data.decode(errors="replace").split()
@@ -341,7 +363,7 @@ class AtomHub:
                 if a and self.on_playback:
                     when = time.monotonic()                       # arrival time: the fallback without a clock offset
                     if a.clock_off is not None and len(parts) == 2:
-                        when = int(parts[1]) / 1e6 - a.clock_off   # the Atom's own timestamp, in brain time
+                        when = int(parts[1]) / 1e6 - a.off(when)   # the Atom's own timestamp, in brain time
                     if self.aec is not None and self.talking == a.toy:   # the brain's own clip: where it sits on the listeners' timelines
                         (self.aec.playing if parts[0] == b"PLAYING" else self.aec.played)(a.toy, when)
                     self.on_playback(a.toy, parts[0].decode(), when)
@@ -447,7 +469,7 @@ class AtomHub:
             a.clips.pop(name, None)   # missing on the Atom after all: fall back
         return self.play(toy, voices.render(toy, text, persist=True), **kw)
 
-    def _send(self, toy, url, body, dur, what, *, on_dispatch=None, raise_on_error=False, ref=None):
+    def _send(self, toy, url, body, dur, what, *, on_dispatch=None, raise_on_error=False, ref=None, open_mics=False):
         """POST to the Atom and wait: it replies only after its speaker has finished, so the
         reply time is the true end of speech. Returns seconds, or None if a clip was missing."""
         with self._play_lock:
@@ -455,7 +477,8 @@ class AtomHub:
             self.play_id += 1
             self._barged = False
             self.floor.agent_start(toy)
-            self.mute_until = max(self.mute_until, time.time() + dur + 2.0)
+            if not open_mics:   # open_mics: a story sound (brain/story.py). The child reads on, so the other toys keep listening
+                self.mute_until = max(self.mute_until, time.time() + dur + 2.0)   # (echo-cancelled; a sound has no words to mishear)
             if ref is not None and self.aec is not None:   # what the speaker will play: the other toys' mics hear it
                 self.aec.begin(toy, ref, time.monotonic())
             try:
@@ -479,7 +502,8 @@ class AtomHub:
                 if raise_on_error:
                     raise
             finally:
-                self.mute_until = time.time() if self._barged else time.time() + config.MIC_TAIL_S   # cut by the child: listen now
+                if not open_mics:
+                    self.mute_until = time.time() if self._barged else time.time() + config.MIC_TAIL_S   # cut by the child: listen now
                 if self._barged:
                     self.floor.human_end()
                 elif getattr(self, "barge", None) is not None and self.barge.max_ratio:
@@ -491,7 +515,7 @@ class AtomHub:
                         log.info(line)
         return dur
 
-    def play(self, toy: str, pcm: bytes, *, on_dispatch=None, raise_on_error=False) -> float:
+    def play(self, toy: str, pcm: bytes, *, on_dispatch=None, raise_on_error=False, open_mics=False) -> float:
         """Blocking: sends speech to `toy`, returns after it has finished playing."""
         a = self.atoms.get(toy)
         dur = len(pcm) / 2 / config.SAMPLE_RATE
@@ -503,5 +527,5 @@ class AtomHub:
         body, query = encode_for_atom(pcm)
         ref = wire_to_ref(body, config.PLAY_CODEC if config.PLAY_CODEC == "ulaw" else "pcm", config.PLAY_RATE) if self.aec is not None else None
         self._send(toy, f"http://{a.base}/play?{query}", body, dur, f"{len(body) // 1024} KB {query}",
-                   on_dispatch=on_dispatch, raise_on_error=raise_on_error, ref=ref)
+                   on_dispatch=on_dispatch, raise_on_error=raise_on_error, ref=ref, open_mics=open_mics)
         return dur

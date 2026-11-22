@@ -36,7 +36,7 @@
     "set": "character"
   },
   "sparkle": {
-    "desc": "Sage's magic sparkle",
+    "desc": "Sage's candle-glow sparkle",
     "toy": "sage",
     "seconds": 1.8,
     "query": "magic sparkle chime",
@@ -45,18 +45,6 @@
     "author": "newagesoup",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/newagesoup/sounds/351408/",
-    "set": "character"
-  },
-  "whinny": {
-    "desc": "Sage's unicorn whinny",
-    "toy": "sage",
-    "seconds": 1.8,
-    "query": "horse whinny",
-    "freesound_id": "149024",
-    "title": "Horse_Whinny.wav",
-    "author": "foxen10",
-    "license": "CC0 1.0",
-    "url": "https://freesound.org/people/foxen10/sounds/149024/",
     "set": "character"
   },
   "doorbell": {
@@ -562,5 +550,53 @@
     "author": "SoundsForHim",
     "license": "CC0 1.0",
     "url": "https://freesound.org/people/SoundsForHim/sounds/399642/"
+  },
+  "pumpkin_thump": {
+    "desc": "Sage's hollow pumpkin thump",
+    "toy": "sage",
+    "set": "character",
+    "seconds": 1.5,
+    "query": "pumpkin banging",
+    "freesound_id": "456444",
+    "title": "Pumpkin Banging",
+    "author": "brandonmoeller",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/brandonmoeller/sounds/456444/"
+  },
+  "candle_flicker": {
+    "desc": "Sage's candle flickering",
+    "toy": "sage",
+    "set": "character",
+    "seconds": 2.0,
+    "query": "candle flame flickers",
+    "freesound_id": "204531",
+    "title": "Candle flicker/ blown out x4",
+    "author": "peridactyloptrix",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/peridactyloptrix/sounds/204531/"
+  },
+  "donkey": {
+    "desc": "Donkey braying (hee-haw)",
+    "toy": null,
+    "set": "story",
+    "seconds": 1.81,
+    "query": "donkey bray",
+    "freesound_id": "560692",
+    "title": "Donkey Bray",
+    "author": "StarNinjas37",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/StarNinjas37/sounds/560692/"
+  },
+  "glass": {
+    "desc": "Glass breaking",
+    "toy": null,
+    "set": "story",
+    "seconds": 1.5,
+    "query": "glass smash",
+    "freesound_id": "244238",
+    "title": "Glass Smash.wav",
+    "author": "chewiesmissus",
+    "license": "CC0 1.0",
+    "url": "https://freesound.org/people/chewiesmissus/sounds/244238/"
   }
 }

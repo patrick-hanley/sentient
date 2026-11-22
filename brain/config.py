@@ -15,10 +15,13 @@ SCENE_TOPIC = int(os.environ.get("SENTIENT_SCENE_TOPIC", "1"))   # ON (graded ke
 JUST_SAID = int(os.environ.get("SENTIENT_JUST_SAID", "0"))       # 1 = a continuing toy chat quotes the last two lines and asks the first line to build on them (#3; needs SCENE_TOPIC)
 BEATS = int(os.environ.get("SENTIENT_BEATS", "1"))               # ON (graded keep s2d); 1 = each line of a continuing toy chat gets a job: ask -> answer -> playful reaction (#2; needs SCENE_TOPIC)
 MODEL_LITERT = Path(os.environ.get("SENTIENT_MODEL", Path.home() / ".litert-lm/models/gemma4-e2b/model.litertlm"))
-MODEL_GGUF = OFFLINE / "gguf/gemma-4-E2B-it-Q4_0.gguf"
+MODEL_GGUF = Path(os.environ.get("SENTIENT_GGUF") or OFFLINE / "gguf/gemma-4-E2B-it-Q4_0.gguf")   # a merged fine-tune: SENTIENT_GGUF=/data/ft/toys-...gguf
 MMPROJ_GGUF = OFFLINE / "gguf/mmproj-gemma-4-E2B-it-Q8_0.gguf"
 WHISPER_MODEL = OFFLINE / "whisper/ggml-base.en.bin"
 LLAMA_URL = os.environ.get("SENTIENT_LLAMA_URL", "http://127.0.0.1:8081").rstrip("/")
+LLAMA_AUDIO = os.environ.get("SENTIENT_LLAMA_AUDIO", "0") == "1"   # llama.cpp hears the child directly (mmproj audio encoder), no Whisper; GPU when the brain runs on one
+LLAMA_LORA = os.environ.get("SENTIENT_LLAMA_LORA", "")             # a GGUF LoRA adapter (tools/finetune): the fine-tune path, see gemma-kids-social-model-plan.md
+LLAMA_SERVER = os.environ.get("SENTIENT_LLAMA_SERVER", "")         # llama-server binary when it is not on PATH (Jetson: /data/build/llama.cpp/build/bin/llama-server)
 GENIEX_URL = os.environ.get("SENTIENT_GENIEX_URL", "http://127.0.0.1:18181").rstrip("/")
 GENIEX_MODEL = os.environ.get("SENTIENT_GENIEX_MODEL", "google/gemma-4-E2B-it-qat-q4_0-gguf:Q4_0")
 
@@ -58,7 +61,7 @@ TOYS = {
     "sage": dict(name="Sage", aruco=2, voice="en_GB-alba-medium", speaker=None, length=1.08, pitch=1.0,
                  kokoro="bf_emma", kspeed=0.95, kpitch=1.0,    # Kokoro (British)
                  lead_ms=200,   # silence before every clip/line: Sage's speaker loses the first ~0.1-0.2 s (cut-off "...think")
-                 looks="a baby dressed up in a unicorn costume, with a horn",
+                 looks="a jack-o'-lantern plush: an orange pumpkin with a carved smiling face",
                  persona="calm and careful; explains things simply; the reader who can look at books, worksheets "
                          "and pictures; helps with homework by giving hints, not just answers"),
     "penny": dict(name="Penny", aruco=3, voice="en_US-libritts_r-medium", speaker=20, length=0.95, pitch=1.25,
@@ -132,12 +135,17 @@ START_FRAMES = 6             # voiced frames out of last 10 to open an utterance
 VAD_PREROLL_FRAMES = 50      # audio kept before the onset (1 s): a soft first word ("Dyno,") must not be cut
 END_SILENCE_MS = 500
 MIN_SPEECH_MS = 500
+SYNC_WINDOW_S = 180.0        # clock offset of each toy: estimated from the pings of the last 3 minutes (follows crystal drift)
+MIN_SPEECH_BARGE_MS = 200    # right after the child talks over a toy: a bare "Stop!" (under half a second) must still be heard
+BARGE_SHORT_S = 4.0          # ...for this long after the cut
 MAX_UTTER_MS = 8000
 BARGE_IN = os.environ.get("SENTIENT_BARGE_IN", "1") != "0"   # the child talks over a toy: cut it, listen
 BARGE_RATIO = float(os.environ.get("SENTIENT_BARGE_RATIO", "3.0"))   # voice must beat the toy's own leakage by this factor
 BARGE_MIN_RMS = float(os.environ.get("SENTIENT_BARGE_MIN_RMS", "350"))
 BARGE_MS = 160               # ...for this long, in a row
-BARGE_WARMUP_MS = 300        # learn the leakage level first
+BARGE_WARMUP_MS = 500        # learn the leakage level first, from the moment the toy is audible in that mic
+BARGE_ONSET_RMS = 60         # ...which is when the mic rises above this (room noise is 10-20)
+BARGE_ONSET_WAIT_MS = 1200   # a far or quiet toy never gets there: start learning anyway after this long
 # Cross-toy echo cancellation (brain/aec.py, docs/aec.md): the listeners' mics keep working while a toy talks
 AEC = os.environ.get("SENTIENT_AEC", "1") == "1"             # ON by default (fw 3.9 fixed the lost mic audio; docs/aec.md); SENTIENT_AEC=0 turns it off
 # Fact guard (brain/factcheck.py): every toy line is checked before it is spoken; wrong sums, letter counts, spellings, counting runs,
@@ -260,6 +268,38 @@ HEARD_FIRST = os.environ.get("SENTIENT_HEARD_FIRST", "1") == "1"
 CHILD_MAX_LINES = int(os.environ.get("SENTIENT_CHILD_MAX_LINES", "2"))   # the child spoke: one answer + at most one short add-on
 IDLE_AFTER_CHILD_S = float(os.environ.get("SENTIENT_IDLE_AFTER_CHILD_S", "180"))   # no toy-to-toy chat this soon after the child spoke
 STOP_QUIET_S = float(os.environ.get("SENTIENT_STOP_QUIET_S", "600"))              # after "stop": no toy-to-toy chat for this long
+# Story mode (brain/story.py): "I'm going to read you a story" -> the toys stop talking and only add sounds that fit the words
+STORY_MODE = os.environ.get("SENTIENT_STORY_MODE", "1") == "1"
+STORY_IDLE_S = 60.0          # no reading for this long: back to normal talk
+STORY_REPEAT_S = 10.0        # the same sound is not played again within this time
+STORY_EARS = os.environ.get("SENTIENT_STORY_EARS", "1") == "1"   # the fast streaming recogniser (brain/storyears.py); off = Gemma only
+STORY_EARS_MODEL = OFFLINE / "asr/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17"
+STORY_EARS_PAUSE_S = 2.0     # this much silence starts the fast recogniser afresh (a shorter pause only hands its words over: STORY_EARS_QUIET_S)
+STORY_EARS_QUIET_S = 0.45    # the mic quiet for this long after words: a pause. The fast recogniser is flushed and the sounds for those words start (0.3 also fired at commas)
+STORY_BACKUP_AFTER_S = 8.0   # Gemma's transcript adds a sound only when the fast recogniser started none in this time
+STORY_END_FAST_S = 3.0      # the fast recogniser heard "the end" this recently: the turn skips Gemma's transcription (1 s)
+STORY_CUT_AFTER_S = 1.2      # a story sound that has played this long gives way when the next sound is asked for (0.9: the crow was gone before it was heard)
+STORY_SOUND_MAX_S = 2.5      # a story sound is cut (faded) to this length, so the reading goes on
+STORY_CHORUS_MAX = 4         # one sentence names several sounds ("brayed, barked, mewed and crowed"): up to this many, one after another
+STORY_CHORUS_S = 1.3         # ...each cut to this length
+STORY_LEAD_MS = 150          # silence before a story sound: the speakers swallow the first ~0.1 s (Nov 21, Mac mic: a bark at 1/3 level without it)
+STORY_TWICE_UNDER_S = 0.7    # a sound shorter than this plays twice ("woof woof")
+# Toys whose speaker does not work: they get no lines and play no story sounds. Named in SENTIENT_SPEAKER_BAD or, one per line, in
+# data/speaker_bad.txt on the brain (not in git). Nov 21: a full-volume test tone on Sage was not heard at all by the Mac's mic
+# (Dyno and Penny: loud), so the Jetson has that file with "sage" in it. Delete the file once Sage is repaired.
+def _speaker_bad() -> set:
+    try:
+        text = os.environ.get("SENTIENT_SPEAKER_BAD") or (DATA / "speaker_bad.txt").read_text()
+    except OSError:
+        text = ""
+    return {t for t in text.replace(",", "\n").split() if t}
+
+
+SPEAKER_BAD = _speaker_bad()
+STORY_ECHO_RATIO = 0.33      # heard during a story sound at under this share of the child's reading level: the sound itself, ignored
+STORY_ECHO_INSIDE = 0.8      # ...and under this share when the whole utterance lies inside the sound (live Nov 21: the toys' own sounds came in at 50-72%)
+STORY_RECALL_CHARS = 600     # how much of the story the toy is given at "the end" to say one kind thing about it
+STORY_MODEL_SOUNDS = os.environ.get("SENTIENT_STORY_MODEL_SOUNDS", "0") == "1"   # also accept a sound the model proposes (for a model trained on read-aloud scenes)
 # Conversation log for review (brain/convlog.py): RAM only, last CONVLOG_MAX turns; the child's words + the toys' lines
 CONVLOG = os.environ.get("SENTIENT_CONVLOG", "1") == "1"
 CONVLOG_MAX = int(os.environ.get("SENTIENT_CONVLOG_MAX", "2000"))

@@ -85,12 +85,89 @@ def score(path, filler_max=1.5):
         "talk_share": {k: round(v, 2) for k, v in sorted(share.items())},
         "chain_hops": sum(1 for e in ev if e["ev"] == "chain"),
     }
+    stops = [e for e in ev if e["ev"] == "speech_start" and e.get("expect") == "stop"]
+    if stops:
+        out["stop"] = stop_score(ev, plays, stops)
+    reads = [e for e in ev if e["ev"] == "speech_start" and str(e.get("expect", "")).split(":")[0] in STORY_EXPECT]
+    if reads:
+        out["story"] = story_score(ev, reads)
     brain = Path(str(path) + ".turns.json")
     if brain.exists():
         summ = json.loads(brain.read_text()).get("summary", {})
         out["brain_ms"] = {k: summ[k] for k in ("utterance_ready_ms", "first_model_text_ms", "first_pcm_ready_ms",
                                                 "first_audio_post_ms", "llm_ms", "tts_ms") if k in summ}
     return out
+
+
+def stop_score(ev, plays, stops, ack_max=2.5):
+    """The child says "stop" (often over a talking toy). Per stop: was a toy talking, how long after the child's first sound
+    the speaker went silent, and whether the toys then stayed quiet: at most ONE short clip ("Okay, I'm listening") until
+    the child speaks again."""
+    ends = {(e["toy"], e["t"]): e for e in ev if e["ev"] == "play_end"}
+    human = sorted(e["t"] for e in ev if e["ev"] == "speech_start" and e["label"] != "silence" and not e["label"].startswith("chain"))
+    rows = []
+    for s in stops:
+        t = s["t"]
+        nxt = min((h for h in human if h > t + 1.0), default=float("inf"))
+        over = [p for p in plays if p["start"] < t < p["end"]]
+        cut = [p for p in over if ends.get((p["toy"], p["end"]), {}).get("cut")]
+        after = [p for p in plays if t < p["start"] < nxt]
+        extra = [p for p in after if p["dur"] > ack_max] + [p for p in after if p["dur"] <= ack_max][1:]
+        barge = [e for e in ev if e["ev"] == "barge" and t - .2 <= e["t"] <= t + 3]
+        rows.append({"said": s["label"].partition(":")[2], "at_toy": s["toy"], "talking": [p["toy"] for p in over],
+                     "cut": bool(over) and len(cut) == len(over),
+                     "silent_after_s": round(max(p["end"] for p in over) - t, 2) if over else None,
+                     "noticed_by": barge[0]["mode"] if barge else None,
+                     "extra_toy_clips": len(extra), "extra_toy_audio_s": round(sum(p["dur"] for p in extra), 1),
+                     "ok": (not over or len(cut) == len(over)) and not extra})
+    sync = [abs(e["err_ms"]) for e in ev if e["ev"] == "clock_sync" and e.get("err_ms") is not None]
+    lat = [r["silent_after_s"] for r in rows if r["cut"]]
+    return {"n": len(rows), "ok": sum(r["ok"] for r in rows), "cut_while_talking": f'{sum(r["cut"] for r in rows)}/{sum(bool(r["talking"]) for r in rows)}',
+            "silent_after_s": {"p50": pct(lat, .5), "max": max(lat) if lat else None},
+            "clock_sync_err_ms_max": max(sync) if sync else None, "each": rows}
+
+
+STORY_EXPECT = ("sound", "quiet", "story_start", "ask", "end", "talk")
+
+
+def story_score(ev, reads, ack_max=2.5):
+    """Story mode: the child reads aloud. Per sentence: the sound that was expected ("sound:rain") or silence ("quiet"), what the
+    toys did, and how long after the sentence ended the sound was chosen. Whatever a toy does belongs to the last sentence that
+    had ended by then, so a sound that comes a whole sentence late counts against the wrong sentence and fails both."""
+    sounds = [e for e in ev if e["ev"] == "story_sound"]
+    starts = [e for e in ev if e["ev"] == "play_start"]
+    # a sound's clip starts right after the brain chose it; the nth sound of a sentence waits for the ones before it
+    is_sound = lambda p: any(s["toy"] == p["toy"] and -.05 <= p["t"] - s["t"] <= 1.5 + 3.0 * s.get("nth", 0) for s in sounds)
+    spoken = [p for p in starts if not is_sound(p)]
+    ends = [r["t"] + r["dur"] for r in reads]
+    owner = lambda t: max((i for i, e in enumerate(ends) if e <= t), default=None)
+    rows = []
+    for i, r in enumerate(reads):
+        want = r["expect"]
+        snd = [s for s in sounds if owner(s["t"]) == i]
+        talk = [p for p in spoken if owner(p["t"]) == i]
+        played = [s["sound"] for s in snd]
+        kind = want.split(":")[0]
+        if kind == "sound":
+            ok = played == want.split(":")[1].split("+") and not talk
+        elif kind == "quiet":
+            ok = not played and not talk
+        elif kind == "story_start":
+            ok = not played and len(talk) <= 1 and all(p["dur"] <= ack_max for p in talk)
+        else:   # ask / end / talk: a toy answers in words
+            ok = not played and len(talk) >= 1 and (kind != "ask" or len(talk) == 1)
+        rows.append({"said": r["label"].partition(":")[2], "expect": want, "sounds": played, "toy": snd[0]["toy"] if snd else None,
+                     "sound_after_s": round(snd[0]["t"] - ends[i], 2) if snd else None,
+                     "toy_spoke": len(talk), "ok": ok})
+    want_snd = [r for r in rows if r["expect"].startswith("sound:")]
+    reading = [r for r in rows if r["expect"].split(":")[0] in ("sound", "quiet")]
+    lat = [r["sound_after_s"] for r in want_snd if r["ok"]]
+    return {"n": len(rows), "ok": sum(r["ok"] for r in rows),
+            "right_sound": f'{sum(r["ok"] for r in want_snd)}/{len(want_snd)}',
+            "false_sounds": sum(len(r["sounds"]) for r in rows if not r["expect"].startswith("sound:"))
+                            + sum(len([x for x in r["sounds"] if x not in r["expect"][6:].split("+")]) for r in want_snd),
+            "toy_spoke_while_reading": sum(r["toy_spoke"] for r in reading),
+            "sound_after_s": {"p50": pct(lat, .5), "max": max(lat) if lat else None}, "each": rows}
 
 
 def rubric(path, filler_max=1.5):

@@ -50,6 +50,134 @@ class ScoreTests(unittest.TestCase):
         self.assertEqual(score_run.score(events(rows))["human_utterances"], 1)
 
 
+class StopTests(unittest.TestCase):
+    def rows(self, cut, extra):
+        r = [{"ev": "play_start", "toy": "dyno", "dur": 10.0, "t": 5.0},
+             {"ev": "speech_start", "toy": "sage", "label": "say:Stop!", "expect": "stop", "t": 9.0},
+             {"ev": "barge", "mode": "echo canceller", "t": 9.15},
+             {"ev": "play_end", "toy": "dyno", "dur": 10.0, "cut": cut, "t": 9.2 if cut else 15.0},
+             {"ev": "play_start", "toy": "sage", "dur": 1.2, "t": 16.0}, {"ev": "play_end", "toy": "sage", "dur": 1.2, "t": 17.2},
+             {"ev": "clock_sync", "toy": "dyno", "err_ms": -0.4, "t": 30.0}]
+        if extra:
+            r += [{"ev": "play_start", "toy": "penny", "dur": 6.0, "t": 18.0}, {"ev": "play_end", "toy": "penny", "dur": 6.0, "t": 24.0}]
+        return events(sorted(r, key=lambda e: e["t"]))
+
+    def test_cut_and_quiet_is_ok(self):
+        s = score_run.score(self.rows(True, False))["stop"]
+        self.assertEqual((s["n"], s["ok"], s["cut_while_talking"]), (1, 1, "1/1"))
+        self.assertEqual(s["silent_after_s"]["max"], 0.2)
+        self.assertEqual(s["each"][0]["noticed_by"], "echo canceller")
+        self.assertEqual(s["clock_sync_err_ms_max"], 0.4)
+
+    def test_toy_that_keeps_talking_fails(self):
+        self.assertEqual(score_run.score(self.rows(False, False))["stop"]["ok"], 0)
+
+    def test_more_than_the_one_listening_line_fails(self):
+        s = score_run.score(self.rows(True, True))["stop"]
+        self.assertEqual((s["ok"], s["each"][0]["extra_toy_clips"]), (0, 1))
+
+
+class StoryTests(unittest.TestCase):
+    """Story mode (brain/story.py): the child reads aloud, the toys only add sounds."""
+
+    def test_start_is_the_child_reading_not_asking_for_a_story(self):
+        from brain import story
+        for t in ("I'm going to read you a story.", "Can I read you my book?", "Story time!", "Listen to my story."):
+            self.assertTrue(story.wants_story(t), t)
+        for t in ("Can you tell me a story?", "Dyno, tell me a long story about a dragon.", "Read me a story please.", "I like stories."):
+            self.assertFalse(story.wants_story(t), t)
+
+    def test_the_end_only_as_its_own_sentence(self):
+        from brain import story
+        for t in ("The end.", "And they lived happily ever after. The end.", "I'm done reading.", "That's the end!"):
+            self.assertTrue(story.ends(t), t)
+        for t in ("They walked to the end of the road.", "At the end of the day the fox slept."):
+            self.assertFalse(story.ends(t), t)
+
+    def test_sound_fits_the_words(self):
+        from brain import story
+        for t, want in (("It was a dark night and the rain fell on the roof.", "rain"), ("Someone knocked on the door.", "knock"),
+                        ("The dog barked at the cat.", "dog"), ("A little dog ran to the park.", "dog"),
+                        ("The frog jumped into the pond.", "splash"), ("The big dinosaur roared.", "dino_roar"),
+                        ("The dog did not bark.", None), ("She put on her shoes and went outside.", None),
+                        ("Once upon a time there was a girl named Mia.", None)):
+            self.assertEqual(story.pick(t), want, t)
+        self.assertIsNone(story.pick("The dog barked.", skip={"dog"}))              # played a moment ago
+        self.assertIsNone(story.pick("The rain fell.", available={"dog", "knock"}))  # no such recording
+
+    def test_story_words_are_not_commands(self):
+        from brain import story
+        self.assertTrue(story.is_command("Stop!"))
+        self.assertFalse(story.is_command('"Stop!" cried the wolf.'))
+        self.assertTrue(story.asks_toy("Dyno, are you listening?", "dyno|dino"))
+        self.assertFalse(story.asks_toy("Penny the penguin waddled home.", "penny"))
+
+    def test_only_a_lone_tag_from_the_model_is_a_sound(self):
+        from brain import story
+        self.assertEqual(story.model_sound(["{owl}"]), "owl")
+        self.assertIsNone(story.model_sound(["{owl} What a spooky night!"]))
+        self.assertIsNone(story.model_sound(["{owl}"], available={"rain"}))
+
+    def rows(self, sound="rain", at=14.2, talk=False):
+        r = [{"ev": "speech_start", "toy": "sage", "label": "say:Once upon a time.", "expect": "quiet", "dur": 2.0, "t": 5.0},
+             {"ev": "speech_start", "toy": "sage", "label": "say:The rain fell.", "expect": "sound:rain", "dur": 2.0, "t": 10.0},
+             {"ev": "story_sound", "sound": sound, "toy": "dyno", "t": at},
+             {"ev": "play_start", "toy": "dyno", "dur": 2.0, "t": at + .05}, {"ev": "play_end", "toy": "dyno", "dur": 2.0, "t": at + 2.05},
+             {"ev": "speech_start", "toy": "sage", "label": "say:The end.", "expect": "end", "dur": 1.0, "t": 20.0},
+             {"ev": "play_start", "toy": "sage", "dur": 2.5, "t": 23.0}, {"ev": "play_end", "toy": "sage", "dur": 2.5, "t": 25.5}]
+        if talk:
+            r += [{"ev": "play_start", "toy": "penny", "dur": 3.0, "t": 8.0}, {"ev": "play_end", "toy": "penny", "dur": 3.0, "t": 11.0}]
+        return events(sorted(r, key=lambda e: e["t"]))
+
+    def test_score_right_sound_and_no_words(self):
+        s = score_run.score(self.rows())["story"]
+        self.assertEqual((s["n"], s["ok"], s["right_sound"], s["false_sounds"], s["toy_spoke_while_reading"]), (3, 3, "1/1", 0, 0))
+        self.assertEqual(s["sound_after_s"]["max"], 2.2)
+
+    def test_score_wrong_sound_or_a_talking_toy_fails(self):
+        s = score_run.score(self.rows(sound="dog"))["story"]
+        self.assertEqual((s["ok"], s["right_sound"], s["false_sounds"]), (2, "0/1", 1))
+        s = score_run.score(self.rows(talk=True))["story"]
+        self.assertEqual((s["ok"], s["toy_spoke_while_reading"]), (2, 1))
+
+    def test_score_sound_during_a_quiet_sentence_fails(self):
+        s = score_run.score(self.rows(at=8.0))["story"]      # played after "Once upon a time", before the rain was read
+        self.assertEqual((s["ok"], s["false_sounds"]), (1, 1))
+
+
+class ClockSyncTests(unittest.TestCase):
+    def run_sync(self, ppm, minutes=30):
+        """Pings every 5 s for `minutes`; the Atom's crystal runs `ppm` off. Returns (new error, old best-ping-ever error) in ms."""
+        rng = np.random.default_rng(3)
+        a = Atom(mac="m", ip="1.1.1.1", toy="dyno")
+        clock = lambda t: t * (1 + ppm * 1e-6) + 1234.5
+        old_rtt, old_off = 9.9, None
+        t = 100.0
+        for _ in range(minutes * 12):
+            for _ in range(4):
+                up, down = .0015 + rng.exponential(.003), .0015 + rng.exponential(.003)
+                a.add_sync(t, up + down, clock(t + up))
+                if up + down < old_rtt:
+                    old_rtt, old_off = up + down, clock(t + up) - (t + (up + down) / 2)
+                t += .02
+            t += 5
+        true = clock(t) - t
+        return abs(a.off(t) - true) * 1000, abs(old_off - true) * 1000
+
+    def test_offset_follows_crystal_drift(self):
+        new, old = self.run_sync(-30)
+        self.assertLess(new, 1.0)        # within a millisecond after half an hour
+        self.assertGreater(old, 20.0)    # the single best ping ever is stale by the drift
+
+    def test_no_drift_still_accurate(self):
+        self.assertLess(self.run_sync(0)[0], 1.0)
+
+    def test_first_pings_give_an_offset_at_once(self):
+        a = Atom(mac="m", ip="1.1.1.1", toy="dyno")
+        a.add_sync(10.0, .004, 510.002)
+        self.assertAlmostEqual(a.off(10.5), 500.0, places=3)
+
+
 class FloorTests(unittest.TestCase):
     def test_pile_up_and_talk_over_are_counted(self):
         f = FloorControl()

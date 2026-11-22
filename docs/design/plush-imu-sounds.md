@@ -78,7 +78,7 @@ toy is upright again; it does not wait for a timer.
 
 Local (the sleeping toy, looped softly until upright):
 - Dyno: deep, slow dino snore — "Zzz… rawr-zzz… Zzz…"
-- Sage: soft, even unicorn snore — "mmm-zzz… mmm-zzz…"
+- Sage: soft, even pumpkin snore — "mmm-zzz… mmm-zzz…"
 - Penny: squeaky penguin snore — "honk-zzz… honk-zzz…"
 
 Friends react, once per sleep episode, in character:

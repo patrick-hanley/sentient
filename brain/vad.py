@@ -34,6 +34,7 @@ class Segmenter:
         self.vad = webrtcvad.Vad(config.VAD_AGGRESSIVENESS)
         self.noise = 150.0
         self.level = 0.0
+        self.short_until = 0.0    # monotonic: until then (the child just cut a toy off) a very short utterance counts
         self.reset()
 
     def reset(self):
@@ -77,7 +78,8 @@ class Segmenter:
             self.silence += 1
         if (self.silence * FRAME_MS >= config.END_SILENCE_MS
                 or len(self.buf) * FRAME_MS >= config.MAX_UTTER_MS):
-            if self.voiced * FRAME_MS >= config.MIN_SPEECH_MS:
+            short = self.start_mono <= self.short_until      # began while / just after the child talked over a toy
+            if self.voiced * FRAME_MS >= (config.MIN_SPEECH_BARGE_MS if short else config.MIN_SPEECH_MS):
                 pcm_all = np.concatenate(self.buf[: len(self.buf) - max(0, self.silence - 10)])
                 self.out.put(Utterance(self.toy, self.start, time.time(), pcm_all,
                                        self.voiced_rms / max(1, self.voiced),

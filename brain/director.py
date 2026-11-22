@@ -12,8 +12,10 @@ import threading
 import time
 import wave
 
+import numpy as np
+
 from . import voiceid
-from . import camera, canned, config, convlog, curriculum, curriculum_picks, debugrec, factcheck, nonspeech, scripted, toytalk
+from . import camera, canned, config, convlog, curriculum, curriculum_picks, debugrec, factcheck, nonspeech, scripted, story, toytalk
 from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
@@ -326,6 +328,19 @@ class Director:
         self._rotation = curriculum.Rotation()     # which grade topics were offered recently (rotates, no repeats)
         self.convlog = convlog.ConvLog()           # what was said, per turn, for review (RAM only)
         self._quiet_until = 0.0                    # the child said stop: no toy-to-toy chat until then
+        self._story_until = 0.0                    # story mode (brain/story.py): the child reads, the toys only add sounds
+        self._story_text: list[str] = []           # the story so far (RAM only), for one kind line at "the end"
+        self._story_last: dict = {}                # sound -> when it last played (no bark on every sentence)
+        self._story_n = 0
+        self._story_q = None                       # story sounds waiting to play (one worker thread)
+        self._story_qlock = threading.Lock()
+        self._story_ears_log: list = []            # what the fast recogniser heard since the last sentence (for the log, RAM only)
+        self._story_end_fast = 0.0                 # when the fast recogniser last heard "the end"
+        self._story_fast_t = 0.0                   # when the fast recogniser last started a sound
+        self._story_cur = None                     # (toy, since) while a story sound plays
+        self._story_fast: list = []                # sounds the fast recogniser started since the last sentence (for the log)
+        self._story_rms = 0.0                      # how loud the child's reading is at the toys (running average)
+        self._story_sound_t = (0.0, 0.0)           # when the last story sound played (wall clock)
         self._last_child_t = 0.0                   # when the child last spoke (toy chats wait IDLE_AFTER_CHILD_S after it)
         self.turn_lines: list = []                 # lines handed to speech this turn (recorded even when the speakers are muted)
         self.last_look = None                      # the dashboard look: what the recogniser found + annotated frame (popped at once)
@@ -389,7 +404,7 @@ class Director:
 
     # ---------- inputs ----------
     def on_seen(self, toy, thing):
-        if config.CHILD_LEADS and (time.time() - self._last_child_t < config.IDLE_AFTER_CHILD_S or time.time() < self._quiet_until):
+        if self._story_on() or config.CHILD_LEADS and (time.time() - self._last_child_t < config.IDLE_AFTER_CHILD_S or time.time() < self._quiet_until):
             return                           # the child is talking with the toys (or said stop): no greeting cutting in
         self.child_contact()
         if thing.label.startswith("itself"):
@@ -536,6 +551,8 @@ class Director:
         self.child_contact()
         self.live.barge()   # metrics: the child talked over a toy
         self._barge_t = time.time()   # the child's utterance (already being heard) must outlive the cancelled turn's _flush()
+        for s in self.segs.values():   # the interrupting words may be one short "Stop!": do not drop them as noise
+            s.short_until = time.monotonic() + config.BARGE_SHORT_S
         self.interrupt()
 
     def interrupt(self):
@@ -632,6 +649,8 @@ class Director:
             if self.paused:
                 continue
             u = arbitrate(u, self.utter_q, expected_toys=self.hub.online())
+            if self._story_on() and self._story_echo(u):
+                continue
             self._barge_t = 0.0   # the interrupting words are being answered now
             u.arbitrated = time.monotonic()
             self.child_contact()
@@ -647,7 +666,7 @@ class Director:
             ev = None
             now = time.time()
             if (self.idle_on and not self.is_quiet() and now - self.last_activity > self.live.idle_banter_s(config.IDLE_BANTER_S)
-                    and now >= self._quiet_until and now - self._last_child_t > (config.IDLE_AFTER_CHILD_S if config.CHILD_LEADS else 0)
+                    and now >= self._quiet_until and not self._story_on() and now - self._last_child_t > (config.IDLE_AFTER_CHILD_S if config.CHILD_LEADS else 0)
                     and len(self.hub.online()) >= 2):
                 ev = self._idle_event()
         if ev:
@@ -727,9 +746,11 @@ class Director:
         try:
             online = self.hub.online()
             toy = utt.toy if utt and utt.toy in online else online[0]
-            if utt and config.PLAY_FILLERS:
-                f = random.choice(canned.FILLERS.get(toy, ["Hmm!"]))
-                filler = threading.Thread(target=self.hub.play_line, args=(toy, f, self.voices), daemon=True)
+            story_on = tl["story"] = bool(utt) and self._story_on()   # the child is reading: no words from the toys this turn
+            if utt and config.PLAY_FILLERS and not story_on:
+                ftoy = toy if toy not in config.SPEAKER_BAD else next((t for t in online if t not in config.SPEAKER_BAD), toy)
+                f = random.choice(canned.FILLERS.get(ftoy, ["Hmm!"]))
+                filler = threading.Thread(target=self.hub.play_line, args=(ftoy, f, self.voices), daemon=True)
                 filler.start()
             scene = self.eyes.scene_text()
             image = None
@@ -740,6 +761,7 @@ class Director:
                 tmp_files.append(image)
             exclude = set(event.get("exclude", ())) if isinstance(event, dict) else set()
             speakers = [t for t in online if t not in exclude] or online
+            speakers = [t for t in speakers if t not in config.SPEAKER_BAD] or speakers   # a toy with a broken speaker gets no lines
             asked_look = event.get("look") if isinstance(event, dict) else None   # the dashboard's "what do you see?"
             self_seen = event.get("self_seen") if isinstance(event, dict) else None
             if asked_look in online:
@@ -757,7 +779,8 @@ class Director:
                 tmp_files.append(wav)
                 prompt += f"[HEARD BY] {NAMES[toy]} (closest to the child).\n"
                 if self.llm.hears_audio:
-                    prompt += "The child just spoke (audio attached). Reply."
+                    prompt += (story.LISTEN + (story.LISTEN_SOUNDS if config.STORY_MODEL_SOUNDS else "")) if story_on else \
+                        "The child just spoke (audio attached). Reply."
                 else:
                     with trace.span("stt_ms"):
                         said = self.llm.transcribe(wav)
@@ -775,9 +798,10 @@ class Director:
                 prompt += f"[EVENT] {event_text}"
             # Camera policy (brain/camera.py). With a transcript (whisper path) the rules decide here, so the picture goes with the
             # first call. The audio-native model has no transcript yet: it answers LOOK and the loop below takes the picture.
-            looks = self._can_look(toy)
-            stop_now = bool(said and config.CHILD_LEADS and camera.wants_stop(said))
-            named = camera.addressed(said) if said and config.CHILD_LEADS and not stop_now else None
+            looks = self._can_look(toy) and not story_on
+            stop_now = bool(said and config.CHILD_LEADS and camera.wants_stop(said)) and not story_on   # story mode decides in _story_heard
+            story_now = bool(said and config.STORY_MODE and not story_on and not stop_now and story.wants_story(said))
+            named = camera.addressed(said) if said and config.CHILD_LEADS and not stop_now and not story_on else None
             if named and named in speakers:   # the child spoke to one toy: only that toy answers
                 prompt = prompt.replace(f"[TOYS HERE] {here} ", f"[TOYS HERE] {NAMES[named]} ", 1)
                 speakers, toy = [named], named
@@ -785,7 +809,7 @@ class Director:
                 prompt, image = self._look_turn(toy, prompt, scene, "What do you see right now?", image, tmp_files, trace)
             if said and camera.ispy_stop(said):
                 self._ispy_until = 0.0
-            ispy = bool(utt) and config.ISPY and (self._ispy_on() or bool(said and camera.wants_ispy(said)))
+            ispy = bool(utt) and not story_on and config.ISPY and (self._ispy_on() or bool(said and camera.wants_ispy(said)))
             self._ispy_seen = None     # set by this turn's picture-list call (I spy turns only)
             if ispy and (looks or config.CAPTURE_CONTINUOUS) and toy in speakers:
                 # one guesser per turn: with all three toys talking, the others guessed things not in the picture or spied on their own
@@ -845,7 +869,7 @@ class Director:
             speaker = self._speaker_block(vox, toy) if vox else ""      # after the log line: names are never logged
             if speaker:
                 prompt = prompt.replace("[HEARD BY]", speaker + "\n[HEARD BY]", 1)
-            if said and utt and camera.wants_whoami(said):
+            if said and utt and not story_on and camera.wants_whoami(said):
                 prompt += "\n" + self._whoami_prompt(named or toy, vox, toy).split("\n", 1)[1]
             prompt = "".join(b + "\n" for b in (notes, topics) if b) + prompt
 
@@ -862,6 +886,9 @@ class Director:
             def line_ready(who, text):
                 if self._gen != gen:
                     return
+                if tl.get("story"):   # the child is reading: whatever the model wrote is not spoken (a lone sound tag may be used)
+                    tl.setdefault("story_lines", []).append(text)
+                    return
                 if self_seen == who and not self.turn_lines and not re.search(r"\b(?:me|myself|i'?m|i am)\b", text, re.I):
                     text = "Hey, that's me! " + text     # the toy saw itself: it must say so, whatever the model wrote
                 self.turn_lines.append((who, text))
@@ -877,13 +904,27 @@ class Director:
                 text = nonspeech.clean(text) if text and text != "-" else ""   # words only; "[snoring]" etc. are not speech
                 if not utt:
                     return                       # an [EVENT] turn has no child audio: a HEARD line there is old words repeated
-                if text and utt and config.ISPY and (looks or config.CAPTURE_CONTINUOUS):
+                if text and tl.get("story"):
+                    text = story.tidy(text)
+                if text and tl.get("story"):
+                    self._story_heard(text, toy, tl, online)
+                elif text and utt and config.STORY_MODE and not self._story_on() and not camera.wants_stop(text) and story.wants_story(text):
+                    # "I'm going to read you a story": from the next sentence on the toys only add sounds
+                    self._story_begin()
+                    tl["flags"]["story"] = "start"
+                    if not parser.count:     # nothing spoken yet: one short "I'm listening" and no more
+                        at = toy if toy in speakers else speakers[0]
+                        tl["ack"], tl["ack_line"] = at, canned.STORY_START.get(at, "A story! I'm listening.")
+                        parser.closed, parser.count = True, 1
+                if tl.get("story") or tl["flags"].get("story") == "start":
+                    pass
+                elif text and utt and config.ISPY and (looks or config.CAPTURE_CONTINUOUS):
                     # audio-native model: the words arrive only now. A child who started I spy keeps the game (and its pictures) on
                     if camera.ispy_stop(text):
                         self._ispy_until = 0.0
                     elif camera.wants_ispy(text):
                         self._ispy_until = time.time() + config.ISPY_GAME_S
-                if text and utt and config.CHILD_LEADS and not parser.count and not tl["flags"].get("stop"):
+                if text and utt and config.CHILD_LEADS and not parser.count and not tl["flags"].get("stop") and not tl.get("story"):
                     # HEARD-first: nothing spoken yet. "stop" -> say nothing but "I'm listening"; a toy's name -> only that toy
                     if camera.wants_stop(text):
                         tl["flags"]["stop"], tl["ack"] = True, toy
@@ -902,7 +943,7 @@ class Director:
                         elif (not image and not tl.get("looked") and camera.wants_look(text) and self._can_look(look_toy)):
                             # "who do you see?": the code takes the picture itself (the model often answers from [SCENE] instead)
                             tl["force_look"], parser.closed = look_toy, True
-                if text and utt and config.CHILD_LEADS and camera.wants_stop(text) and not tl["flags"].get("stop"):
+                if text and utt and config.CHILD_LEADS and camera.wants_stop(text) and not tl["flags"].get("stop") and not tl.get("story"):
                     # the audio-native model wrote toy lines instead of STOP (it hears the child, the words come last): cut what is
                     # queued now, then one "I'm listening" after the turn, and quiet
                     tl["flags"]["stop"], tl["ack"] = True, toy
@@ -927,24 +968,42 @@ class Director:
             kwargs = dict(wav=wav if self.llm.hears_audio else None, image=image)
             stream = getattr(self.llm, "stream", None)
             words = ((camera.LOOK_WORD,) if looks else ()) + ((camera.STOP_WORD,) if config.CHILD_LEADS else ())
-            peel = camera.LookPeeler(words) if words and utt and not image else None   # round 0 may be the one-word LOOK / STOP
+            peel = camera.LookPeeler(words) if words and utt and not image and not story_on else None   # round 0 may be the one-word LOOK / STOP
             if stop_now:      # transcript said stop: no model call at all, just "I'm listening" and quiet
                 tl["flags"]["stop"] = True
                 self._quiet(toy)
                 line_ready(toy, canned.LISTENING.get(toy, "Okay, I'm listening."))
                 parser.count = 1
+            elif story_now:   # transcript said "I'll read you a story": no model call, one "I'm listening", story mode on
+                self._story_begin()
+                tl["flags"]["story"] = "start"
+                line_ready(toy, canned.STORY_START.get(toy, "A story! I'm listening."))
+                parser.count = 1
             with trace.span("llm_ms"):
-                for round_ in ((0, 1) if not stop_now else ()):
-                    chunks = stream(prompt, **kwargs) if stream else iter([self.llm.ask(prompt, **kwargs)])
+                if tl.get("story") and not said and len(utt.pcm) < 3.0 * config.SAMPLE_RATE:
+                    # "The end." — the fast recogniser has it about now (its pause is 0.45 s, the turn's 0.5 s): no need for Gemma
+                    # to transcribe two words first (1 s, and the kind line came 4 s after "the end", Mac mic, Nov 21)
+                    for _ in range(8):
+                        if time.time() - self._story_end_fast < config.STORY_END_FAST_S:
+                            said, tl["flags"]["end_fast"] = "The end.", True
+                            break
+                        time.sleep(0.025)
+                for round_ in ((0, 1) if not (stop_now or story_now) else ()):
+                    if tl.get("story") and said:      # a transcript is already here: nothing to ask the model while the child reads
+                        chunks = iter([f"HEARD: {said}\n"])
+                    else:
+                        chunks = stream(prompt, **kwargs) if stream else iter([self.llm.ask(prompt, **kwargs)])
                     try:
                         for delta in chunks:
                             if self._gen != gen or (tl.get("force_look") and not tl.get("looked")) or (
-                                    tl.get("force_whoami") and not tl.get("whoami_done")):
+                                    tl.get("force_whoami") and not tl.get("whoami_done")) or (tl.get("story") and tl.get("story_done")):
                                 break
                             if peel:
                                 delta = peel.feed(delta)
                             if delta:
                                 trace.mark("first_model_text_ms")
+                                if tl.get("story") or tl.get("story_end"):
+                                    tl["raw"] = (tl.get("raw", "") + delta)[:400]
                                 parser.feed(delta)
                         if peel:
                             parser.feed(peel.finish())
@@ -952,6 +1011,29 @@ class Director:
                         close = getattr(chunks, "close", None)
                         if close:
                             close()
+                    if tl.get("story"):
+                        parser.finish()
+                        if not tl["heard"] and not said and self._gen == gen:   # no HEARD: label, only the words
+                            heard(story.loose(tl.get("raw", "")))
+                        nxt = tl.pop("story_next", None)
+                        if not nxt or round_ or self._gen != gen:
+                            break
+                        # "the end", or a question to one toy: this one turn is answered in words, in a fresh round
+                        tl["story"] = False
+                        base = prompt[:prompt.index(story.LISTEN)] if story.LISTEN in prompt else prompt.split("The child said:")[0]
+                        if nxt[0] == "end":
+                            tl["story_end"] = True
+                            at = toy if toy in speakers else speakers[0]
+                            line_ready(at, canned.STORY_END.get(at, story.END_LINE))   # at once; the model's own line follows
+                            at2 = next((t for t in speakers if t != at), at)     # another toy adds the line about the story
+                            tl["story_end"], tl["raw"] = at2, ""
+                            prompt = base + story.end_prompt(nxt[1], NAMES[at2])
+                            parser = ReplyLines([at2], line_ready, lambda _t: None, guard, None, max_lines=1)
+                        else:
+                            prompt = base + story.ask_prompt(nxt[1])
+                            parser = ReplyLines([nxt[2]], line_ready, heard, guard, None, max_lines=1)
+                        kwargs = dict(wav=None, image=None)
+                        continue
                     if peel and peel.looking and peel.word == camera.STOP_WORD and self._gen == gen:
                         # the child said stop: one short "I'm listening", then quiet (no toy-to-toy chat for STOP_QUIET_S)
                         tl["flags"]["stop"] = True
@@ -990,7 +1072,23 @@ class Director:
                 self.fact_stats["fixed"] += guard.fixed
                 self.fact_stats["dropped"] += guard.dropped
                 log.info("fact guard: fixed %d, dropped %d", guard.fixed, guard.dropped)   # counts only, never the words
-            if not parser.count:
+            if tl.get("story") and self._gen == gen and not tl["flags"].get("stop"):   # still reading: at most one sound, no words
+                snd = getattr(self.voices, "sounds", None)
+                name = tl.get("story_sound")
+                if not name and config.STORY_MODEL_SOUNDS:      # no word in the table fits: a sound the model proposed, if any
+                    name = story.model_sound(tl.get("story_lines"), set(snd.pcm) if snd else None)
+                    if name and time.time() - self._story_last.get(name, 0) >= config.STORY_REPEAT_S:
+                        self.turn_lines += self._story_play([name], toy, online)
+                    else:
+                        name = None
+                tl["flags"]["story"] = name or "quiet"
+            at2 = tl.pop("story_end", None)
+            if at2 and not parser.count:   # "the end": the model put another toy's name on its line, or said nothing (the canned
+                extra = story.end_line(tl.get("raw", "")) if self._gen == gen else ""      # line was said either way)
+                if extra:
+                    line_ready(at2, extra)
+                parser.count = 1
+            if not parser.count and not tl.get("story") and not tl.get("ack"):
                 raise ValueError("Model produced no labelled line for an online toy")
             pipeline.finish()
         except Exception:  # noqa: BLE001
@@ -1007,7 +1105,7 @@ class Director:
                 filler.join()
             if tl.get("ack"):
                 try:
-                    ack = canned.LISTENING.get(tl["ack"], "Okay, I'm listening.")
+                    ack = tl.get("ack_line") or canned.LISTENING.get(tl["ack"], "Okay, I'm listening.")
                     self.hub.play_line(tl["ack"], ack, self.voices)
                     self.turn_lines.append((tl["ack"], ack))
                 except Exception:  # noqa: BLE001
@@ -1024,6 +1122,8 @@ class Director:
             self.live.child_unresolved(status)   # metrics: count the utterance's timing even if no words were reported
             self.live.turn_close(status)
             trace.finish(status)
+            if tl.get("raw"):   # story turns: exactly what the model wrote, for review (RAM only, like the rest of this log)
+                tl["flags"]["raw"] = tl["raw"]
             try:   # the conversation log for review (RAM only, brain/convlog.py)
                 if status != "ignored_non_speech":
                     self.convlog.add(kind=tl["kind"], heard_by=utt.toy if utt else None, heard=tl["heard"], said=self.turn_lines,
@@ -1041,6 +1141,8 @@ class Director:
         """Drop speech captured while we were busy (it is usually toy echo or stale), except what the child said after
         cutting the toy off (barge-in): that is the next turn."""
         t = self._barge_t
+        if self._story_on():
+            t = 1.0     # the child reads on while the brain works: every sentence heard meanwhile is the next turn
         keep = []
         while True:
             try:
@@ -1138,7 +1240,180 @@ class Director:
         the child whenever they speak."""
         self._quiet_until = time.time() + config.STOP_QUIET_S
         self._scene_topic = None
+        self._story_until = 0.0
         log.info("child said stop: quiet for %.0f s", config.STOP_QUIET_S)
+
+    # ---------- story mode (brain/story.py) ----------
+    def _story_on(self) -> bool:
+        return config.STORY_MODE and time.time() < getattr(self, "_story_until", 0.0)
+
+    def _story_begin(self):
+        self._story_until = time.time() + config.STORY_IDLE_S
+        self._story_text, self._story_last, self._story_rms = [], {}, 0.0
+        self._story_suspect = False
+        self._story_short()
+        log.info("story mode on: the toys only add sounds")
+        def warm():      # the line for "the end", rendered now so it plays at once then
+            for t in self.hub.online():
+                try:
+                    self.voices.render(t, canned.STORY_END.get(t, story.END_LINE), persist=True)
+                except Exception:  # noqa: BLE001
+                    pass
+        threading.Thread(target=warm, daemon=True, name="story-warm").start()
+
+    def _story_echo(self, u) -> bool:
+        """The mics stay open during a story sound, so a mic can catch the sound itself. That is far quieter than the child
+        reading: something heard during a sound at under a third of the child's level is the sound, not a sentence."""
+        p0, p1 = getattr(self, "_story_prev", (0.0, 0.0))
+        if min(u.end, p1) - max(u.start, p0) > 0.5 * (u.end - u.start):
+            log.info("story: ignored the same sentence from another mic")
+            return True
+        self._story_prev = (u.start, u.end)
+        t0, t1 = self._story_sound_t
+        inside = u.start > t0 - 0.3 and u.end < t1 + config.MIC_TAIL_S     # began and ended while a story sound played
+        if self._story_rms and u.start < t1 + config.MIC_TAIL_S and u.end > t0 and u.rms < (
+                config.STORY_ECHO_INSIDE if inside else config.STORY_ECHO_RATIO) * self._story_rms:
+            log.info("story: ignored a toy's own sound in a mic (%.0f%% of the child's level)", 100 * u.rms / self._story_rms)
+            self._story_prev = (p0, p1)
+            return True
+        # as loud as the reading but wholly inside a sound (a mic next to the toy that played it): "stop" and "the end" still count,
+        # nothing else does (live Nov 21: the model wrote "Wow!" and "That sounds like a fun game!" for a bark and a crow)
+        self._story_suspect = bool(inside and u.end > t0)
+        if not self._story_suspect:
+            self._story_rms = u.rms if not self._story_rms else 0.7 * self._story_rms + 0.3 * u.rms
+        return False
+
+    def _story_short(self, on=True):
+        """While the child reads, a very short utterance counts: "The end." and "Stop!" are under half a second."""
+        for s in getattr(self.segs, "values", lambda: ())():
+            s.short_until = time.monotonic() + config.STORY_IDLE_S if on else 0.0
+
+    def _story_heard(self, text, toy, tl, online):
+        """One sentence of the story (or the child talking to the toys in the middle of it)."""
+        self._story_until = time.time() + config.STORY_IDLE_S
+        self._story_short()
+        if camera.wants_stop(text) and story.is_command(text):
+            tl["flags"]["stop"], tl["ack"] = True, toy
+            self._quiet(toy)
+            self._story_short(False)
+            log.info("story mode off (stop)")
+            return
+        if story.ends(text):
+            self._story_until = 0.0
+            tl["flags"]["story"] = "end"
+            tl["story_next"] = ("end", " ".join(self._story_text)[-config.STORY_RECALL_CHARS:])
+            self._story_short(False)
+            log.info("story mode off (the end)")
+            return
+        who = next((k for k, rx in camera._NAMES.items() if k in online and story.asks_toy(text, rx)), None)
+        if who:
+            tl["flags"]["story"], tl["flags"]["named"] = "ask", who
+            tl["story_next"] = ("ask", text, who)
+            return
+        fast, self._story_fast = self._story_fast, []
+        ears, self._story_ears_log = self._story_ears_log, []
+        if ears:
+            tl["flags"]["ears"] = ears
+        if fast:        # already playing: the fast recogniser heard the word while the child was still reading
+            self.turn_lines += fast
+            tl["story_sound"] = "+".join(n.strip("{}") for _w, n in fast)
+        if getattr(self, "_story_suspect", False):
+            tl["story_done"] = True
+            log.info("story: heard something during a toy's sound, not used")
+            return
+        self._story_text.append(text)
+        now = time.time()
+        snd = getattr(self.voices, "sounds", None)
+        names = story.pick_all(text, set(snd.pcm) if snd else None,
+                               {n for n, t in self._story_last.items() if now - t < config.STORY_REPEAT_S}, config.STORY_CHORUS_MAX)
+        if names and now - self._story_fast_t < config.STORY_BACKUP_AFTER_S:
+            names = []    # the fast recogniser already gave this sentence its sounds: one added now would come seconds late and
+                          # out of order (live Nov 21: the bray 2.5 s and the bark 6 s after "brayed, barked, mewed and crowed")
+        if names:     # played at once: every tenth of a second later is further into the child's next sentence
+            tl["story_sound"] = "+".join(filter(None, [tl.get("story_sound")] + names))
+            self.turn_lines += self._story_play(names, toy, online)
+        tl["story_done"] = bool(names) or not config.STORY_MODEL_SOUNDS   # nothing more is needed from the model this turn
+
+    def story_words(self, toy, text, final):
+        """The fast recogniser (brain/storyears.py) heard these words so far: start the sounds whose word has been said. Runs on
+        its thread, during the reading; Gemma's transcript of the whole sentence comes later and adds only what this missed."""
+        try:
+            if final and self._story_on() and story.fast_end(text):
+                self._story_end_fast = time.time()     # the turn for this utterance (starting about now) ends the story at once
+                return
+            if not self._story_on() or not final:
+                return    # only at a pause: a sound started mid-sentence drowns the rest of the sentence in every mic (live
+                          # Nov 21: with the bray playing, "the hound barked" was heard as "the hambard" and the bark never came)
+            online = self.hub.online()
+            snd = getattr(self.voices, "sounds", None)
+            now = time.time()
+            names = story.heard_so_far(text, final, set(snd.pcm) if snd else None,
+                                       {n for n, t in self._story_last.items() if now - t < config.STORY_REPEAT_S})
+            if final:     # for the conversation log (RAM, like the transcript): what the fast recogniser made of this stretch
+                self._story_ears_log = self._story_ears_log[-30:] + [[toy, text[-120:], "+".join(names)]]
+            if names and online:
+                self._story_until = now + config.STORY_IDLE_S
+                self._story_fast_t = now
+                self._story_fast += self._story_play(names, toy, online)
+        except Exception:  # noqa: BLE001
+            log.exception("story words failed")
+
+    def _story_play(self, names, heard_toy, online) -> list:
+        """Play the story sounds, one after another, without holding up the reading: each on the toy that owns it (Dyno's roar),
+        else on a toy that is not the one closest to the child (its mic hears the reading best), taking turns.
+        Returns [(toy, "{sound}")]."""
+        snd = getattr(self.voices, "sounds", None)
+        good = [t for t in online if t not in config.SPEAKER_BAD] or list(online)     # a toy whose speaker is broken plays no sounds
+        others = [t for t in good if t != heard_toy] or good
+        plan = []
+        for name in names:
+            owner = (snd.index.get(name) or {}).get("toy") if snd else None
+            plan.append((owner if owner in good else others[self._story_n % len(others)], name))
+            self._story_n += 1
+            self._story_last[name] = time.time()
+        log.info("story sound: %s", ", ".join(f"{n} on {w}" for w, n in plan))
+        with self._story_qlock:
+            if self._story_q is None:
+                self._story_q = queue.Queue()
+                threading.Thread(target=self._story_sounds, daemon=True, name="story-sound").start()
+        for item in plan:
+            self._story_q.put(item + (len(plan) > 1,))
+        cur = self._story_cur        # a sound is still playing: it gives way, so this one is not late ("barked" must not wait
+        if cur:                      # for the whole bray)
+            threading.Timer(max(0.0, cur[1] + config.STORY_CUT_AFTER_S - time.time()), self._story_cut, args=(cur,)).start()
+        return [(who, "{%s}" % name) for who, name in plan]
+
+    def _story_cut(self, cur):
+        if self._story_cur is cur:
+            self.hub.stop(cur[0])
+
+    def _story_sounds(self):
+        """One sound at a time, in the order asked for."""
+        while True:
+            who, name, chorus = self._story_q.get()
+            try:
+                if not self._story_on():
+                    continue       # "stop" or "the end" came first
+                pcm = story.trim_lead(self.voices.render(who, "{%s}" % name))
+                limit = config.STORY_CHORUS_S if chorus or not self._story_q.empty() else config.STORY_SOUND_MAX_S
+                cap = int(limit * config.SAMPLE_RATE)
+                if len(pcm) // 2 > cap:      # a short sound: the reading goes on underneath
+                    x = np.frombuffer(pcm, "<i2")[:cap].astype(np.float32)
+                    n = int(0.2 * config.SAMPLE_RATE)
+                    x[-n:] *= np.linspace(1.0, 0.0, n)
+                    pcm = x.astype("<i2").tobytes()
+                if len(pcm) // 2 < config.STORY_TWICE_UNDER_S * config.SAMPLE_RATE:   # one bark is over before anyone hears it
+                    pcm = pcm + b"\0\0" * int(0.12 * config.SAMPLE_RATE) + pcm
+                # every toy's speaker loses the first ~0.1 s of a clip (measured with the Mac's mic): silence goes first
+                pcm = b"\0\0" * int(config.STORY_LEAD_MS * config.SAMPLE_RATE / 1000) + pcm
+                t0 = self._story_sound_t[0] if time.time() < self._story_sound_t[1] else time.time()   # a chorus is one window
+                self._story_sound_t = (t0, time.time() + len(pcm) / 2 / config.SAMPLE_RATE + 0.5)
+                self._story_cur = (who, time.time())
+                self.hub.play(who, pcm, open_mics=True)   # the mics stay open: the child is already on the next sentence
+            except Exception:  # noqa: BLE001
+                log.warning("story sound failed")
+            finally:
+                self._story_cur = None
 
     def _ispy_on(self) -> bool:
         """An I spy game is going: the child started it and spoke again within ISPY_GAME_S."""

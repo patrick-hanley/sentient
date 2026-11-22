@@ -61,7 +61,8 @@ class HostSampler:
             pass
         atoms = {}
         for toy, a in list(self.hub.atoms.items()):
-            info = {"pkts": a.pkts, "lost": a.lost, "sync_rtt_ms": round(a.sync_rtt * 1000, 1) if a.clock_off is not None else None}
+            info = {"pkts": a.pkts, "lost": a.lost, "sync_rtt_ms": round(a.sync_rtt * 1000, 1) if a.clock_off is not None else None,
+                    "clock_drift_ppm": round(a.clock_rate * 1e6, 1) if a.clock_off is not None else None}
             if not self.hub.talking:    # the Atom's httpd is busy during /play
                 try:
                     with self.hub._http.open(f"http://{a.base}/status", timeout=1) as r:

@@ -54,3 +54,6 @@ GREETINGS = {
 
 # The child said stop: one short line from the toy that heard them, then the toys listen (brain/director.py _quiet)
 LISTENING = {"dyno": "Okay! I'm listening.", "sage": "Of course. I'm listening.", "penny": "Okay! I'm all ears."}
+STORY_START = {"dyno": "Ooh, a story! I'm listening.", "sage": "A story! I'm listening.", "penny": "Yay, a story! I'm all ears."}
+# said at once at "the end" (no model call); the model's own line about the story follows a moment later
+STORY_END = {"dyno": "The end! What a great story!", "sage": "The end. What a lovely story.", "penny": "Yay! I loved that story!"}

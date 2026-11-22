@@ -43,6 +43,23 @@ class BargeTests(unittest.TestCase):
         i, _ = self.run_seq([150] * 60 + [1500] * 4 + [150] * 60)
         self.assertIsNone(i)
 
+    def test_toys_own_first_words_after_a_quiet_start_do_not_cut_it(self):
+        # 0.4 s of nothing (network, speaker start-up, Sage's lead-in silence), then the toy's own speech in the next mic
+        for quiet in (5, 12, 20, 30, 45):
+            self.setUp()
+            i, _ = self.run_seq([10] * quiet + [600] * 200)
+            self.assertIsNone(i, f"cut itself after {quiet * 20} ms of quiet")
+
+    def test_child_still_cuts_in_after_a_quiet_start(self):
+        i, _ = self.run_seq([10] * 20 + [600] * 60 + [2400] * 40)
+        self.assertIsNotNone(i)
+        self.assertLess((i - 80) * 0.02, 0.3)
+
+    def test_child_over_a_far_quiet_toy_still_cuts_in(self):
+        i, _ = self.run_seq([15] * 20 + [45] * 80 + [900] * 40)     # the toy never rises above the onset level
+        self.assertIsNotNone(i)
+        self.assertLess((i - 100) * 0.02, 0.3)
+
     def test_quiet_voice_below_floor_ignored(self):
         i, _ = self.run_seq([20] * 60 + [200] * 60)
         self.assertIsNone(i)
