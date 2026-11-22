@@ -37,3 +37,6 @@ docs/private/
 # symlinks into goal worktrees
 /.venv
 /brain/data
+
+# rendered training mixes (regenerate with tools/finetune/scenes.py render); the scenes themselves are tracked
+tools/finetune/data/train*.jsonl
