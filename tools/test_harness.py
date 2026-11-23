@@ -105,6 +105,23 @@ class StoryTests(unittest.TestCase):
         self.assertIsNone(story.pick("The dog barked.", skip={"dog"}))              # played a moment ago
         self.assertIsNone(story.pick("The rain fell.", available={"dog", "knock"}))  # no such recording
 
+    def test_the_six_stories_get_their_sounds(self):
+        """Every sentence of the six read-aloud stories (tools/story_lines.py) gets the sounds written next to it, in order."""
+        from brain import story
+        import story_lines
+        for name, lines in story_lines.STORIES.items():
+            for text, _wait, want in lines:
+                self.assertEqual(story.heard_so_far(text, True), want, f"{name}: {text}")
+
+    def test_one_word_one_sound(self):
+        from brain import story
+        self.assertEqual(story.heard_so_far("The goose honked.", True), ["goose"])
+        self.assertEqual(story.heard_so_far("The penguin honked.", True), ["penguin_honk"])
+        self.assertEqual(story.heard_so_far("A car honked.", True, available={"penguin_honk"}), ["penguin_honk"])   # no goose recording yet
+        self.assertEqual(story.pick("The penguin honked."), "penguin_honk")
+        self.assertEqual(story.heard_so_far("He gobbled it all up.", True), [])            # eating, not a turkey
+        self.assertEqual(story.heard_so_far("The bridge groaned.", True), [])              # not a ghost
+
     def test_story_words_are_not_commands(self):
         from brain import story
         self.assertTrue(story.is_command("Stop!"))

@@ -67,6 +67,16 @@ SOUNDS = {
     "yawn":        ("yawn", 2.2, None, "a big yawn"),
     "giggle":      ("child giggle", 1.8, None, "a giggle"),
     "sigh":        ("sighing", 1.8, None, "a sigh"),
+    "goat":        ("goat bleating", 1.5, None, "goat bleating"),
+    "hooves":      ("horse walk wood", 2.0, None, "hooves trip-trapping over a bridge"),
+    "puff":        ("air blowing", 1.8, None, "a big huff and puff"),
+    "slurp":       ("slurp", 1.2, None, "slurping porridge"),
+    "crack":       ("wood break", 1.2, None, "wood cracking (a chair breaks)"),
+    "hen":         ("hen clucking", 1.8, None, "hen clucking"),
+    "goose":       ("goose", 1.5, None, "goose honking"),
+    "turkey":      ("turkey gobble", 1.8, None, "turkey gobbling"),
+    "trumpet":     ("trumpet fanfare", 2.5, None, "trumpet fanfare"),
+    "crowd":       ("crowd murmur", 2.5, None, "a crowd murmuring"),
     "snore_big":   ("snoring", 3.2, "dyno", "Dyno's snore (asleep)"),
     "snore_cat":   ("cat snoring", 3.2, "sage", "Sage's snore (asleep)"),
     "snore_dog":   ("dog snoring", 3.2, "penny", "Penny's snore (asleep)"),
@@ -85,6 +95,9 @@ HALLOWEEN = {
     "spooky_organ": ("spooky organ", 2.5, None, "spooky organ"),
     "monster_laugh": ("monster laugh", 2.0, None, "monster laugh"),
 }
+# where the kept part starts (seconds) when the loudest part is not the sound wanted: the horse-walk recording begins and
+# ends with a loud rumble, the hoofbeats are in between
+START = {"hooves": 2.4}
 SETS = {**{n: ("character" if v[2] else "story") for n, v in SOUNDS.items()}, **{n: "halloween" for n in HALLOWEEN}}
 SOUNDS.update(HALLOWEEN)
 
@@ -104,13 +117,15 @@ def search(query: str) -> list[dict]:
     return out
 
 
-def prepare(raw: bytes, keep_s: float) -> np.ndarray:
+def prepare(raw: bytes, keep_s: float, start_s: float | None = None) -> np.ndarray:
     x, sr = sf.read(io.BytesIO(raw), dtype="float32", always_2d=True)
     x = x.mean(axis=1)
     if sr != SR:
         n = int(round(len(x) * SR / sr))
         x = np.interp(np.linspace(0, len(x) - 1, n), np.arange(len(x)), x).astype(np.float32)
     keep = int(keep_s * SR)
+    if start_s is not None:
+        x = x[int(start_s * SR):int(start_s * SR) + keep]
     if len(x) > keep:   # loudest window
         env = np.convolve(x * x, np.ones(keep, np.float32), mode="valid")
         start = int(np.argmax(env))
@@ -150,7 +165,7 @@ def main():
         best = max(results[:10], key=lambda r: r["downloads"])
         raw = urllib.request.urlopen(urllib.request.Request(best["mp3"], headers=UA), timeout=60).read()
         (DL / f"{name}_{best['id']}.mp3").write_bytes(raw)
-        pcm = prepare(raw, keep_s)
+        pcm = prepare(raw, keep_s, START.get(name))
         sf.write(OUT / f"{name}.wav", pcm, SR, subtype="PCM_16")
         index[name] = {"desc": desc, "toy": toy, "set": SETS[name], "seconds": round(len(pcm) / SR, 2), "query": query,
                        "freesound_id": best["id"], "title": best["title"], "author": best["user"],

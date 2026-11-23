@@ -106,7 +106,7 @@ CUES: dict[str, tuple[str, str]] = {
     "knock": (r"knock\w*|rapped (?:on|at)|tapp(?:ed|ing) (?:on|at) the (?:door|window)", r""),
     "doorbell": (r"door ?bell|rang the bell|ding dong", r""),
     "door_creak": (r"creak\w*|door (?:slowly )?(?:opened|swung)|opened the (?:\w+ )?(?:door|gate)", r""),
-    "footsteps": (r"foot ?steps?|tip ?toe\w*|stomp\w*|tramp\w*|(?:up|down) the stairs", r""),
+    "footsteps": (r"foot ?steps?|tip ?toe\w*|stomp\w*|tramp(?:ed|ing|led|ling)|(?:up|down) ?(?:the )?stairs", r""),
     "birds": (r"chirp\w*|tweet\w*|birds? (?:sang|sing|sings|singing)", r"birds?|robins?|sparrows?"),
     "owl": (r"hoot\w*", r"owls?"),
     "dog": (r"bark\w*|woof|bow ?wow", r"dogs?|pupp(?:y|ies)|hounds?"),
@@ -116,12 +116,23 @@ CUES: dict[str, tuple[str, str]] = {
     "cow": (r"moo(?:ed|ing|s)?", r"cows?"),
     "pig": (r"oink\w*", r"pigs?|piglets?"),
     "sheep": (r"baa+(?:ed)?|bleat\w*", r"sheep|lambs?"),
-    "duck": (r"quack\w*", r"ducks?|ducklings?"),
-    "rooster": (r"cock a doodle doo|crowed|crowing", r"roosters?|cocks?|cockerels?"),
+    "duck": (r"quack\w*", r"ducks?|ducklings?|duck[iy]e?|\w+ dadd?les?"),
+    "hen": (r"cluck\w*", r"hens?|henny|hen+[iy] ?pen+[iy]|honey ?penny|chickens?"),
+    "goose": (r"honk\w*", r"goose|geese|goos[ei]y?|gander|\w+ poos\w*"),      # before penguin_honk: a honk is the goose's when both exist
+    "turkey": (r"gobbl\w+(?! (?:\w+ ){0,3}up\b)", r"turkeys?|turkey ?lurk\w*|\w+ lurk(?:y|ey|ie)"),   # "gobbled it all up" is eating
+    "goat": (r"maa+(?:ed)?", r"(?:billy |nanny )?goats?|billy (?:go|goff|gough|gruff)"),
+    "hooves": (r"tr[ia]m?p tr[ia]m?p|clip ?clop\w*|clipp\w* clopp\w*|hoof ?beats?|hoo(?:fs|ves) (?:clattered|pounded|thundered)|gallop\w*|trott\w*", r""),
+    "puff": (r"huff\w*|puff\w*|bl(?:ow|ew|own) (?:\w+ )?house (?:in|down)", r""),
+    "slurp": (r"slurp\w*|lapp(?:ed|ing) (?:it )?up", r"porridge"),
+    "crack": (r"crack\w*|(?:broke|broken) (?:\w+ ){0,2}(?:in|to|into) (?:two|half|pieces|bits)|snapped in (?:two|half)", r""),
+    "snore_big": (r"snor\w*|fast asleep|sound asleep", r""),
+    "trumpet": (r"trumpet\w*|fanfare|bugles?", r"procession|parade"),
+    "crowd": (r"murmur\w*|whisper\w* to (?:one )?another|all the people|the whole (?:town|city|crowd)", r"crowds?"),
+    "rooster": (r"cock a doodle doo|crowed|crowing", r"roosters?|cocks?|cockerels?|cocky|\w+ky lock\w*"),
     "frog": (r"ribbit\w*|croak\w*", r"frogs?|toads?"),
     "wolf": (r"howl\w*", r"wolf|wolves"),
     "bee": (r"buzz\w*", r"bees?"),
-    "splash": (r"splash\w*|(?:jumped|fell|dived|dove|leaped|hopped) in(?:to)? the (?:water|pond|lake|river|sea|ocean|pool|puddle)", r""),
+    "splash": (r"splash\w*|(?:jumped|fell|dived|dove|leaped|hopped|tumbled|tossed|threw|thrown|pushed)(?: \w+){0,2} in(?:to)? the (?:water|pond|lake|river|stream|sea|ocean|pool|puddle|pot|well)", r""),
     "bubbles": (r"bubbl\w*", r""),
     "clock": (r"tick\w* ?tock|ticking|clock struck|clock chimed", r"clocks?"),
     "school_bell": (r"school bell|bell rang|bell rings", r""),
@@ -131,7 +142,7 @@ CUES: dict[str, tuple[str, str]] = {
     "sigh": (r"sigh\w*", r""),
     "witch_cackle": (r"cackl\w*", r"witch(?:es)?"),
     "ghost_boo": (r"boo", r"ghosts?"),
-    "ghost_moan": (r"moan\w*|groan\w*", r""),
+    "ghost_moan": (r"moan\w*", r""),      # not "groaned": bridges and chairs groan too
     "cauldron": (r"cauldron|potion", r""),
     "crow": (r"caw\w*", r"crows?|ravens?"),
     "bones": (r"rattl\w*", r"skeletons?|bones"),
@@ -139,11 +150,11 @@ CUES: dict[str, tuple[str, str]] = {
     "spooky_organ": (r"organ", r"haunted"),
     "monster_laugh": (r"monster laughed|evil laugh", r"monsters?"),
     "bats": (r"bats (?:flew|flapped)", r"bats"),
-    "dino_roar": (r"roar\w*", r"dinosaurs?|t ?rex|dragons?"),
-    "dino_growl": (r"growl\w*|snarl\w*", r""),
+    "dino_roar": (r"roar\w*", r"dinosaurs?|t ?rex|dragons?|troll\w*|ogres?|giants?"),
+    "dino_growl": (r"growl\w*|snarl\w*", r"bears?"),
     "penguin_honk": (r"honk\w*", r"penguins?"),
     "sparkle": (r"sparkl\w*|twinkl\w*|magic wand", r"magic\w*|fair(?:y|ies)"),
-    "pumpkin_thump": (r"thump\w*|thud", r""),
+    "pumpkin_thump": (r"thump\w*|thud|whack\w*|bonk\w*", r""),
     "candle_flicker": (r"flicker\w*", r"candles?"),
 }
 _RX = {name: tuple(re.compile(rf"\b(?:{p})\b") if p else None for p in pair) for name, pair in CUES.items()}
@@ -169,7 +180,8 @@ def pick(text: str, available=None, skip=()) -> str | None:
                 if strength == 2 and _NOT.search(t[:m.start()].rstrip()):
                     negated = True       # "the dog did not bark": no bark, and no bark for the word "dog" either
                     break
-                key = (strength, m.end() - m.start(), m.start())
+                own = strength == 2 and thing is not None and bool(thing.search(t))   # "the penguin honked": the penguin's honk
+                key = (strength, own, m.end() - m.start(), m.start())
                 if best is None or key > best[0]:
                     best = (key, name)
         if negated and best and best[1] == name:
@@ -183,14 +195,18 @@ def pick_all(text: str, available=None, skip=(), most: int = 4) -> list[str]:
     sound from pick). Fewer than two actions: the single best sound, as pick gives it."""
     t = _norm(text)
     found = {}
-    for name, (act, _thing) in _RX.items():
+    for name, (act, thing) in _RX.items():
         if act is None or (available is not None and name not in available) or name in skip:
             continue
         for m in act.finditer(t):
             before = t[:m.start()].rstrip()
-            if not _LIKE.search(before) and not _NOT.search(before):
-                found.setdefault(name, m.start())
-                break
+            if _LIKE.search(before) or _NOT.search(before):
+                continue
+            other = next((n for n, at in found.items() if at == m.start()), None)     # one word, one sound
+            if other is None or (thing is not None and thing.search(t)):
+                found.pop(other, None)
+                found[name] = m.start()
+            break
     if len(found) >= 2:
         return sorted(found, key=found.get)[:most]
     one = pick(text, available, skip)
@@ -204,7 +220,7 @@ def heard_so_far(text: str, final: bool, available=None, skip=()) -> list[str]:
     word may be half of a longer one ("boo" of "book", "cat" of "cattle"), so until a pause (final) a name at the very end
     waits for the next word, and so does a short action word."""
     t = _norm(text)
-    found = {}
+    found, acts, named = {}, {}, set()
     for name, (act, thing) in _RX.items():
         if (available is not None and name not in available) or name in skip:
             continue
@@ -218,7 +234,13 @@ def heard_so_far(text: str, final: bool, available=None, skip=()) -> list[str]:
                 if not final and m.end() == len(t) and (not strong or m.end() - m.start() < 5):
                     continue
                 found[name] = min(found.get(name, m.start()), m.start())
+                acts.setdefault(m.start(), []).append(name) if strong else named.add(name)
                 break
+    for same in acts.values():       # one word, one sound: "honked" is the penguin's if a penguin is in the sentence, else the
+        keep = next((n for n in same if n in named), same[0])     # first in the table (the goose)
+        for n in same:
+            if n != keep:
+                found.pop(n, None)
     return sorted(found, key=found.get)
 
 

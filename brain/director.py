@@ -904,6 +904,10 @@ class Director:
                 text = nonspeech.clean(text) if text and text != "-" else ""   # words only; "[snoring]" etc. are not speech
                 if not utt:
                     return                       # an [EVENT] turn has no child audio: a HEARD line there is old words repeated
+                if not text and tl.get("story") and self._story_ears_log:
+                    # the model gave no transcript ("HEARD: -" for every sentence of one story, live Nov 22, so "the end" was
+                    # never seen and the story stayed on): the fast recogniser's words for this stretch stand in
+                    text, tl["flags"]["heard_by_ears"] = max((e[1] for e in self._story_ears_log), key=len).strip(), True
                 if text and tl.get("story"):
                     text = story.tidy(text)
                 if text and tl.get("story"):

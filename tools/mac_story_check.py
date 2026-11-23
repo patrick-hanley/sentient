@@ -1,21 +1,14 @@
 """Live story check judged by the Mac mic (the reference for "did it work"): the Mac reads the story aloud with `say`, pauses after
-each sentence, and reports what was audible in each pause.  python tools/mac_story_check.py out.json   (brain running, toys near the Mac)"""
+each sentence, and reports what was audible in each pause.  python tools/mac_story_check.py out.json [--story billy_goats] [--short]   (brain running, toys near the Mac; stories in tools/story_lines.py)"""
 import subprocess, sys, time, json, numpy as np
 sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.abspath(__file__))); import mac_ear as ear
-PLAN = [("I'm going to read you a story.", 7, "ack"),
- ("A man had a donkey who had carried sacks to the mill for many years.", 5, ["donkey"]),
- ("On the road he found a hound, lying and panting.", 5, ["dog"]),
- ("Then they came to a cat, sitting on the path, with a face like three rainy days.", 5, ["cat"]),
- ("A rooster sat on the gate, crowing with all his might.", 6, ["rooster"]),
- ("They saw a light far away and walked toward it.", 4, []),
- ("Inside the house, robbers were sitting at a table full of good food.", 4, []),
- ("The donkey brayed, the hound barked, the cat mewed, and the rooster crowed.", 10, ["donkey", "dog", "cat", "rooster"]),
- ("Then they burst through the window, so that the glass clattered.", 5, ["glass"]),
- ("And the four musicians lived happily in the house.", 4, []),
- ("The end.", 12, "end")]
+import story_lines
+name = next((sys.argv.pop(i + 1) for i, v in enumerate(sys.argv) if v == "--story"), "bremen")     # --story three_pigs
+if "--story" in sys.argv: sys.argv.remove("--story")
+PLAN = [("I'm going to read you a story.", 7, "ack")] + story_lines.STORIES[name] + [("The end.", 12, "end")]
 if "--short" in sys.argv:      # start, one sentence, the end
     sys.argv.remove("--short"); PLAN = [PLAN[0], PLAN[3], PLAN[-1]]
-STORY = ["donkey", "dog", "cat", "rooster", "glass"]
+STORY = sorted({n for _t, _w, exp in story_lines.STORIES[name] for n in exp})
 E = ear.Ear(); time.sleep(1.5); marks = []
 print("start", time.strftime("%H:%M:%S"), flush=True)
 for text, wait, exp in PLAN:
