@@ -11,7 +11,7 @@ Numbers only in the output file; the generated lines are printed for a sample (-
 """
 from __future__ import annotations
 
-import argparse, collections, json, re, subprocess, sys, time, urllib.request
+import argparse, collections, json, math, re, subprocess, sys, time, urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -41,13 +41,24 @@ def parse(reply: str):
 
 
 def ask(msgs, seed):
-    body = {"messages": msgs, "max_tokens": 120, "temperature": 0.8, "seed": seed, "cache_prompt": True,
+    body = {"messages": msgs, "max_tokens": 120, "temperature": 0.8, "seed": seed, "cache_prompt": True, "logprobs": True,
             "chat_template_kwargs": {"enable_thinking": False}}
     req = urllib.request.Request(f"http://127.0.0.1:{PORT}/v1/chat/completions", data=json.dumps(body).encode(),
                                  headers={"Content-Type": "application/json"})
     t = time.time()
     with urllib.request.urlopen(req, timeout=180) as r:
         d = json.load(r)
+    ask.conf = None                      # how sure the model was of its toy lines: mean token probability after the HEARD line
+    try:
+        lp, seen_nl = [], False
+        for tok in d["choices"][0]["logprobs"]["content"]:
+            if seen_nl:
+                lp.append(tok["logprob"])
+            seen_nl = seen_nl or "\n" in tok["token"]
+        if lp:
+            ask.conf = round(math.exp(sum(lp) / len(lp)), 3)
+    except (KeyError, TypeError):
+        pass
     return d["choices"][0]["message"]["content"] or "", time.time() - t
 
 
@@ -102,6 +113,7 @@ def main():
             raise RuntimeError("llama-server did not come up; see /tmp/eval-llama.log")
         counts, n_turns, clean, words, nlines, questions, secs, heard_ok, shown = collections.Counter(), 0, 0, [], [], 0, [], 0, 0
         kinds = collections.defaultdict(lambda: [0, 0])      # turn kind -> [clean, replies]
+        records = []                                         # every reply, for tools/finetune/hard_turns.py
         for sc in todo:
             toys = sc.get("toys") or scenes.TOYS
             msgs = [{"role": "system", "content": scenes.system_for(sc)}]
@@ -123,6 +135,8 @@ def main():
                             bad = []                                  # stop: silence is right
                         if asked:
                             bad.append("LOOK when not asked")
+                    records.append({"id": sc["id"], "turn": k, "kind": kind, "tags": t.get("tags") or [], "said": t.get("said") or t.get("event") or "",
+                                    "sample": smp, "reply": reply.strip(), "rules": bad, "conf": ask.conf, "written": scenes.target_text(t, prev)})
                     kinds[kind][0] += not bad
                     kinds[kind][1] += 1
                     want = scenes.heard_text(t, prev)
@@ -151,6 +165,7 @@ def main():
         print(json.dumps(res, indent=1))
         if a.out:
             Path(a.out).write_text(json.dumps(res, indent=1))
+            Path(a.out).with_suffix(".replies.jsonl").write_text("".join(json.dumps(r) + "\n" for r in records))
     finally:
         srv.terminate()
         srv.wait(10)
