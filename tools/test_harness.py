@@ -87,6 +87,15 @@ class StoryTests(unittest.TestCase):
         for t in ("Can you tell me a story?", "Dyno, tell me a long story about a dragon.", "Read me a story please.", "I like stories."):
             self.assertFalse(story.wants_story(t), t)
 
+    def test_start_from_the_fast_recognisers_words(self):
+        from brain import story
+        for t in ("i'm going to read you a story", "m going to read you a story", "going to read you my book", "i am gonna read a story to you",
+                  "story time", "let me read you this book"):
+            self.assertTrue(story.ears_start(t), t)
+        for t in ("can you read me a story", "are you going to read me a story", "i read a story at school today", "i like that book",
+                  "what is your favourite story", "tell me a story about a dragon"):
+            self.assertFalse(story.ears_start(t), t)
+
     def test_the_end_only_as_its_own_sentence(self):
         from brain import story
         for t in ("The end.", "And they lived happily ever after. The end.", "I'm done reading.", "That's the end!"):

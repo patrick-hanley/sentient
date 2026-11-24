@@ -26,7 +26,7 @@ class StoryEars:
         self.ok, self.rec, self.streams, self.last, self.done, self.flushed = False, None, {}, {}, {}, {}
         self.lvl = {}      # per toy: [recent speech level, seconds of quiet so far, already flushed]
         self.q: queue.Queue = queue.Queue(maxsize=600)
-        self.was_on, self.dropped = False, 0
+        self.was_on, self.dropped, self.idle = False, 0, {}
         d = config.STORY_EARS_MODEL
         try:
             if not config.STORY_EARS or not (d / "tokens.txt").exists():
@@ -45,8 +45,9 @@ class StoryEars:
             log.warning("story ears off (%s)", exc)
 
     def feed(self, toy, pcm):
-        """One mic frame (int16). Costs nothing unless story mode is on."""
-        if not self.ok or not self.active():
+        """One mic frame (int16). Outside story mode the ears listen too (config.STORY_EARS_ALWAYS), for "I'm going to read you
+        a story": that line must not depend on the big model writing down what it heard. Long quiet is skipped (step)."""
+        if not self.ok or not (config.STORY_EARS_ALWAYS or self.active()):
             self.was_on = False
             return
         try:
@@ -79,6 +80,16 @@ class StoryEars:
             s = self.streams[toy] = self.rec.create_stream()
         x = np.asarray(pcm, dtype=np.float32)
         flush = False
+        if not self.active():      # outside story mode: a mic quiet for seconds is not decoded (three mics, all day)
+            lv = self.lvl.setdefault(toy, [0.0, 0.0, False, []])
+            quiet = (float(np.sqrt((x * x).mean())) if len(x) else 0.0) < max(80.0, 0.12 * lv[0])
+            if quiet and lv[1] > config.STORY_EARS_IDLE_S:
+                lv[0] *= 0.999
+                lv[3] = lv[3][-14:] + [x]
+                self.idle[toy] = True
+                return
+            if self.idle.pop(toy, False) and lv[3]:      # speech after a long quiet: the last 0.3 s of quiet go in first
+                s.accept_waveform(config.SAMPLE_RATE, np.concatenate(lv[3]) / 32768.0)
         s.accept_waveform(config.SAMPLE_RATE, x / 32768.0)
         # The recogniser shows a word ~0.5 s after it was said and wants its own pause on top (0.95 s from the last word to the
         # sound's order, live Nov 21). So when the mic goes quiet after words, quiet is fed in at once: the last words come out

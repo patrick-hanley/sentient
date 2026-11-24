@@ -335,6 +335,7 @@ class Director:
         self._story_q = None                       # story sounds waiting to play (one worker thread)
         self._story_qlock = threading.Lock()
         self._story_ears_log: list = []            # what the fast recogniser heard since the last sentence (for the log, RAM only)
+        self._story_start_fast = 0.0               # when the fast recogniser last heard "I'm going to read you a story"
         self._story_end_fast = 0.0                 # when the fast recogniser last heard "the end"
         self._story_fast_t = 0.0                   # when the fast recogniser last started a sound
         self._story_cur = None                     # (toy, since) while a story sound plays
@@ -801,6 +802,12 @@ class Director:
             looks = self._can_look(toy) and not story_on
             stop_now = bool(said and config.CHILD_LEADS and camera.wants_stop(said)) and not story_on   # story mode decides in _story_heard
             story_now = bool(said and config.STORY_MODE and not story_on and not stop_now and story.wants_story(said))
+            if (utt and not said and not story_on and config.STORY_MODE and not stop_now
+                    and time.time() - self._story_start_fast < config.STORY_START_FAST_S + len(utt.pcm) / config.SAMPLE_RATE):
+                # the fast recogniser heard the opening line while it was being said: story mode starts whatever the model then
+                # writes down or leaves out (it answered with no transcript once in eight, live Nov 22)
+                story_now, tl["flags"]["start_by_ears"], self._story_start_fast = True, True, 0.0
+                self.last_heard = tl["heard"] = "I'm going to read you a story."
             named = camera.addressed(said) if said and config.CHILD_LEADS and not stop_now and not story_on else None
             if named and named in speakers:   # the child spoke to one toy: only that toy answers
                 prompt = prompt.replace(f"[TOYS HERE] {here} ", f"[TOYS HERE] {NAMES[named]} ", 1)
@@ -1342,6 +1349,10 @@ class Director:
         """The fast recogniser (brain/storyears.py) heard these words so far: start the sounds whose word has been said. Runs on
         its thread, during the reading; Gemma's transcript of the whole sentence comes later and adds only what this missed."""
         try:
+            if not self._story_on():      # also mid-sentence: the line is whole once "...read you a story" is out
+                if config.STORY_MODE and not self.hub.talking and story.ears_start(text):
+                    self._story_start_fast = time.time()      # the turn for this utterance begins the story
+                return
             if final and self._story_on() and story.fast_end(text):
                 self._story_end_fast = time.time()     # the turn for this utterance (starting about now) ends the story at once
                 return

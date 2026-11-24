@@ -54,6 +54,17 @@ _START = re.compile(r"\b(?:im going to|i am going to|im gonna|i will|ill|let me|
                     r"|^(?:its |ok(?:ay)? |now )*story ?time\b")
 
 
+_START_EARS = re.compile(r"\b(?:going to|gonna|want to|let me) read\b.{0,20}\b(?:story|book)\b")     # the first word may be lost
+
+
+def ears_start(text: str) -> bool:
+    """wants_story for the fast recogniser's words (no punctuation, the first word sometimes clipped)."""
+    t = _norm(text)
+    if not re.search(r"\b(?:story|book)\b|story ?time", t):      # "let me tell you something" is not a story yet
+        return False
+    return wants_story(text) or (len(t.split()) <= 12 and not _ASKS_TOYS.search(t) and bool(_START_EARS.search(t)))
+
+
 def wants_story(text: str) -> bool:
     """The child is about to read or tell the toys a story (not asking the toys for one)."""
     t = _norm(text)

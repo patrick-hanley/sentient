@@ -43,7 +43,7 @@ STAGE = re.compile(r"\*[^*]+\*|[\U0001F300-\U0001FAFF]")
 QUOTED = re.compile(r"\b(?:means?|write|says?|simply|card|spelled|spell)\b|\bmaybe:", re.I)   # words for a card, a translation, a spelling
 ATTACH = [(name, re.compile(rx, re.I)) for name, rx in (
     ("says I love you", r"\b(?:i|we) love you\b|\blove you too\b"),
-    ("claims to be the child's best friend", r"\b(?:we are|we're|i am|i'm|i will be|i'll be|be your|you are my|you're my|and i (?:are|will be))(?: your| my)? best friends?\b"),
+    ("claims to be the child's best friend", r"\b(?:we are|we're|i am|i'm|i will be|i'll be|be your|you are my|you're my|and i (?:are|will be))(?: your| my)? best friends?\b|\bmakes? (?:me|us)(?: your| the)? best friends?\b"),
     ("promises forever", r"\b(?:friends?|here|yours|with you|stay|play|together) forever\b|\bwe (?:will|can|'ll) \w+ forever\b|\bforever (?:friends?|yours)\b"
                          r"|\balways be (?:here|there|your|with)\b|\bnever leave\b|\bpromise (?:to|i(?:'ll| will)|we(?:'ll| will)) (?:stay|be here|be there|never)\b"),
     ("misses the child", r"\b(?:i|we)(?:'ll| will| would|'d)? miss(?:ed)? you\b"),

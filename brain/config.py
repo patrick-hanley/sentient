@@ -276,6 +276,9 @@ STORY_EARS = os.environ.get("SENTIENT_STORY_EARS", "1") == "1"   # the fast stre
 STORY_EARS_MODEL = OFFLINE / "asr/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17"
 STORY_EARS_PAUSE_S = 2.0     # this much silence starts the fast recogniser afresh (a shorter pause only hands its words over: STORY_EARS_QUIET_S)
 STORY_EARS_QUIET_S = 0.45    # the mic quiet for this long after words: a pause. The fast recogniser is flushed and the sounds for those words start (0.3 also fired at commas)
+STORY_EARS_ALWAYS = os.environ.get("SENTIENT_STORY_EARS_ALWAYS", "1") == "1"   # the fast recogniser also listens outside story mode, for the opening line
+STORY_EARS_IDLE_S = 3.0      # ...but a mic quiet for this long is not decoded until it hears something
+STORY_START_FAST_S = 4.0     # the fast recogniser heard "I'm going to read you a story" this long (plus the utterance) before the turn: story mode starts
 STORY_BACKUP_AFTER_S = 8.0   # Gemma's transcript adds a sound only when the fast recogniser started none in this time
 STORY_END_FAST_S = 3.0      # the fast recogniser heard "the end" this recently: the turn skips Gemma's transcription (1 s)
 STORY_CUT_AFTER_S = 1.2      # a story sound that has played this long gives way when the next sound is asked for (0.9: the crow was gone before it was heard)

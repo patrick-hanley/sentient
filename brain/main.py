@@ -389,6 +389,7 @@ def main():
     eyes = Perceiver(hub, rec)
     director = Director(hub, voices, eyes, llm, segs)
     ears = StoryEars(director.story_words, director._story_on)   # story mode: sounds within a second of their word
+    director.ears = ears                                         # ...and the opening line, read before the model is asked
     director.voiceid = voiceid.VoiceID()   # who is talking, by voice print (brain/voiceid.py); off if the model is missing
     hub.on_imu = director.on_imu
     hub.on_barge = director.barge_in
