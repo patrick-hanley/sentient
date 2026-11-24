@@ -61,3 +61,6 @@ child's words never go into these files or to a rented GPU.
 - Round 5 continues from the ROUND 3 adapter (round 4 was round 3 plus 44 of the same scenes): `python tools/finetune/make_train5.py`,
   then `python train_lora.py --data train5.jsonl --val train5-val.jsonl --init adapter-round3 --out adapter --epochs 2 --save-last
   --focus q4-,r4-,s4-,t4-,u4-`. About 75 minutes on a T4 (500 scenes).
+- Round 6 continues from the round-5 end-of-run adapter (`adapter-last`, uploaded as `adapter-round5`): `python tools/finetune/make_train6.py`,
+  then `python train_lora.py --data train6.jsonl --val train6-val.jsonl --init adapter-round5 --out adapter --epochs 2 --save-last
+  --focus v6-,w6-,x6-,y6-`. The 200 new scenes (`data/round6-[v-y].jsonl`) are the "warm first" scenes of WRITING.md, Round 6.
