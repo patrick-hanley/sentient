@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import collections
+import dataclasses
+import difflib
 import logging
 import os
 import queue
@@ -15,7 +17,7 @@ import wave
 import numpy as np
 
 from . import voiceid
-from . import camera, canned, config, convlog, curriculum, curriculum_picks, debugrec, factcheck, nonspeech, scripted, story, toytalk
+from . import camera, canned, config, convlog, curriculum, curriculum_picks, debugrec, factcheck, jokes, nonspeech, scripted, story, toytalk
 from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
@@ -336,6 +338,10 @@ class Director:
         self._story_qlock = threading.Lock()
         self._story_ears_log: list = []            # what the fast recogniser heard since the last sentence (for the log, RAM only)
         self._story_start_fast = 0.0               # when the fast recogniser last heard "I'm going to read you a story"
+        self._ears_recent: collections.deque = collections.deque(maxlen=120)   # (time, toy, words) from the fast recogniser, RAM only
+        self._cur_utt = None                       # the child's utterance being answered (not in story mode)
+        self._jokes, self._joke_t = jokes.Teller(), 0.0   # the joke list, and when a toy last told one
+        self._cont = None                          # (utterance, time): cut by the child going on before any line was spoken
         self._story_end_fast = 0.0                 # when the fast recogniser last heard "the end"
         self._story_fast_t = 0.0                   # when the fast recogniser last started a sound
         self._story_cur = None                     # (toy, since) while a story sound plays
@@ -552,6 +558,8 @@ class Director:
         self.child_contact()
         self.live.barge()   # metrics: the child talked over a toy
         self._barge_t = time.time()   # the child's utterance (already being heard) must outlive the cancelled turn's _flush()
+        if config.CONTINUE and self._cur_utt is not None and not self.last_lines:
+            self._cont = (self._cur_utt, time.time())   # nothing answered yet: the child is still on the same thought
         for s in self.segs.values():   # the interrupting words may be one short "Stop!": do not drop them as noise
             s.short_until = time.monotonic() + config.BARGE_SHORT_S
         self.interrupt()
@@ -644,6 +652,11 @@ class Director:
             try:
                 u = self.utter_q.get(timeout=0.5)
             except queue.Empty:
+                c = self._cont
+                if c and time.time() - c[1] > config.CONTINUE_ALONE_S and not self.child_speaking() and not self.paused:
+                    self._cont = None        # nothing more came: the first part is answered as it is
+                    self._turn(utt=c[0])
+                    continue
                 self.live.tick()   # metrics: close a session that has been idle too long
                 self._maybe_event()
                 continue
@@ -653,10 +666,82 @@ class Director:
             if self._story_on() and self._story_echo(u):
                 continue
             self._barge_t = 0.0   # the interrupting words are being answered now
+            u = self._continued(u)
             u.arbitrated = time.monotonic()
             self.child_contact()
             log.info("utterance: %s %.1fs rms=%.0f", u.toy, len(u.pcm) / config.SAMPLE_RATE, u.rms)
             self._turn(utt=u)
+
+    def _went_on(self, utt, gen) -> bool:
+        """The child is talking again and nothing has been answered: drop this turn, the two parts are answered together."""
+        if not config.CONTINUE or self._gen != gen or self.last_lines or getattr(self.hub, "talking", None):
+            return False
+        # new speech only: another mic still finishing the SAME words (it reports a moment later) is not the child going on
+        # ("Stop talking." was answered 3 s late as "Stop talking. Stop talking.", live Nov 26)
+        if not any(getattr(s, "active", False) and getattr(s, "start", 0) >= utt.end - 0.1 for s in self.segs.values()):
+            return False
+        self._cont = (utt, time.time())
+        self._barge_t = time.time()      # the words now being said must outlive this turn's _flush()
+        self._gen += 1
+        log.info("the child is going on: this turn waits for the rest")
+        return True
+
+    def _continued(self, u):
+        """The child went on talking over the toy's first sound, before any answer: both parts are one utterance."""
+        c, self._cont = self._cont, None
+        if not c or time.time() - c[1] > config.CONTINUE_S or self._story_on():
+            return u
+        first = c[0]
+        gap = np.zeros(int(config.CONTINUE_GAP_S * config.SAMPLE_RATE), dtype=first.pcm.dtype)
+        u = dataclasses.replace(u, toy=first.toy, start=first.start, pcm=np.concatenate([first.pcm, gap, u.pcm]),
+                                rms=max(first.rms, u.rms), speech_ms=first.speech_ms + u.speech_ms)
+        u.continued = True
+        log.info("the child went on: two parts answered as one turn (%.1fs)", len(u.pcm) / config.SAMPLE_RATE)
+        return u
+
+    _FILL = frozenset("a an and are at be but can did do does for from have i i'm in is it it's me my no not of oh ok okay on or so "
+                      "that the then there this to too um was we what when with yes you your".split())
+
+    def _ears_heard(self, utt) -> list[str]:
+        """What the fast recogniser made of this utterance: its word runs, the longest first."""
+        t0 = utt.start - 0.6
+        return sorted({x.strip() for t, _toy, x in list(self._ears_recent) if t >= t0 and x.strip()}, key=len, reverse=True)
+
+    def _heard_gate(self, utt, text: str) -> tuple[str, str]:
+        """Is the model's transcript something a microphone heard? ("ok" | "noise" | "reask", the recogniser's words)."""
+        ears = getattr(self, "ears", None)
+        if not config.HEARD_GUARD or not getattr(ears, "ok", False) or not self._ears_recent:
+            return "ok", ""           # no recogniser, or it has not heard a word yet since the start (cold): nothing to compare with
+        runs = self._ears_heard(utt)
+        behind = lambda: getattr(getattr(ears, "q", None), "qsize", lambda: 0)() > 5      # mic frames it has not decoded yet
+        until = time.time() + config.HEARD_GUARD_WAIT_S
+        late = time.time() + config.HEARD_GUARD_BEHIND_S
+        while not runs and (time.time() < until or (behind() and time.time() < late)):
+            time.sleep(0.03)
+            runs = self._ears_heard(utt)
+        words = lambda s: re.findall(r"[a-z']+", s.lower())
+        ew, mw = {w for r in runs for w in words(r)}, words(text)
+        best = runs[0] if runs else ""
+        log.info("heard guard: the model wrote %d words, the recogniser heard %d", len(mw), len(ew))    # counts, never the words
+        # said twice is said: the same words again right after being turned away are a child repeating, not a noise
+        prev, self._rejected = getattr(self, "_rejected", None), None
+        if mw and prev and time.time() - prev[0] < config.HEARD_GUARD_REPEAT_S and len(set(mw) & prev[1]) * 2 >= len(set(mw)):
+            return "ok", best
+        if not mw:                    # no transcript: answering is fine only if somebody said something (two words or more:
+            return ("ok" if len(words(best)) >= 2 else "noise"), best      # a ding is one "word" to the recogniser)
+        if not ew:                    # a whole sentence the recogniser has no word of: invented (a short "yes" may slip past it)
+            if len(mw) >= 3:
+                self._rejected = (time.time(), set(mw))
+            return ("noise" if len(mw) >= 3 else "ok"), ""
+        mc = [w for w in mw if w not in self._FILL] or mw
+        ec = [w for w in ew if w not in self._FILL] or list(ew)
+        same = lambda a, b: a == b or (min(len(a), len(b)) >= 4 and a[:4] == b[:4]) or difflib.SequenceMatcher(None, a, b).ratio() >= 0.75
+        hit = sum(any(same(a, b) for b in ec) for a in mc)
+        if hit * 3 >= len(mc) or len(mw) < 3:      # a word or two may be all the recogniser missed
+            return "ok", best
+        if len(words(best)) < 4:
+            self._rejected = (time.time(), set(mw))
+        return ("reask" if len(words(best)) >= 4 else "noise"), best       # its own words may be an echo's: only a real run of them
 
     def _maybe_event(self):
         if self.paused or self.busy or not self.hub.online():
@@ -748,10 +833,21 @@ class Director:
             online = self.hub.online()
             toy = utt.toy if utt and utt.toy in online else online[0]
             story_on = tl["story"] = bool(utt) and self._story_on()   # the child is reading: no words from the toys this turn
+            self._cur_utt = utt if utt is not None and not story_on else None
+            if getattr(utt, "continued", False):
+                tl["flags"]["continued"] = True
             if utt and config.PLAY_FILLERS and not story_on:
                 ftoy = toy if toy not in config.SPEAKER_BAD else next((t for t in online if t not in config.SPEAKER_BAD), toy)
                 f = random.choice(canned.FILLERS.get(ftoy, ["Hmm!"]))
-                filler = threading.Thread(target=self.hub.play_line, args=(ftoy, f, self.voices), daemon=True)
+
+                def fill():
+                    until = time.time() + (config.CONTINUE_HOLD_S if config.CONTINUE else 0)
+                    while time.time() < until:           # is the child going on? then no sound: the mics stay open
+                        if self._gen != gen or self._went_on(utt, gen):
+                            return
+                        time.sleep(0.02)
+                    self.hub.play_line(ftoy, f, self.voices)
+                filler = threading.Thread(target=fill, daemon=True)
                 filler.start()
             scene = self.eyes.scene_text()
             image = None
@@ -887,12 +983,45 @@ class Director:
 
             pipeline = SpeechPipeline(self.hub, self.voices, trace, dispatched,
                                       before_play=filler.join if filler else None,
-                                      cancelled=lambda: self._gen != gen, gate=self._wait_cue)
+                                      cancelled=lambda: self._gen != gen,
+                                      gate=lambda: (self._wait_cue(), bool(utt) and not story_on and self._went_on(utt, gen)))
             deflected = []
+
+            def gate(text):
+                """Once per turn, before anything is spoken: was this utterance really said? (config.HEARD_GUARD)"""
+                if "hg" in tl:
+                    return tl["hg"]
+                check = bool(utt) and self.llm.hears_audio and not said and not story_on and not stop_now and not story_now
+                verdict, ears_text = self._heard_gate(utt, text) if check else ("ok", "")
+                tl["hg"] = verdict
+                if verdict != "ok":
+                    tl["mute"], parser.closed = True, True
+                    tl["flags"]["unheard" if verdict == "noise" else "reheard"] = True
+                    if text:
+                        tl["flags"]["rejected"] = text[:80]       # for review (RAM, like the rest of this log)
+                    if verdict == "reask":
+                        tl["reask"] = ears_text
+                    log.info("heard guard: %s", verdict)          # the verdict only, never the words
+                elif check and not text and len(ears_text.split()) >= 2:
+                    tl["ears_text"] = ears_text                   # no transcript from the model: the recogniser's words go in the log
+                    # ...and "stop" / "tell me a joke" still count (the stock model left the transcript out for 3 lines of 7,
+                    # live Nov 26)
+                    if config.CHILD_LEADS and camera.wants_stop(ears_text):
+                        heard(ears_text)
+                    elif config.JOKE_BANK and jokes.wants(ears_text, time.time() - self._joke_t < config.JOKE_AGAIN_S):
+                        at = camera.addressed(ears_text)
+                        at = at if at in parser.online else (toy if toy in parser.online else sorted(parser.online)[0])
+                        tl["ack"], tl["ack_line"], tl["flags"]["joke"] = at, self._jokes.next(at), True
+                        self._joke_t, parser.closed = time.time(), True
+                return verdict
 
             def line_ready(who, text):
                 if self._gen != gen:
                     return
+                if utt and not story_on and (gate(parser.heard_text if parser.heard_text not in (None, "-") else "") != "ok" or tl.get("mute")):
+                    return
+                if tl.get("ack") and (tl["flags"].get("stop") or tl["flags"].get("joke")) and (who, text) != (tl["ack"], tl.get("ack_line")):
+                    return                       # stop / a joke from the list was decided from the recogniser's words: no model line
                 if tl.get("story"):   # the child is reading: whatever the model wrote is not spoken (a lone sound tag may be used)
                     tl.setdefault("story_lines", []).append(text)
                     return
@@ -911,6 +1040,8 @@ class Director:
                 text = nonspeech.clean(text) if text and text != "-" else ""   # words only; "[snoring]" etc. are not speech
                 if not utt:
                     return                       # an [EVENT] turn has no child audio: a HEARD line there is old words repeated
+                if not story_on and gate(text) != "ok":
+                    return                       # nobody said this: nothing is routed, remembered or answered
                 if not text and tl.get("story") and self._story_ears_log:
                     # the model gave no transcript ("HEARD: -" for every sentence of one story, live Nov 22, so "the end" was
                     # never seen and the story stayed on): the fast recogniser's words for this stretch stand in
@@ -940,6 +1071,13 @@ class Director:
                     if camera.wants_stop(text):
                         tl["flags"]["stop"], tl["ack"] = True, toy
                         self._quiet(toy)
+                        parser.closed, parser.count = True, 1
+                    elif config.JOKE_BANK and jokes.wants(text, time.time() - self._joke_t < config.JOKE_AGAIN_S):
+                        # a joke from the list, told by the toy that was asked (or that heard the child): no model line is spoken
+                        at = camera.addressed(text)
+                        at = at if at in parser.online else (toy if toy in parser.online else sorted(parser.online)[0])
+                        tl["ack"], tl["ack_line"], tl["flags"]["joke"] = at, self._jokes.next(at), True
+                        self._joke_t = time.time()
                         parser.closed, parser.count = True, 1
                     else:
                         who = camera.addressed(text)
@@ -1006,7 +1144,7 @@ class Director:
                         chunks = stream(prompt, **kwargs) if stream else iter([self.llm.ask(prompt, **kwargs)])
                     try:
                         for delta in chunks:
-                            if self._gen != gen or (tl.get("force_look") and not tl.get("looked")) or (
+                            if self._gen != gen or tl.get("mute") or (tl.get("force_look") and not tl.get("looked")) or (
                                     tl.get("force_whoami") and not tl.get("whoami_done")) or (tl.get("story") and tl.get("story_done")):
                                 break
                             if peel:
@@ -1045,6 +1183,17 @@ class Director:
                             parser = ReplyLines([nxt[2]], line_ready, heard, guard, None, max_lines=1)
                         kwargs = dict(wav=None, image=None)
                         continue
+                    if tl.get("reask") and not tl.get("reasked") and round_ == 0 and self._gen == gen:
+                        # the transcript shares nothing with what the microphones heard: asked again, from the recogniser's words
+                        tl["reasked"], tl["mute"], tl["hg"] = True, False, "ok"
+                        prompt = prompt.replace("The child just spoke (audio attached). Reply.", f'The child said: "{tl["reask"]}"\nReply.')
+                        self.last_heard = tl["heard"] = tl["reask"]
+                        kwargs, peel = dict(wav=None, image=image), None
+                        parser = ReplyLines(speakers, line_ready, heard, guard, None,
+                                            max_lines=(1 if named else config.CHILD_MAX_LINES) if config.CHILD_LEADS else None)
+                        continue
+                    if tl.get("mute"):
+                        break
                     if peel and peel.looking and peel.word == camera.STOP_WORD and self._gen == gen:
                         # the child said stop: one short "I'm listening", then quiet (no toy-to-toy chat for STOP_QUIET_S)
                         tl["flags"]["stop"] = True
@@ -1099,7 +1248,8 @@ class Director:
                 if extra:
                     line_ready(at2, extra)
                 parser.count = 1
-            if not parser.count and not tl.get("story") and not tl.get("ack"):
+            if not parser.count and not tl.get("story") and not tl.get("ack") and not tl.get("mute") and not (
+                    self._gen != gen and self._cont):      # cut by the child going on: answered with the rest, not a failure
                 raise ValueError("Model produced no labelled line for an online toy")
             pipeline.finish()
         except Exception:  # noqa: BLE001
@@ -1126,6 +1276,11 @@ class Director:
                     os.unlink(f)
                 except OSError:
                     pass
+            self._cur_utt = None
+            if self._gen != gen and self._cont:
+                tl["flags"]["went_on"] = True      # the child was still talking: answered with the rest, next turn
+            if not tl["heard"] and tl.get("ears_text"):
+                tl["heard"], tl["flags"]["heard_by_ears"] = tl["ears_text"], True
             self._flush()
             self.hub.response_active.clear()
             self.busy = False
@@ -1349,6 +1504,7 @@ class Director:
         """The fast recogniser (brain/storyears.py) heard these words so far: start the sounds whose word has been said. Runs on
         its thread, during the reading; Gemma's transcript of the whole sentence comes later and adds only what this missed."""
         try:
+            self._ears_recent.append((time.time(), toy, text))
             if not self._story_on():      # also mid-sentence: the line is whole once "...read you a story" is out
                 if config.STORY_MODE and not self.hub.talking and story.ears_start(text):
                     self._story_start_fast = time.time()      # the turn for this utterance begins the story

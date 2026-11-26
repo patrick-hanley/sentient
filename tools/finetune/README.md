@@ -64,3 +64,10 @@ child's words never go into these files or to a rented GPU.
 - Round 6 continues from the round-5 end-of-run adapter (`adapter-last`, uploaded as `adapter-round5`): `python tools/finetune/make_train6.py`,
   then `python train_lora.py --data train6.jsonl --val train6-val.jsonl --init adapter-round5 --out adapter --epochs 2 --save-last
   --focus v6-,w6-,x6-,y6-`. The 200 new scenes (`data/round6-[v-y].jsonl`) are the "warm first" scenes of WRITING.md, Round 6.
+- Round 7 goes back to the ROUND 3 adapter with every corrected scene (`python tools/finetune/make_train7.py`: 772 scenes, about
+  110 minutes on a T4): `python train_lora.py --data train7.jsonl --val train7-val.jsonl --init adapter-round3 --out adapter
+  --epochs 2 --save-last --focus a7-,b7-,c7-,d7-`. Not run yet.
+- `data/live-z.jsonl` (ids in `live-heldout.jsonl`) is a test set only: 48 scenes built around lines the models got wrong when
+  spoken to. Score with `eval_rules.py data/live-heldout.jsonl data/live-z.jsonl --gguf <model> --out <file>`; then
+  `hard_turns.py replies <file>.replies.jsonl` lists the turns that fail in every sample and `hard_turns.py phrases <scenes>`
+  the word runs most scenes share (a template the model will copy).

@@ -278,6 +278,24 @@ STORY_EARS_PAUSE_S = 2.0     # this much silence starts the fast recogniser afre
 STORY_EARS_QUIET_S = 0.45    # the mic quiet for this long after words: a pause. The fast recogniser is flushed and the sounds for those words start (0.3 also fired at commas)
 STORY_EARS_ALWAYS = os.environ.get("SENTIENT_STORY_EARS_ALWAYS", "1") == "1"   # the fast recogniser also listens outside story mode, for the opening line
 STORY_EARS_IDLE_S = 3.0      # ...but a mic quiet for this long is not decoded until it hears something
+# The model's transcript is checked against the fast recogniser's words for the same utterance (director._heard_gate). Live on
+# Nov 24-26 every model answered child lines nobody had said ("I had a funny dream about a flying cow.") after a noise or a
+# cut-off fragment. Words the recogniser did not hear at all, or that share nothing with what it heard, get no reply (or one asked
+# again from the recogniser's words when it has four or more).
+# A child who asks for a joke gets one from brain/jokes.py, told whole by the toy that was asked; the model is not asked.
+JOKE_BANK = os.environ.get("SENTIENT_JOKE_BANK", "1") == "1"
+JOKE_AGAIN_S = 45.0          # "another one!" this soon after a joke is a request for the next
+HEARD_GUARD = os.environ.get("SENTIENT_HEARD_GUARD", "1") == "1"
+HEARD_GUARD_WAIT_S = 0.3     # the recogniser may be a moment behind the model's first line
+HEARD_GUARD_BEHIND_S = 1.0   # ...and longer while it still has mic frames waiting
+HEARD_GUARD_REPEAT_S = 12.0  # the same words again this soon after being turned away are believed (a child repeating)
+# A child who pauses mid-thought ("I'm sad. ... Nobody played with me today.") and goes on over the toy's "Hmm!": the first part
+# is kept and answered together with the rest as ONE turn (it was cut and the rest heard as a fragment, Nov 24-26).
+CONTINUE = os.environ.get("SENTIENT_CONTINUE", "1") == "1"
+CONTINUE_S = 6.0             # the rest must arrive this soon after the cut
+CONTINUE_GAP_S = 0.25        # quiet put between the two parts
+CONTINUE_HOLD_S = 0.3        # the toy's first sound ("Hmm!") waits this long: it closes every mic, and a child who goes on is then lost
+CONTINUE_ALONE_S = 2.5       # no rest arrived after all (a noise set it off): the first part is answered on its own
 STORY_START_FAST_S = 4.0     # the fast recogniser heard "I'm going to read you a story" this long (plus the utterance) before the turn: story mode starts
 STORY_BACKUP_AFTER_S = 8.0   # Gemma's transcript adds a sound only when the fast recogniser started none in this time
 STORY_END_FAST_S = 3.0      # the fast recogniser heard "the end" this recently: the turn skips Gemma's transcription (1 s)

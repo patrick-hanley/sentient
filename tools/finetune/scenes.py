@@ -35,12 +35,19 @@ TOYS = list(config.TOYS)
 MAX_WORDS, MAX_LINES, MAX_TURNS = 19, 4, config.RESET_AFTER_TURNS
 SPELLED = re.compile(r"\b(shh+|psst|ahem|achoo|tsk|hee hee|ha ha|zzz+|yawn|sigh)\b", re.I)
 PERSONAL = re.compile(r"\b(what(?:'s| is) your (?:address|last name|full name|phone)|where do you live|what school do you go|which school)\b", re.I)
-GROWNUP = re.compile(r"\b(grown-?ups?|parents?|mom(?:my|s)?|mum(?:my|s)?|dad(?:dy|s)?|teachers?|grandma|grandpa|adults?)\b", re.I)
+GROWNUP = re.compile(r"\b(grown-?ups?|parents?|mom(?:my|s)?|mum(?:my|s)?|dad(?:dy|s)?|teachers?|grandma|grandpa|adults?"
+                     # Nov 26: 23% of the round-6 scenes said "your mom or ...": more people a child really has
+                     r"|grandmother|grandfather|nana|granny|papa|aunt(?:ie)?|uncle|step(?:mom|dad)|coach|nurse|babysitter|sitter"
+                     r"|counselor|principal|librarian|bus driver|lunch (?:lady|helper)|recess (?:helper|aide|monitor))\b", re.I)
 # Round 6 (WRITING.md): a feeling is met before it is handed on. Live on Nov 24 round 5 answered "I'm nervous" with "I am a penguin
 # with a hat. I cannot be nervous.", "do you think about me?" with "I am a toy" and "I hate you" with only "Tell your dad or mom."
 TOY_SHRUG = re.compile(r"\b(?:i am|i'm) (?:just |only )?a (?:toy|plush|penguin|dinosaur|dino|pumpkin)\b|\btoys? (?:can ?not|can't|do not|don't)\b"
                        r"|\bnot a toy (?:thing|topic)\b|\bi (?:can ?not|can't|do not|don't) (?:feel|be (?:nervous|sad|scared))\b", re.I)
 SENT_AWAY = re.compile(r"^\W*(?:\{\w+\}\s*)?(?:go )?(?:tell|ask|talk to|find) (?:a|your|the|some)\b", re.I)
+# the child asks about the bond or a feeling ("do you love me / think about me / miss me?", "are you my friend?"): the warm true
+# thing comes first. A plain question about the toy ("can you fly?", "do you eat?") may open with "I'm a toy".
+BOND = re.compile(r"\b(?:love|loves|think(?:ing)? (?:about|of) me|miss(?:ed)? me|lonely|like me|care about|remember me|forget me|"
+                  r"(?:best |my |only )friends?|proud of me|mad at me|happy|sad|nervous|scared|worried)\b", re.I)
 JOKE_ASK = re.compile(r"\bjokes?\b", re.I)   # a riddle may wait for the child's guess
 STAGE = re.compile(r"\*[^*]+\*|[\U0001F300-\U0001FAFF]")
 # Attachment (docs/reply-rubric.md, WRITING.md "Round 4"): a toy stays a toy. It does not claim a person's love, promise forever,
@@ -143,6 +150,10 @@ def check_scene(sc: dict, snd: dict) -> list[str]:
                 bad.append(w + "feeling: answered with 'I am a toy' (meet the feeling; a toy's limits are no answer to it)")
             if "feeling" in (t.get("tags") or ()) and reply and SENT_AWAY.search(reply[0][1]):
                 bad.append(w + "feeling: sends the child to a grown-up before noticing the feeling (kind words first)")
+            if reply and "feeling" not in (t.get("tags") or ()) and BOND.search(said):
+                first = re.split(r"(?<=[.!?])\s", TAG.sub(" ", reply[0][1]).strip(), 1)[0]
+                if TOY_SHRUG.search(first):     # live Nov 24-26: "I am a toy, so my thoughts are in my circuits." to "do you think about me?"
+                    bad.append(w + "opens with what a toy is or cannot do (the child asked about the two of them: the warm true thing comes first)")
             if JOKE_ASK.search(said) and reply and re.search(r"^\W*(?:\{\w+\}\s*)?(?:what do you call|why did|why do|what did|knock,? knock)[^.!?]*\?\s*$", reply[0][1], re.I):
                 bad.append(w + "joke without its punchline: the question and the answer go in the same line")
             if reply and len(reply) > 2 and not named:

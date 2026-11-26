@@ -239,17 +239,22 @@ _HEARD = re.compile(r"HEARD\s*:\s*(.*)", re.I)
 
 
 STOP_WORD = "STOP"
-_STOP = re.compile(r"^(?:ok(?:ay)?\s+|please\s+|hey\s+|toys\s+|guys\s+|(?:dyno|sage|penny)\s+)*(?:stop|shh+|hush|quiet|be quiet|enough|thats enough|zip it)\b"
-                   r"|\bstop talking\b|\bbe quiet\b|\bplease stop\b|\bcan you (?:all )?stop\b|\bstop it\b|\bquiet please\b|\bstop please\b")
+_STOP = re.compile(r"^(?:ok(?:ay)?\s+|please\s+|hey\s+|toys\s+|guys\s+|(?:dyno|sage|penny)\s+)*(?:stop|shh+|hush|quiet|be quiet|enough|thats enough|zip it|dont talk(?! about)|shut up|no (?:more )?talking)\b"
+                   r"|\bstop talking\b|\bbe quiet\b|\bplease stop\b|\bcan you (?:all )?stop\b|\bstop it\b|\bquiet please\b|\bstop please\b"
+                   # Nov 26: the scenes disagreed about these and the tuned models learned the disagreement (silent on "go away",
+                   # chatty on "be quiet, Dad is calling"). Asking for no talk at all is a stop; "go away" / "leave me alone" /
+                   # "I don't want to talk about it" are not (the toy answers once, briefly).
+                   # ("don't talk", "shut up", "no more talking" count only as the first words: "babies don't talk" is no command.)
+                   r"|\b(?:everybody|everyone|all of you|you guys|toys|guys) (?:hush|quiet|shh+)\b")
 
 
 def wants_stop(text: str) -> bool:
     """The child tells the toys to stop / be quiet (a short command, not "the bus stop" or "stop sign" in a story)."""
     t = _norm(text)
-    return bool(t) and len(t.split()) <= 8 and bool(_STOP.search(t)) and not re.search(r"\bstop (?:sign|light|watch)\b|\bbus stop\b", t)
+    return bool(t) and len(t.split()) <= 8 and bool(_STOP.search(t)) and not re.search(r"\bstop (?:sign|light|watch)\b|\bbus stop\b|\bquiet game\b", t)
 
 
-_NAMES = {"dyno": r"dyno|dino|dinoh|dyna|dynamo", "sage": r"sage|saige|sayge", "penny": r"penny|pennie|peni|pennys"}
+_NAMES = {"dyno": r"dyno|dino|dinoh|dinah|dyna|dynamo", "sage": r"sage|saige|sayge", "penny": r"penny|pennie|peni|pennys"}
 _ALL = re.compile(r"\b(?:everyone|everybody|all of you|you guys|you all|yall|toys|guys)\b")
 
 

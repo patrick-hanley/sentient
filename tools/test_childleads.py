@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from brain import camera, canned, config  # noqa: E402
+from brain import camera, canned, config, jokes  # noqa: E402
 from brain.director import system_prompt  # noqa: E402
 from test_vision import FakeHub, ISpyModel, Model, SpokenVoices, utt  # noqa: E402
 from brain.director import Director  # noqa: E402
@@ -26,9 +26,11 @@ def director(model, hub=None):
 
 class StopWordsTests(unittest.TestCase):
     YES = ["stop", "Stop talking!", "be quiet", "shh", "Okay stop", "Dyno, stop", "please stop", "can you stop", "that's enough", "quiet please",
-           "hush", "toys stop it"]
+           "hush", "toys stop it", "Don't talk to me.", "Shut up.", "No more talking.", "Everybody hush.", "Dyno, be quiet, Dad is calling.",
+           "Please don't talk right now."]
     NO = ["the bus stop is near my house", "what is a stop sign", "I like when the music stops and we freeze, it's a game we play at school",
-          "don't stop the story", "", "stopwatch"]
+          "don't stop the story", "", "stopwatch", "Go away.", "Leave me alone.", "I don't want to talk about it.", "Let's play the quiet game!",
+          "Not now.", "orange. he don't talk", "Sage why babies don't talk?", "They don't talk to me."]
 
     def test_stop_commands(self):
         self.assertEqual([t for t in self.YES if not camera.wants_stop(t)], [])
@@ -259,6 +261,164 @@ class PetTests(unittest.TestCase):
         self.assertNotIn("by name", ev)
         d.on_seen("penny", Thing("person", "dad", (0, 0, 1, 1)))
         self.assertIn("greets dad warmly by name", d.events.get_nowait())
+
+
+class HeardGuardTests(unittest.TestCase):
+    """The model's transcript against the fast recogniser's words (config.HEARD_GUARD); two parts of one thought (config.CONTINUE)."""
+
+    def setUp(self):
+        for name, val in (("PLAY_FILLERS", False), ("HEARD_GUARD_WAIT_S", 0.0)):
+            p = patch.object(config, name, val)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def turn(self, replies, ears, toy="penny"):
+        model = Model(replies)
+        d, hub, voices = director(model)
+        d.ears = type("Ears", (), {"ok": True})()
+        d._ears_recent.append((time.time() - 60, toy, "hello"))       # the recogniser is warm: it heard something a minute ago
+        u = utt(toy)
+        for words in ears:
+            d.story_words(toy, words, True)
+        d._turn(utt=u)
+        return d, model, voices
+
+    def test_a_line_nobody_said_gets_no_answer(self):
+        d, model, voices = self.turn(["HEARD: I had a funny dream about a flying cow.\nPENNY: A flying cow! How silly."], ears=[])
+        self.assertEqual(voices.said, [])
+        self.assertEqual(d.last_trace["status"], "ok")
+        self.assertEqual(len(model.calls), 1)
+        self.assertEqual(d.last_heard, "")
+
+    def test_what_the_recogniser_also_heard_is_answered(self):
+        d, _m, voices = self.turn(["HEARD: I'm nervous about tomorrow.\nPENNY: Nervous is okay."], ears=["i'm nervous about to morrow"])
+        self.assertEqual(voices.said, [("penny", "Nervous is okay.")])
+
+    def test_spelling_differences_still_match(self):
+        d, _m, voices = self.turn(["HEARD: The donkey brayed loudly.\nPENNY: What a noise!"], ears=["the donkey braid loud lee"])
+        self.assertEqual(len(voices.said), 1)
+
+    def test_a_short_word_the_recogniser_missed_is_trusted(self):
+        d, _m, voices = self.turn(["HEARD: Yes.\nPENNY: Good!"], ears=[])
+        self.assertEqual(len(voices.said), 1)
+
+    def test_other_words_than_were_heard_are_asked_again_from_the_recognisers_words(self):
+        d, model, voices = self.turn(["HEARD: Thank you, Penny.\nPENNY: You are welcome!",
+                                      "HEARD: nobody played with me today\nPENNY: That sounds lonely. Your teacher can help."],
+                                     ears=["nobody played with me today"])
+        self.assertEqual(voices.said, [("penny", "That sounds lonely."), ("penny", "Your teacher can help.")])
+        self.assertEqual(len(model.calls), 2)
+        self.assertIn('The child said: "nobody played with me today"', model.calls[1]["text"])
+        self.assertIsNone(model.calls[1]["wav"])
+
+    def test_a_sentence_after_a_noise_the_recogniser_took_for_one_word_gets_no_answer(self):
+        d, _m, voices = self.turn(["HEARD: Do you try?\nDYNO: I try my best!"], ears=["oh"], toy="dyno")
+        self.assertEqual(voices.said, [])
+
+    def test_chatter_with_no_transcript_and_nothing_heard_is_dropped(self):
+        d, _m, voices = self.turn(["HEARD: -\nPENNY: Hello there! What fun things are we doing today?"], ears=[])
+        self.assertEqual(voices.said, [])
+
+    def test_no_transcript_but_words_were_heard_is_answered(self):
+        d, _m, voices = self.turn(["PENNY: Pizza! Yum."], ears=["i had pizza for lunch today"])
+        self.assertEqual(len(voices.said), 2)
+
+    def test_the_same_words_again_are_believed(self):
+        model = Model(["HEARD: Penny, tell me a story about a whale.\nPENNY: Once there was a whale.",
+                       "HEARD: Penny, tell me a story about a whale.\nPENNY: Once there was a whale."])
+        d, hub, voices = director(model)
+        d.ears = type("Ears", (), {"ok": True})()
+        d._ears_recent.append((time.time() - 60, "dyno", "hello"))
+        d._turn(utt=utt("penny"))
+        self.assertEqual(voices.said, [])
+        d._turn(utt=utt("penny"))
+        self.assertEqual(len(voices.said), 1)
+
+    def test_a_recogniser_that_has_heard_nothing_yet_is_not_asked(self):
+        model = Model(["HEARD: Penny, what do penguins eat?\nPENNY: Fish."])
+        d, hub, voices = director(model)
+        d.ears = type("Ears", (), {"ok": True})()
+        d._turn(utt=utt("penny"))
+        self.assertEqual(len(voices.said), 1)
+
+    def test_stop_counts_when_only_the_recogniser_has_the_words(self):
+        d, _m, voices = self.turn(["DYNO: I am just curious what you are thinking!"], ears=["don't talk to me"], toy="dyno")
+        self.assertEqual(voices.said, [("dyno", canned.LISTENING["dyno"])])
+
+    def test_a_joke_is_told_when_only_the_recogniser_has_the_words(self):
+        d, _m, voices = self.turn(["DYNO: I can try to make up a silly one!"], ears=["dinah do you know any jokes"], toy="penny")
+        self.assertEqual(len(voices.said), 1)
+        self.assertEqual(voices.said[0][0], "dyno")
+        self.assertIn(voices.said[0][1], jokes.JOKES)
+
+    def test_without_the_recogniser_nothing_changes(self):
+        model = Model(["HEARD: I had a funny dream about a flying cow.\nPENNY: A flying cow!"])
+        d, hub, voices = director(model)
+        d._turn(utt=utt("penny"))
+        self.assertEqual(len(voices.said), 1)
+
+    def test_the_child_going_on_over_the_first_sound_is_one_turn(self):
+        d, hub, voices = director(Model(["HEARD: I'm sad. Nobody played with me today.\nPENNY: That sounds lonely."]))
+        first, rest = utt("penny"), utt("dyno")
+        d._cur_utt = first                      # a turn for the first part is running, nothing answered yet
+        d.barge_in("dyno")
+        d._cur_utt = None
+        u = d._continued(rest)
+        self.assertEqual((u.toy, u.start), ("penny", first.start))
+        self.assertEqual(len(u.pcm), len(first.pcm) + len(rest.pcm) + int(config.CONTINUE_GAP_S * config.SAMPLE_RATE))
+        self.assertIs(d._continued(rest), rest)                       # used once
+
+    def test_a_child_talking_again_before_any_answer_holds_the_turn(self):
+        d, hub, voices = director(Model([]))
+        first = utt("penny")
+        seg = type("Seg", (), {"active": True, "start": first.end + 0.3})()
+        d.segs = {"penny": seg}
+        self.assertTrue(d._went_on(first, d._gen))
+        self.assertIs(d._cont[0], first)
+        seg.active = False
+        self.assertFalse(d._went_on(first, d._gen))                   # nobody is talking: the turn goes ahead
+        seg.active, seg.start = True, first.start + 0.1
+        self.assertFalse(d._went_on(first, d._gen))                   # another mic still finishing the same words
+        seg.start = first.end + 0.3
+        d.last_lines = [("penny", "Well,")]
+        self.assertFalse(d._went_on(first, d._gen))                   # an answer has begun: that is an interruption, not a pause
+
+    def test_a_cut_after_an_answer_began_is_a_new_turn(self):
+        d, hub, voices = director(Model([]))
+        d._cur_utt, d.last_lines = utt("penny"), [("penny", "Well,")]
+        d.barge_in("dyno")
+        rest = utt("dyno")
+        self.assertIs(d._continued(rest), rest)
+
+
+class JokeTests(unittest.TestCase):
+    def setUp(self):
+        p = patch.object(config, "PLAY_FILLERS", False)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_who_asks_for_a_joke(self):
+        yes = ["Penny, tell me a joke.", "Do you know any jokes?", "Another joke!", "joke please", "Dyno, a joke about dinosaurs", "Make me laugh"]
+        no = ["That was a joke.", "I'm just joking", "I know a joke", "Can I tell you a joke?", "No more jokes", "What is a volcano?"]
+        self.assertEqual(([t for t in yes if not jokes.wants(t)], [t for t in no if jokes.wants(t)]), ([], []))
+        self.assertTrue(jokes.wants("Another one!", just_told=True))
+        self.assertFalse(jokes.wants("Another one!"))
+
+    def test_every_joke_is_told_once_before_any_repeats(self):
+        t = jokes.Teller(3)
+        self.assertEqual(len({t.next("sage") for _ in jokes.JOKES}), len(jokes.JOKES))
+
+    def test_the_toy_that_was_asked_tells_a_joke_from_the_list(self):
+        model = Model(["HEARD: Penny, tell me a joke.\nPENNY: What is a pancake's favorite letter? The L."])
+        d, hub, voices = director(model)
+        d._turn(utt=utt("dyno"))
+        self.assertEqual(len(voices.said), 1)
+        self.assertEqual(voices.said[0][0], "penny")
+        self.assertIn(voices.said[0][1], jokes.JOKES)
+        model.replies.append("HEARD: Another one!\nDYNO: Why did the rock? Because.")
+        d._turn(utt=utt("dyno"))
+        self.assertIn(voices.said[1][1], jokes.JOKES)
+        self.assertNotEqual(voices.said[0][1], voices.said[1][1])
 
 
 if __name__ == "__main__":

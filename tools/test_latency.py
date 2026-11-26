@@ -175,8 +175,10 @@ class PipelineTests(unittest.TestCase):
         now = time.monotonic()
         director._turn(utt=Utterance("dyno", time.time()-1, time.time(), np.ones(16000, np.int16), 5000, now-.5, now))
         rendered = [text for _, text in director.voices.rendered]
-        self.assertIn(rendered[0], canned.FILLERS["dyno"])
-        self.assertEqual(rendered[-1], "Hi, friend!")
+        # the filler waits a moment for a child who goes on talking (config.CONTINUE_HOLD_S), so the reply may be rendered first;
+        # it is still PLAYED first (the reply waits for it)
+        self.assertEqual(len(rendered), 2)
+        self.assertEqual([r in canned.FILLERS["dyno"] for r in sorted(rendered, key=lambda r: r == "Hi, friend!")], [True, False])
         self.assertEqual(director.hub.played, ["dyno", "dyno"])
 
     def tearDown(self):
