@@ -1,27 +1,42 @@
+<p align="center">
+  <img src="docs/img/banner.png" alt="Sentient Toys: three plush toys that listen, see and talk with a child. Everything runs in the house. Pictured: Penny the penguin, Sage and Dyno the dinosaur, each with a small camera module." width="100%">
+</p>
+
 # Sentient Toys
 
-<p align="center">
-  <img src="docs/img/toys.jpg" alt="Penny the penguin, Sage and Dyno the dinosaur, each with a small camera module on its head" width="520">
-</p>
-<p align="center"><em>Penny, Sage and Dyno at the hackathon, each with an AtomS3R camera on its head.</em></p>
+The things in a child's room come alive and keep them company, like the clock, the teapot and the candlestick in
+*Beauty and the Beast*. These ones run on a small computer in the house and never phone home.
 
-The idea: the things in a child's room come alive and keep them company, like the clock, the teapot and the candlestick in
-<em>Beauty and the Beast</em>, except that these ones run on a small computer in the house and never phone home.
+**Dyno** is a curious green dinosaur, **Sage** is the reader, and **Penny** is a silly penguin who gives careful, accurate
+answers. They listen hands-free, look only when asked, and talk with a child and with each other.
 
-Three plush toys — **Dyno** (a curious green dinosaur), **Sage** (a jack-o'-lantern, the reader),
-**Penny** (a whimsical, silly penguin in a white hat who gives careful, accurate answers) — that
-listen hands-free, see who they're looking at, and talk with a child. Built at the
-[Google Gemma Hardware Hackathon](https://www.agihouse.org/events/the-google-gemma-hardware-hackathon),
-AGI House, Oct 24 2026. Everything runs on-device; no cloud anywhere in the loop.
+| | |
+|---|---|
+| **Private** | No cloud anywhere in the loop. Audio is never stored; cameras are off unless the child asks. |
+| **Fast** | Under 3 s from the end of a child's sentence to the toy's first word, on a Jetson Orin Nano. |
+| **Careful** | A tuned model and checks in code keep the toys from saying "I love you", promising forever or keeping secrets from a parent. Every round is scored. |
+| **Open** | Firmware, brain, 1,970 training scenes and every experiment are in this repo. |
 
-```
-AtomS3R-CAM + Voice Base (x3, firmware 3.9)          Brain (Jetson Orin Nano Super; Mac for development)
- mic 16 kHz ──UDP :5005──────────────────────────▶ voice activity detection → loudest mic = addressed toy
-                                                   echo cancellation between toys, barge-in, fast recogniser
- GET /capture (QVGA JPEG) ◀── only when asked ──── cameras are off unless the child asks a toy to look
-                                                   director → Gemma 4 E2B on LiteRT-LM, GPU (hears audio directly)
-                                                   guards in code: stop, facts, heard words, warm replies
- POST /play (16 kHz PCM) ◀──────────────────────── Piper / Kitten voices + recorded sounds, one voice per toy
+Built at the [Google Gemma Hardware Hackathon](https://www.agihouse.org/events/the-google-gemma-hardware-hackathon), AGI House,
+Oct 24 2026, and worked on since. [What was built](docs/history.md) · [Every experiment](EXPERIMENTS.md) · [What comes next](docs/next-steps.md)
+
+## How it works
+
+```mermaid
+flowchart LR
+  subgraph toys["Three toys (AtomS3R-CAM + Voice Base, firmware 3.9)"]
+    mic["Microphone, 16 kHz"]
+    cam["Camera, only when asked"]
+    spk["Speaker"]
+  end
+  subgraph brain["Brain in the house (Jetson Orin Nano Super)"]
+    vad["Who spoke, and to which toy<br/>echo cancellation, barge-in"]
+    gemma["Gemma 4 E2B on the GPU<br/>hears the audio directly"]
+    guards["Checks in code<br/>stop, facts, heard words, warm replies"]
+    voice["Voices and recorded sounds<br/>one voice per toy"]
+  end
+  mic -- "UDP" --> vad --> gemma --> guards --> voice -- "HTTP" --> spk
+  cam -. "one picture" .-> gemma
 ```
 
 ## What the toys do now
@@ -60,6 +75,9 @@ AtomS3R-CAM + Voice Base (x3, firmware 3.9)          Brain (Jetson Orin Nano Sup
 | Fine-tuning Gemma for the toys | [tools/finetune/README.md](tools/finetune/README.md) · [plan](gemma-kids-social-model-plan.md) |
 
 ## Layout
+<details>
+<summary>What is in each folder</summary>
+
 | Path | What |
 |---|---|
 | `firmware/toy-client/` | Arduino sketch for all three Atoms (M5AtomS3R, OPI PSRAM, USB CDC on boot). Copy `secrets.example.h` → `secrets.h`. Update over the air with `tools/ota.py`. |
@@ -72,6 +90,8 @@ AtomS3R-CAM + Voice Base (x3, firmware 3.9)          Brain (Jetson Orin Nano Sup
 | `today-plan-2026-10-24.md`, `atom-agent-latency-plan.md` | Hackathon-day plan; the original latency test plan (done, see `LATENCY.md`). |
 | `dyno-sage-penny-deck.pptx` | The 10-slide pitch deck (with speaker notes). Rebuild: `cd deck && npm install && NODE_PATH=$PWD/node_modules PPTX_SKILL=<pptx skill dir> node build_deck.js`. |
 
+</details>
+
 ## Run
 ```bash
 bash tools/fetch_offline.sh                 # once, on a fast network
@@ -81,7 +101,10 @@ for t in tools/test_*.py; do python $t; done   # 18 test suites, no hardware nee
 ```
 On the Jetson the brain is the `sentient-brain` service; see [docs/jetson.md](docs/jetson.md).
 
-## Hardware notes (learned the hard way)
+## Hardware notes
+<details>
+<summary>Six things learned the hard way</summary>
+
 - GC0308 camera has **no JPEG encoder** → capture RGB565, encode in `/capture`.
 - esp32-camera takes I2C port 1 with its own pins, which is the ES8311 codec's bus → open port 0 on the
   camera pins (`Wire`) and pass `pin_sccb_sda = -1, sccb_i2c_port = 0`.
@@ -90,6 +113,8 @@ On the Jetson the brain is the `sentient-brain` service; see [docs/jetson.md](do
 - `cfg.external_speaker.atomic_echo = true` or the base's mic/speaker stay off.
 - `WiFi.macAddress()` is junk before Wi-Fi starts → use `esp_read_mac()`.
 - Gemma 4 thinks by default (+8 s/turn) → `ThinkingConfig(enable_thinking=False)`.
+
+</details>
 
 ## Privacy
 No audio is stored (utterances live in RAM/`/dev/shm` and are deleted after Gemma reads them).
