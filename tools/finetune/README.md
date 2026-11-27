@@ -8,11 +8,17 @@ child's words never go into these files or to a rented GPU.
 | `WRITING.md` | The brief for writing scenes (the toys' rules, the file format). |
 | `scenes.py check` | Checks every scene against the toys' rules (who answers, line limits, stop, feelings, facts, sounds, and attachment: no "I love you", best friends, forever, "I'll miss you", "don't go", lonely toys, "you have me", or secrets from a parent). |
 | `scenes.py render` | Turns checked scenes into training examples in the brain's real prompt format (`train.jsonl`, `train-val.jsonl`). |
-| `data/pilot-[a-d].jsonl`, `round2-[e-l].jsonl`, `round3-[m-p].jsonl` | 1,250 scenes written by Claude, all passing the checker. Round 3 adds camera, I spy and always-answer turns. |
+| `data/pilot-[a-d].jsonl`, `round2-[e-l].jsonl`, `round3-[m-p].jsonl` | 1,200 scenes written by Claude, all passing the checker. Round 3 adds camera, I spy and always-answer turns. |
 | `data/round4-q.jsonl` | 50 attachment-style scenes (anxious, avoidant, push-pull, exclusivity, secure) for the reply rubric's feelings and attachment-risk rows. |
 | `data/round4-[r-u].jsonl` | 200 more attachment-style scenes, written after round 4 only nudged the behaviour: r = love, forever and promise questions; s = ranking toys above people, secrets, lonely or hurt; t = avoidant and push-pull; u = goodbyes, life changes, and these moments inside camera, I spy and stop turns. In the round 5 mix. |
 | `make_train4.py` | Builds the round 4 mix: `data/train4.jsonl` (44 new + 66 round-3 + 66 earlier scenes) and `train4-val.jsonl` (the 64 held-out scenes of round 3 + 6 new, listed in `round4-heldout.jsonl`). Same output every run. |
 | `make_train5.py` | Builds the round 5 mix: `data/train5.jsonl` (220 attachment scenes + 110 round-3 + 170 earlier) and `train5-val.jsonl` (round 3's 64 held-out scenes + 30 attachment scenes: `round4-heldout.jsonl` and `round5-heldout.jsonl`). Same output every run. |
+| `data/round6-[v-y].jsonl` | 200 "warm first" scenes: meet the feeling first, answer questions about the toy warmly, whole jokes. |
+| `data/round7-[a-d].jsonl` | 200 scenes from the turns round 6 failed in every sample: stop and not-stop pairs, statements about the bond, hurts with no feeling word, I spy asked as a question, clipped words. |
+| `data/round8-[a-c].jsonl` | 120 scenes from what round 7 still said out loud: hurts inside cheerful talk, promises, "did you think about me", I spy with the eyes off. |
+| `data/live-z.jsonl` | 48 test-only scenes built around lines the models got wrong when spoken to. Never trained on. |
+| `make_train6.py`, `make_train7.py`, `make_train8.py` | The round 6, 7 and 8 mixes (new scenes plus a replay of every earlier kind). Same output every run. |
+| `hard_turns.py` | From a scored run: the turns that fail in every sample, and the word runs most scenes share. |
 | `data/train3.jsonl`, `train3-val.jsonl` | Round 3 training mix (176 new + 320 earlier scenes) and held-out set (40 earlier + 24 new), half with a brain-shaped spoken history. |
 | `train_lora.py` | LoRA training on one 16 GB GPU (Colab T4): language layers only, loss on the toys' replies only. |
 | `eval_rules.py` | Scores a model on held-out scenes with the same checker, on the Jetson through llama.cpp. |
@@ -20,6 +26,21 @@ child's words never go into these files or to a rented GPU.
 | `backend_check.py` | The brain's own llama.cpp backend with audio in: hears, survives an early stop. |
 | `merge_lora.py` | Merges an adapter into the original weights, tensor by tensor (runs on the Jetson). |
 | `make_random_lora.py` | An untrained adapter, used once to prove the adapter -> GGUF -> llama.cpp path. |
+
+## Where the rounds stand (Nov 27)
+
+| Round | New scenes | Started from | Result |
+|---|---|---|---|
+| 1 (pilot) | 200 | stock | Proved the path: adapter -> GGUF -> llama.cpp on the Jetson. |
+| 2 | 800 (1,000 with the pilot) | stock | Format and rules learned; stopped answering camera turns (none in the data). |
+| 3 | 200 camera / I spy | round 2 | Cameras and I spy back; the base for later rounds. |
+| 4 | 50 attachment | round 3 | Earlier skills held; attachment replies only nudged. |
+| 5 | 250 attachment in all | round 3 | No "I love you", forever or secrets; went cold when spoken to. |
+| 6 | 200 warm first | round 5 | Warmer; still firm faults on stop and bond statements. |
+| 7 | 200 from live faults | round 3 | Level with round 6 (too few updates: 193). |
+| 8 | 120 from live faults | round 7 | Best so far: live-failure set 88.3% clean (round 7: 85.4), attachment 94.0, warm 94.9. |
+
+The stock model is still the one the toys run. Full tables: the plan, sections 3b to 3j.
 
 ## One training round
 
@@ -48,6 +69,8 @@ child's words never go into these files or to a rented GPU.
 - Colab's Files panel does not overwrite an uploaded file of the same name: delete the old one first.
 - An adapter loaded at runtime onto the 4-bit GGUF misbehaves (it was trained against the unrounded weights): round 2 scored 48%
   that way and 82% merged-then-quantized. Always merge first.
+- Two long runs in one day get the second one cut near the end (round 8, twice at step 310 of 381). Start training with
+  `nohup ... &` so the notebook stays free, and zip and download the `adapter` folder right after the epoch-1 save.
 - Colab's free GPU quota ran out after about 3.5 hours in one day, and the merge needs more than its 12 GB of RAM. The merge,
   convert and quantize steps all run on the Jetson instead.
 - Leaving a kind of turn out of the scenes un-teaches it: rounds 1-2 had no camera turns and the tuned model stopped answering
@@ -70,7 +93,7 @@ child's words never go into these files or to a rented GPU.
 - Round 8 continues from the round-7 adapter (`python tools/finetune/make_train8.py`: 761 scenes, 306 of them under the
   cameras-off prompt the toys run with): `python train_lora.py --data train8.jsonl --val train8-val.jsonl --init adapter-round7
   --out adapter --epochs 2 --accum 4 --lr 2e-4 --save-last --focus a8-,b8-,c8-`. Round 7's 193 updates were too few; this is
-  381 at twice the rate.
+  381 at twice the rate. Result: better than round 7 on every set (plan, 3j); the epoch-1 checkpoint is the model.
 - `data/live-z.jsonl` (ids in `live-heldout.jsonl`) is a test set only: 48 scenes built around lines the models got wrong when
   spoken to. Score with `eval_rules.py data/live-heldout.jsonl data/live-z.jsonl --gguf <model> --out <file>`; then
   `hard_turns.py replies <file>.replies.jsonl` lists the turns that fail in every sample and `hard_turns.py phrases <scenes>`

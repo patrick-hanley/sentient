@@ -7,30 +7,58 @@ listen hands-free, see who they're looking at, and talk with a child. Built at t
 AGI House, Oct 24 2026. Everything runs on-device; no cloud anywhere in the loop.
 
 ```
-AtomS3R-CAM + Voice Base (x3, same firmware)        Brain (Jetson Orin Nano / Raspberry Pi 5 / Mac fallback)
- mic 16 kHz ──UDP──────────────────────────────────▶ voice activity detection → loudest mic = addressed toy
- GET /capture (QVGA JPEG) ◀── 1–2 fps ─────────────── perception: faces (YuNet+SFace, enrolled family),
-                                                      toys (ArUco tags), pets/books (MediaPipe on LiteRT)
-                                                      director → Gemma 4 E2B on LiteRT-LM (hears audio directly)
- POST /play (16 kHz PCM) ◀───────────────────────── Piper TTS, one voice per toy
+AtomS3R-CAM + Voice Base (x3, firmware 3.9)          Brain (Jetson Orin Nano Super; Mac for development)
+ mic 16 kHz ──UDP :5005──────────────────────────▶ voice activity detection → loudest mic = addressed toy
+                                                   echo cancellation between toys, barge-in, fast recogniser
+ GET /capture (QVGA JPEG) ◀── only when asked ──── cameras are off unless the child asks a toy to look
+                                                   director → Gemma 4 E2B on LiteRT-LM, GPU (hears audio directly)
+                                                   guards in code: stop, facts, heard words, warm replies
+ POST /play (16 kHz PCM) ◀──────────────────────── Piper / Kitten voices + recorded sounds, one voice per toy
 ```
 
-Docs: [history](docs/history.md) · [Jetson setup](docs/jetson.md) · [benchmarks](docs/benchmarks.md) · [IMU sounds](docs/imu-sounds.md) · [Parent Board](docs/parent-board.md)
+## What the toys do now
+- **The child leads.** A toy answers the child before anything else, one toy per answer, and "stop" (or "be quiet", "don't talk to
+  me") silences all three. [review loop](docs/review-loop.md)
+- **Story mode.** "I'm going to read you a story": the toys stop talking and add one recorded sound after each sentence, about
+  0.7 s behind the reader. [story mode](docs/story-mode.md)
+- **Cameras only on request.** "What do you see?" and "can we play I spy?" start a look; otherwise no picture is taken.
+  [vision](docs/vision.md)
+- **Who is talking.** Faces and voices of people a parent enrolled, stored as numbers only inside the encrypted Parent Board.
+  [Parent Board](docs/parent-board.md)
+- **Checks in code, not in the prompt.** Wrong facts, replies to words nobody said and cold "I am a toy, so I cannot..." openers
+  are caught before they are spoken (`brain/factcheck.py`, the heard guard in `brain/director.py`, `brain/warm.py`).
+- **Motion sounds and quiet mode.** Toys snore, yell when tossed, and go quiet after a few minutes alone. [IMU sounds](docs/imu-sounds.md)
+- **A fine-tuned Gemma, in trial.** Eight LoRA rounds on synthetic scenes; round 8 is the best by the rule scores and is not the
+  default model yet. [fine-tune](tools/finetune/README.md) · [plan and results](gemma-kids-social-model-plan.md)
+
+## Docs
+| Topic | Where |
+|---|---|
+| What was built, in order | [docs/history.md](docs/history.md) |
+| Every experiment and where its results are | [EXPERIMENTS.md](EXPERIMENTS.md) |
+| Jetson setup and services | [docs/jetson.md](docs/jetson.md) · [benchmarks](docs/benchmarks.md) |
+| Latency: streaming replies, turn log, tools | [LATENCY.md](LATENCY.md) |
+| Echo cancellation and barge-in | [docs/aec.md](docs/aec.md) |
+| Cameras, vision model choice, I spy | [docs/vision.md](docs/vision.md) |
+| Story mode | [docs/story-mode.md](docs/story-mode.md) |
+| Toy-to-toy chat settings and their grades | [docs/gemma-conversation-settings.md](docs/gemma-conversation-settings.md) · [docs/grades/](docs/grades/README.md) |
+| Reviewing conversation logs, reply rubric | [docs/review-loop.md](docs/review-loop.md) · [docs/reply-rubric.md](docs/reply-rubric.md) |
+| Conversation metrics and coaching | [docs/metrics.md](docs/metrics.md) |
+| California academics repository | [docs/curriculum.md](docs/curriculum.md) |
+| Parent Board, motion sounds | [docs/parent-board.md](docs/parent-board.md) · [docs/imu-sounds.md](docs/imu-sounds.md) |
+| Fine-tuning Gemma for the toys | [tools/finetune/README.md](tools/finetune/README.md) · [plan](gemma-kids-social-model-plan.md) |
 
 ## Layout
 | Path | What |
 |---|---|
-| `firmware/toy-client/` | Arduino sketch for all three Atoms (M5AtomS3R, OPI PSRAM, USB CDC on boot). Copy `secrets.example.h` → `secrets.h`. |
-| `brain/` | `python -m brain.main` — VAD, perception, director, LLM backends, Piper, dashboard on `:8080`. |
-| `LATENCY.md` | Streaming replies, latency profiles, timings, and VENTUNO Q / GenieX deployment. |
-| `EXPERIMENTS.md` | Everything tried on latency and sound quality, with results and dead ends. |
-| `docs/imu-sounds.md` | Motion sounds: toys snore, yell when tossed, and friends react (firmware 3.5, `imu_events.h`). |
-| `docs/parent-board.md` | Parent Board on `:8090`: PIN-protected, encrypted notes about a child, live cues. `docs/design/` has the original design notes. |
-| `tools/fetch_offline.sh` | Downloads models, voices and aarch64 wheelhouses into `offline/` (not committed). |
-| `tools/setup_brain.sh` | On the Pi/Jetson: offline install, model copy, `sentient-brain` hotspot. |
-| `tools/atom_probe.py` | Mac-side Atom test: discovery, camera, mic level, playback. |
-| `tools/make_aruco_sheet.py` | Printable toy tags (id 1 Dyno, 2 Sage, 3 Penny). |
-| `today-plan-2026-10-24.md` | Hackathon-day plan and decision tree. |
+| `firmware/toy-client/` | Arduino sketch for all three Atoms (M5AtomS3R, OPI PSRAM, USB CDC on boot). Copy `secrets.example.h` → `secrets.h`. Update over the air with `tools/ota.py`. |
+| `brain/` | `python -m brain.main`: VAD, echo cancellation, perception, director, LLM backends, voices, sounds, dashboard on `:8080`, Parent Board on `:8090`. |
+| `tools/` | Test suites (`test_*.py`), benchmarks, latency and echo tools, the toy-chat grader, OTA, setup scripts. |
+| `tools/finetune/` | Scene checker, training mixes, LoRA training, merge, scoring; the synthetic scenes are in `data/`. |
+| `docs/` | The documents in the table above; `docs/design/` has original design notes, `docs/grades/` the grade ledger (numbers only). |
+| `tools/fetch_offline.sh`, `tools/setup_brain.sh` | Download models, voices and aarch64 wheels into `offline/` (not committed); install on the Jetson. |
+| `tools/atom_probe.py`, `tools/make_aruco_sheet.py` | Mac-side Atom test; printable toy tags (id 1 Dyno, 2 Sage, 3 Penny). |
+| `today-plan-2026-10-24.md`, `atom-agent-latency-plan.md` | Hackathon-day plan; the original latency test plan (done, see `LATENCY.md`). |
 | `dyno-sage-penny-deck.pptx` | The 10-slide pitch deck (with speaker notes). Rebuild: `cd deck && npm install && NODE_PATH=$PWD/node_modules PPTX_SKILL=<pptx skill dir> node build_deck.js`. |
 
 ## Run
@@ -38,7 +66,9 @@ Docs: [history](docs/history.md) · [Jetson setup](docs/jetson.md) · [benchmark
 bash tools/fetch_offline.sh                 # once, on a fast network
 python -m brain.main --selftest             # voices, vision, LLM
 python -m brain.main                        # add --cpu on a Pi 5; --backend llamacpp on an Intel Mac
+for t in tools/test_*.py; do python $t; done   # 18 test suites, no hardware needed
 ```
+On the Jetson the brain is the `sentient-brain` service; see [docs/jetson.md](docs/jetson.md).
 
 ## Hardware notes (learned the hard way)
 - GC0308 camera has **no JPEG encoder** → capture RGB565, encode in `/capture`.
@@ -52,4 +82,6 @@ python -m brain.main                        # add --cpu on a Pi 5; --backend lla
 
 ## Privacy
 No audio is stored (utterances live in RAM/`/dev/shm` and are deleted after Gemma reads them).
-Face/pet embeddings stay on the brain in `brain/data/` (git-ignored); wipe with `python -m brain.enroll --wipe`.
+Face, voice and pet embeddings stay on the brain in `brain/data/` (git-ignored), the people's ones encrypted inside the Parent
+Board; wipe with `python -m brain.enroll --wipe`. Names and vectors are never logged. Cameras are off unless the child asks.
+The fine-tune uses invented scenes only: a real child's words are never uploaded or trained on.

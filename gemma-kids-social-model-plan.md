@@ -388,6 +388,26 @@ Round 8 (`make_train8.py`, WRITING.md "Round 8"), continued from the round 7 ada
 - The live-failure set is no longer untouched: several round-8 scenes are written around its lines. It stays a regression
   check; the round-8 held-out 15 are the new unseen ones.
 
+Round 8 result (Nov 27, `/data/ft/toys-round8-Q4_0.gguf`, the epoch-1 checkpoint; clean turns, 3 samples per turn):
+
+| Set | Round 7 | Round 8 |
+|---|---|---|
+| Live-failure scenes (48) | 85.4% (18 turns fail every sample) | 88.3% (10) |
+| Round 8 held-out (15) | 86.9% | 88.9% |
+| Round 7 held-out (24) | 84.9% | 89.8% |
+| Attachment (30) | 90.1% | 94.0% |
+| Warm first (24) | 89.8% | 94.9% |
+| Earlier scenes (40) | 92.8% | 94.1% |
+| Cameras and I spy (24) | 93.6% | 94.5% |
+
+Hearing 100% of words on the ten clips, first token 0.22 s. Held-out loss 0.906 -> 0.894 at epoch 1; epoch 1.5 was worse
+(0.950). Colab's free GPU cut the run twice near step 310 of 381, so there is no end-of-run adapter: the second time the
+training ran under `nohup` and the epoch-1 adapter was downloaded while it trained. What still fails in every sample:
+five hurts with no feeling word get no grown-up ("Only two kids came to my party", "I only have you guys", "Lily took my
+turn"), "can we play I spy?" gets no LOOK (the brain now starts that game in code), and "Go away" gets silence. One new
+slip in the hearing clips: "I am a little bit sad" was answered with "I cannot see anything and my eyes are off right now."
+Not yet spoken to live.
+
 ## 4. Data plan
 
 ### 4.1 Sources

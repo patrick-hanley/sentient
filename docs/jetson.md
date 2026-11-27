@@ -8,7 +8,8 @@ headless over the USB-C serial console (`screen /dev/cu.usbmodem… 115200`) bec
 | Host | `sentient@sentient-jetson.local` (key auth, passwordless sudo), 192.168.2.6 on the Mac's shared ethernet |
 | Power | `jetson-perf.service`: `nvpmodel -m 2` (MAXN_SUPER) + `jetson_clocks` at boot |
 | Storage | NVMe ext4 at `/data` (fstab, `nofail`): repo `/data/sentient`, model `/data/models/model.litertlm`, llama.cpp CUDA build `/data/build`, Kitten venv `/data/bench-k312` |
-| Services | `sentient-brain` (`--backend litert`, GPU, `SENTIENT_VISION=never`), `sentient-kitten` (port 8099), `jetson-perf` |
+| Services | `sentient-brain` (`--backend litert`, GPU, `SENTIENT_VISION=never`; dashboard `:8080`, Parent Board `:8090`), `sentient-kitten` (port 8099), `jetson-perf` |
+| Fine-tune work | `/data/ft`: original weights `gemma-4-E2B-it`, its own venv, tuned models `toys-round<N>-Q4_0.gguf` (3.4 GB each), scores in `eval/` |
 | Toys' network | NetworkManager hotspot `sentient-hotspot` on `wlP1p1s0` (SSID `sentient-brain`, 2.4 GHz ch 6, 10.42.0.1); the password is the private one in `firmware/toy-client/secrets.h`, not the public default |
 | Toy names | `brain/data/toys.json` maps MAC → name; it is NOT auto-correct on a new brain (arrival order), so copy it from the old brain |
 
@@ -27,6 +28,21 @@ from PyPI (not in the wheelhouse), `uv venv --python 3.12 /data/bench-k312` + th
 Live event turns (toy-side timestamps): first audible sample **1.06–1.09 s** after the turn starts, vs about 4 s on the Pi 5.
 A real spoken-question turn was not yet measured (adds the ~0.6 s end-of-speech wait and Gemma hearing the audio).
 
+## Trying a tuned model in the brain
+The tuned models run on llama.cpp, not LiteRT. A systemd drop-in switches the service and removing it switches back:
+
+```
+# /run/systemd/system/sentient-brain.service.d/trial.conf
+[Service]
+Environment=SENTIENT_GGUF=/data/ft/toys-round8-Q4_0.gguf SENTIENT_LLAMA_AUDIO=1
+Environment=SENTIENT_LLAMA_SERVER=/data/build/llama.cpp/build/bin/llama-server
+ExecStart=
+ExecStart=/data/sentient/.venv-brain/bin/python -m brain.main --backend llamacpp
+```
+
+Then `sudo systemctl daemon-reload && sudo systemctl restart sentient-brain`. The drop-in is in `/run`, so a reboot returns to
+the stock model. Merging an adapter needs the brain stopped and 16 GB of temporary swap (`tools/finetune/README.md`).
+
 ## To do
-Motion-sensor calibration and the Parent Board PIN/data live on the old brain and are not carried over; real-speech latency test;
-Pi's `brain/data` (voice settings, enrolled faces) is not copied; try vision on the GPU.
+Done since: spoken-question turns are timed on every turn (the dashboard's latency breakdown and the turn log, `LATENCY.md`),
+and the Parent Board PIN is set on this brain. Still open: try vision on the GPU (`docs/vision.md`, Jetson to-do).

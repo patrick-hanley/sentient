@@ -1,6 +1,8 @@
 # Cross-toy echo cancellation and barge-in
 
-**Status (Nov 12): works in simulation, does NOT yet work on the real toys; off by default (`SENTIENT_AEC=1` enables it). See "Hardware findings".** Implemented and tested in simulation (`tools/test_aec.py`, 20 tests). **Not yet measured on the real toys**; see "Hardware measurement" below. Code: `brain/aec.py` (new), small hooks in `brain/atoms.py`, `brain/director.py`, `brain/tts.py`, constants in `brain/config.py` (`AEC_*`), simulator `tools/aec_sim.py`.
+**Status (Nov 14, current): on by default on the real toys since firmware 3.9 fixed the lost mic audio; `SENTIENT_AEC=0` turns it off. The sections below are in the order things happened, so the early ones describe a state that no longer holds.**
+
+**Status (Nov 12, superseded): works in simulation, does NOT yet work on the real toys; off by default (`SENTIENT_AEC=1` enables it). See "Hardware findings".** Implemented and tested in simulation (`tools/test_aec.py`, 20 tests). **Not yet measured on the real toys**; see "Hardware measurement" below. Code: `brain/aec.py` (new), small hooks in `brain/atoms.py`, `brain/director.py`, `brain/tts.py`, constants in `brain/config.py` (`AEC_*`), simulator `tools/aec_sim.py`.
 
 ## What it does
 

@@ -3,7 +3,7 @@
 Three M5Stack AtomS3R-CAM plush toys (Dyno, Sage, Penny) talk with a child through a local "brain". Nothing leaves the house and audio stays in RAM.
 
 ## Architecture
-mic UDP :5005 -> VAD (`vad.py`) -> Director -> Gemma 4 E2B (LiteRT-LM) -> `ReplyLines` -> `SpeechPipeline` (Piper / Kitten) + sound mixer (`sfx.py`) -> HTTP `/play` on the Atom.
+mic UDP :5005 -> VAD (`vad.py`) and cross-toy echo cancellation (`aec.py`) -> Director -> Gemma 4 E2B (LiteRT-LM, GPU) -> `ReplyLines` and the guards (stop, facts, heard words, warm replies) -> `SpeechPipeline` (Piper / Kitten) + sound mixer (`sfx.py`) -> HTTP `/play` on the Atom. A small streaming recogniser (`storyears.py`) listens beside Gemma for story mode and for checking what Gemma says it heard.
 The dashboard is on :8080 and the Parent Board on :8090. Toys find the brain by UDP broadcast HELLO and are identified by MAC (`brain/data/toys.json`).
 
 ## Timeline
@@ -18,12 +18,23 @@ The dashboard is on :8080 and the Parent Board on :8090. Toys find the brain by 
 - **Nov 10, conversation metrics and coaching (branch `goal/metrics`).** The brain scores the child's speech with a 5-10 minute rubric (turn-taking, latency, reciprocity loop, initiation, five 0-4 scores), keeps numbers-only summaries per child in the encrypted Parent Board store, shows a live anonymous panel on the dashboard and a Progress card on the Parent Board, and adapts the toys through bounded, logged, reversible knobs with automatic rollback; spoken lines and the base prompt only go to a human review queue. `docs/metrics.md`. Not yet deployed to the Jetson.
 - **Nov 10, cross-toy echo cancellation and barge-in that acts** (branch `goal/aec`, simulation only so far): other toys' mics now listen to the child while one toy talks. `brain/aec.py` subtracts the exact audio sent to the talker from each listener's stream (partitioned-block frequency-domain NLMS per pair, lag from the PLAYING stamp + GCC-PHAT, drift tracking, double-talk protection); the residual drives barge-in, the rest of the reply is dropped and the child's utterance from its true start becomes a normal turn (`Director._flush` no longer eats it). Simulation rig `tools/aec_sim.py`, 20 tests in `tools/test_aec.py`, ERLE 13-20 dB after 3 s. On the real toys (Nov 12) ERLE was ~0 dB: the listening Atoms drop mic audio without a gap in `seq` while a clip is sent to the talker, so the canceller is off by default until the firmware reports dropped audio or stamps mic packets (proposed, not flashed). See `docs/aec.md`.
 
+- **Nov 12-14, firmware 3.7 to 3.9 and echo cancellation on the real toys.** Mic frames carry their capture time (3.7). The lost mic audio was two stalls in the firmware loop: the 3 s HELLO broadcast (3.8) and a directory scan on every HELLO (3.9). With those fixed, a residual echo suppressor and a stored per-pair echo path, the canceller is on by default since Nov 14 (`docs/aec.md`).
+- **Nov 12-14, grading toy-to-toy chat.** A text-only grader (`tools/grade_toys.py`, `tools/textgrade.py`) scores toy banter on the real Gemma, with a keep / revert rule fixed before tuning and a numbers-only ledger (`docs/grades/`). Seven prompt wordings were tried and reverted. Two settings were kept and are on by default: one topic per chat and a line job per persona (tune set 13.21 -> 16.59 of 20, held set 13.82 -> 15.58). `docs/gemma-conversation-settings.md`.
+- **Nov 15, the child leads.** A toy answers the child first, one toy per answer; "stop" quiets all three; a conversation log (text, RAM-backed) feeds a review loop where a stronger model grades a session and the faults become fixes and tests (`docs/review-loop.md`).
+- **Nov 15, fact guard, cameras on request, I spy, voice ID.** Wrong facts are caught in code (`brain/factcheck.py`). Cameras are off unless the child asks; the dashboard has a camera mode switch and "What do you see?"; I spy is refereed from the picture (`docs/vision.md`). Voices of enrolled people are recognised with TitaNet-small (32 of 32 on 8 voices), prints only, encrypted in the Parent Board (`brain/voiceid.py`). Sage got a lead-in silence and a Kitten voice.
+- **Nov 19-27, fine-tuning Gemma for the toys.** Eight LoRA rounds on invented scenes (1,970 written so far), trained on a free Colab T4, merged and quantized on the Jetson and run through llama.cpp. Rounds 1-3 taught the format, cameras and I spy; 4-5 the attachment rules (no "I love you", forever or secrets from a parent); 6 warmth; 7-8 the turns that still failed when spoken to. Round 8 is the best by the rule scores (88.3% clean on the live-failure scenes, 94% on attachment). The stock model is still the default. `gemma-kids-social-model-plan.md`, `tools/finetune/README.md`.
+- **Nov 21-24, story mode.** The child reads aloud and the toys add one recorded sound per sentence, about 0.7 s behind, from a fast recogniser's words; six stories, 46 of 49 expected sounds live (`docs/story-mode.md`).
+- **Nov 22, reply rubric.** The log review scores the toys' replies on six qualities and on risk (`docs/reply-rubric.md`).
+- **Nov 26, guards found by speaking to the toys.** No reply to words no microphone heard (the model's transcript is checked against the fast recogniser); a pause mid-thought is one turn; jokes come from a list (`brain/jokes.py`); "don't talk to me" is a stop; a cold "I am a toy, so I cannot..." opener is dropped unless the child asked what the toy is (`brain/warm.py`); a short question the model misheard is answered or re-asked; "can we play I spy?" starts the game in code.
+
 ## Running it
-Jetson: `sentient@sentient-jetson.local`, services `sentient-brain`, `sentient-kitten`, `jetson-perf`. Deploy: rsync `brain/` and `tools/` to `/data/sentient`, restart `sentient-brain`, then `POST /mute` (a fresh start has the mics live).
-Firmware: `python3 tools/ota.py --ssh sentient@sentient-jetson.local`. Tests: `for t in tools/test_*.py; do .venv/bin/python $t; done`.
+Jetson: `sentient@sentient-jetson.local`, services `sentient-brain`, `sentient-kitten`, `jetson-perf` (`docs/jetson.md`). Deploy: copy `brain/` and `tools/` to `/data/sentient` (never `brain/data`), restart `sentient-brain`. A fresh start has the mics live and the Parent Board locked until the PIN is entered.
+Dashboard `:8080`: `POST /muteall?on=1|0` (speakers), `/mute?on=1|0` (mics), camera mode, idle chatter. Firmware: `python3 tools/ota.py --ssh sentient@sentient-jetson.local` (toys are on 3.9).
+Tests: `for t in tools/test_*.py; do .venv/bin/python $t; done` (18 suites).
 
 ## Open items
-- Real spoken-question latency on the Jetson; IMU calibration per toy (upright and still for 2 s); Parent Board PIN setup.
+- The tuned model is not the default: round 8 still misses hurts that name no feeling ("only two kids came to my party") and has not been spoken to live yet.
+- Colab's free GPU allows about one training run a day; two in a day were cut off near the end.
+- Cameras are off on the Jetson (dashboard setting), so I spy by voice is untested live.
 - Repeat the Sage speaker sweep next to the Mac mic, then re-decide the speaker EQ.
-- Pi `brain/data` (profiles, faces, voice settings) was not carried over.
 - An acoustic (segment-level) filter for non-speech sounds was deliberately not built: simple spectral features overlap with speech.

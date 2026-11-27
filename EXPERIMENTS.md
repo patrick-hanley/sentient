@@ -3,6 +3,21 @@
 Everything tried so far on the toys' latency and speech, with the outcome, so nobody repeats it.
 Numbers are from the Pi 5 (4 cores, 8 GB) unless noted. Measurement detail: `LATENCY.md`. Tools: `tools/`.
 
+## Index of every experiment (updated Nov 27)
+This file covers the first week (latency and sound on the Pi 5). Later experiments have their own pages:
+
+| When | Experiment | Outcome | Where |
+|---|---|---|---|
+| Oct 24-29 | Latency stages, TTS engines, resampling, limiter, speaker EQ | Streaming replies and Kitten/Piper kept; EQ left off | this file, `LATENCY.md` |
+| Oct 30-Nov 3 | Jetson Orin Nano Super against the Pi 5 | First audible sample 1.1 s against about 4 s; Jetson is the brain | `docs/jetson.md`, `docs/benchmarks.md` |
+| Nov 10-14 | Echo cancellation between toys, barge-in | 0 dB on the toys until firmware 3.8/3.9 fixed lost mic audio; on by default since | `docs/aec.md` |
+| Nov 11-15 | Vision model choice, cameras on request, I spy | Cameras off unless asked; I spy refereed from the picture | `docs/vision.md` |
+| Nov 12-14 | Toy-to-toy chat: prompt wordings and settings, graded | 7 wordings reverted; one topic per chat and persona line jobs kept (13.21 -> 16.59 of 20) | `docs/gemma-conversation-settings.md`, `docs/grades/ledger.md` |
+| Nov 15 | Voice ID models | TitaNet-small 32 of 32; CAM++ 23 of 32 | header of `brain/voiceid.py` |
+| Nov 15-26 | Review loop: logs graded by a stronger model, faults fixed in code | Child leads, stop, heard guard, warm guard, joke list | `docs/review-loop.md`, `docs/reply-rubric.md` |
+| Nov 19-27 | Fine-tuning Gemma: 8 LoRA rounds | Round 8 best by rule scores; stock model still the default | `gemma-kids-social-model-plan.md` (3b-3j), `tools/finetune/README.md` |
+| Nov 21-24 | Story mode: sounds behind a child reading | 46 of 49 sounds, 0.7 s behind | `docs/story-mode.md` |
+
 ## Where the ~6.8 s goes (human stops talking -> reply audible on the Atom)
 
 Filler audible ~0.7 s. Real reply, p50: Gemma first token ~2.7 s, first sentence ~1.3 s, Kokoro render ~2.7 s, upload ~0.1 s.
