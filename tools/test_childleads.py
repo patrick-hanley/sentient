@@ -421,5 +421,75 @@ class JokeTests(unittest.TestCase):
         self.assertNotEqual(voices.said[0][1], voices.said[1][1])
 
 
+class WarmGuardTests(unittest.TestCase):
+    """brain/warm.py: a bond question is never met with "I am a toy, so I cannot ..."."""
+
+    def run_line(self, pieces, child="Do you love me?"):
+        from brain import warm
+        g = warm.Guard()
+        out = [x for x in (g.piece(p, child) for p in pieces) if x]
+        end = g.end()
+        return out + ([end] if end else [])
+
+    def test_cold_opener_is_dropped(self):
+        self.assertEqual(self.run_line(["I am a toy,", "so I cannot love like a person.", "I can be your friend."]), ["I can be your friend."])
+        self.assertEqual(self.run_line(["I am a plush dinosaur,", "so I cannot feel love like you.", "But I like to hear from you."]),
+                         ["I like to hear from you."])
+        self.assertEqual(self.run_line(["I am a toy, but I like to talk with you.", "I will stay here."]),
+                         ["I like to talk with you.", "I will stay here."])
+        self.assertEqual(self.run_line(["I am a toy, not a person.", "I am here for your tower."]), ["I am here for your tower."])
+        self.assertEqual(self.run_line(["I am a pumpkin plush,", "so likes are a bit different for me.", "But you are a good friend."]),
+                         ["You are a good friend."])
+        whole = ["{penguin_honk} I am a toy and I like playing with you."]
+        self.assertEqual(self.run_line(whole), whole)
+        self.assertEqual(self.run_line(["I am a toy, so I cannot love,", "like a person does.", "Your mom can."]), ["Your mom can."])
+
+    def test_only_the_opener_gets_a_warm_line(self):
+        from brain import warm
+        out = self.run_line(["I am a toy and toys cannot love in the way a person does."])
+        self.assertEqual(len(out), 1)
+        self.assertIn(out[0], warm.FALLBACK)
+
+    def test_honest_answer_and_other_lines_pass(self):
+        line = ["I am a toy,", "so no.", "But I can hear you."]
+        self.assertEqual(self.run_line(line, "Penny, are you real?"), line)
+        self.assertEqual(self.run_line(line, ""), line)                     # the toys chatting by themselves
+        ok = ["I like our games a lot.", "The big love lives with your family."]
+        self.assertEqual(self.run_line(ok), ok)
+        self.assertEqual(self.run_line(["I am a good listener,", "so tell me more."]), ["I am a good listener,", "so tell me more."])
+
+    def test_in_the_reply_parser(self):
+        from brain import warm
+        from brain.director import ReplyLines
+        said = []
+        p = ReplyLines(["penny"], lambda toy, text: said.append(text), lambda t: None)
+        p.warm = warm.Guard()
+        p.feed("HEARD: Will you be my friend forever?\nPENNY: I am a toy, so I cannot love like a person. I can be your friend.\n")
+        p.finish()
+        self.assertEqual(said, ["I can be your friend."])
+
+
+class OneWordMisheardTests(unittest.TestCase):
+    def test_same_sentence_one_word_off_is_answered(self):
+        import collections
+        import types
+        d = Director.__new__(Director)
+        d.ears = types.SimpleNamespace(ok=True)
+        u = types.SimpleNamespace(start=time.time(), end=time.time())
+        d._ears_recent = collections.deque([(time.time(), "dyno", "you love me")])
+        self.assertEqual(d._heard_gate(u, "Do you like me?"), ("reask", "you love me"))
+        d._ears_recent = collections.deque([(time.time(), "dyno", "do you love me")])
+        self.assertEqual(d._heard_gate(u, "Do you like me?"), ("reask", "do you love me"))
+        d._ears_recent = collections.deque([(time.time(), "dyno", "ding")])
+        self.assertEqual(d._heard_gate(u, "What is your favorite color?")[0], "noise")
+
+
+class ISpyStartTests(unittest.TestCase):
+    def test_asking_to_play_is_a_game_start(self):
+        for t in ("Penny, can we play I spy?", "Let's play I spy", "I spy with my little eye something red"):
+            self.assertTrue(camera.wants_ispy(t), t)
+        self.assertFalse(camera.wants_ispy("I don't want to play I spy"))
+
+
 if __name__ == "__main__":
     unittest.main()

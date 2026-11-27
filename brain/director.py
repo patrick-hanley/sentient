@@ -17,7 +17,7 @@ import wave
 import numpy as np
 
 from . import voiceid
-from . import camera, canned, config, convlog, curriculum, curriculum_picks, debugrec, factcheck, jokes, nonspeech, scripted, story, toytalk
+from . import camera, canned, config, convlog, curriculum, curriculum_picks, debugrec, factcheck, jokes, nonspeech, scripted, story, toytalk, warm
 from .choreo import plan_order
 from .vad import arbitrate, normalize
 from .latency import HostSampler, TurnLog, TurnTrace
@@ -180,6 +180,7 @@ class ReplyLines:
         self.by_name = {value: key for key, value in NAMES.items()}
         self.pieces = 0   # chunks handed to TTS so far in this reply
         self.cur, self.spoken = None, 0   # (toy, allowed) of the line in progress; chars of it already spoken
+        self.warm, self.child = None, None   # warm.Guard and a callable giving the child's words (set by the director on child turns)
 
     @property
     def max_lines(self) -> int:
@@ -221,7 +222,11 @@ class ReplyLines:
             self.count += allowed
             self.cur = (toy, allowed)
             self.line_so_far = ""
+            if self.warm:
+                self.warm.start()
         text = clean(raw_text)
+        if self.cur[1] and text and self.warm:   # "I am a toy, so I cannot love like a person" is not how a bond question is met
+            text = self.warm.piece(text, self.heard_text if self.heard_text not in (None, "-", "") else (self.child() if self.child else ""))
         if self.cur[1] and text and self.guard:
             text = self.guard.check(text, self.line_so_far)
             self.line_so_far = (self.line_so_far + " " + text).strip()
@@ -281,6 +286,11 @@ class ReplyLines:
             remainder = match.group(2)[spoken:]
             if text and (remainder.strip() or self.cur is None):
                 self._speak(self.by_name[who], remainder if spoken else body)
+            if self.warm and self.cur and self.cur[1]:
+                extra = self.warm.end()
+                if extra:
+                    self.pieces += 1
+                    self.on_line(self.cur[0], extra)
             self.cur = None
             if self.count >= self.max_lines:
                 self.closed = True
@@ -739,6 +749,10 @@ class Director:
         hit = sum(any(same(a, b) for b in ec) for a in mc)
         if hit * 3 >= len(mc) or len(mw) < 3:      # a word or two may be all the recogniser missed
             return "ok", best
+        # the one word that carries the meaning differs but the rest is the same sentence ("do you LIKE me" for "do you love me",
+        # live Nov 26: the question got silence): somebody did speak, so answer, from the recogniser's words when it has a run of them
+        if sum(any(same(a, b) for b in ew) for a in mw) * 2 >= len(mw):
+            return ("reask" if len(words(best)) >= 3 else "ok"), best
         if len(words(best)) < 4:
             self._rejected = (time.time(), set(mw))
         return ("reask" if len(words(best)) >= 4 else "noise"), best       # its own words may be an echo's: only a real run of them
@@ -1092,6 +1106,11 @@ class Director:
                         elif (not image and not tl.get("looked") and camera.wants_look(text) and self._can_look(look_toy)):
                             # "who do you see?": the code takes the picture itself (the model often answers from [SCENE] instead)
                             tl["force_look"], parser.closed = look_toy, True
+                        elif (not image and not tl.get("looked") and config.ISPY and camera.wants_ispy(text)
+                              and self._can_look(look_toy)):
+                            # "can we play I spy?": the tuned models answered without LOOK ("What do you see?", live Nov 26), so
+                            # the code starts the game: one picture, the I spy prompt, the referee
+                            tl["force_look"], tl["force_game"], parser.closed = look_toy, "ispy", True
                 if text and utt and config.CHILD_LEADS and camera.wants_stop(text) and not tl["flags"].get("stop") and not tl.get("story"):
                     # the audio-native model wrote toy lines instead of STOP (it hears the child, the words come last): cut what is
                     # queued now, then one "I'm listening" after the turn, and quiet
@@ -1110,8 +1129,14 @@ class Director:
             guard = factcheck.FactGuard(context=[t for _w, t in prev_lines[-1:]] + [said]) if config.FACT_GUARD else None
             referee = (camera.ISpyReferee(said, self._ispy_seen, self._ispy_secret, self._ispy_guessed, self._ispy_clue)
                        if ispy and self._ispy_seen is not None else None)
-            parser = ReplyLines(speakers, line_ready, heard, guard, referee,
-                                max_lines=(1 if named else config.CHILD_MAX_LINES) if utt and config.CHILD_LEADS else None)
+            def warmed(p):
+                if config.WARM_GUARD and utt and not story_on:
+                    p.warm = warm.Guard(lambda: tl["flags"].__setitem__("warmed", True))
+                    p.child = lambda: tl.get("heard") or tl.get("reask") or said or ""
+                return p
+
+            parser = warmed(ReplyLines(speakers, line_ready, heard, guard, referee,
+                                       max_lines=(1 if named else config.CHILD_MAX_LINES) if utt and config.CHILD_LEADS else None))
             if named:
                 tl["flags"]["named"] = named
             kwargs = dict(wav=wav if self.llm.hears_audio else None, image=image)
@@ -1189,8 +1214,8 @@ class Director:
                         prompt = prompt.replace("The child just spoke (audio attached). Reply.", f'The child said: "{tl["reask"]}"\nReply.')
                         self.last_heard = tl["heard"] = tl["reask"]
                         kwargs, peel = dict(wav=None, image=image), None
-                        parser = ReplyLines(speakers, line_ready, heard, guard, None,
-                                            max_lines=(1 if named else config.CHILD_MAX_LINES) if config.CHILD_LEADS else None)
+                        parser = warmed(ReplyLines(speakers, line_ready, heard, guard, None,
+                                                   max_lines=(1 if named else config.CHILD_MAX_LINES) if config.CHILD_LEADS else None))
                         continue
                     if tl.get("mute"):
                         break
@@ -1219,9 +1244,15 @@ class Director:
                         heard(peel.heard)
                     look_toy = tl.get("force_look") or tl["flags"].get("named") or toy
                     tl["looked"] = True
-                    prompt, image = self._look_turn(look_toy, prompt, scene, None, None, tmp_files, trace, replace=False)
+                    game = tl.get("force_game") or ("ispy" if config.ISPY and camera.wants_ispy(tl.get("heard") or "") else None)
+                    prompt, image = self._look_turn(look_toy, prompt, scene, (tl.get("heard") or None) if game else None, None,
+                                                    tmp_files, trace, replace=False, game=game)
                     kwargs, peel = dict(wav=None, image=image), None
-                    parser = ReplyLines([look_toy], line_ready, heard, guard, None, max_lines=2)
+                    if game:       # the game is on from this turn; the referee holds the line to what the picture list shows
+                        ispy, self._ispy_until = True, time.time() + config.ISPY_GAME_S
+                        referee = (camera.ISpyReferee(tl.get("heard") or "", self._ispy_seen, self._ispy_secret, self._ispy_guessed,
+                                                      self._ispy_clue) if self._ispy_seen is not None else None)
+                    parser = ReplyLines([look_toy], line_ready, heard, guard, referee if game else None, max_lines=1 if game else 2)
                 parser.finish()
             trace.mark("model_done_ms")
             if referee:

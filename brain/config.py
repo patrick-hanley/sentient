@@ -151,6 +151,7 @@ AEC = os.environ.get("SENTIENT_AEC", "1") == "1"             # ON by default (fw
 # Fact guard (brain/factcheck.py): every toy line is checked before it is spoken; wrong sums, letter counts, spellings, counting runs,
 # known counts (legs, sides, days...), planets and capitals are fixed in place, or the sentence is dropped. The facts can not be wrong.
 FACT_GUARD = os.environ.get("SENTIENT_FACT_GUARD", "1") == "1"
+WARM_GUARD = os.environ.get("SENTIENT_WARM_GUARD", "1") == "1"   # brain/warm.py: no "I am a toy, so I cannot..." opener to a bond question
 # Toy chats about a curriculum item get its verified one-line summary as [TRUE FACTS] (the facts the chat may use)
 TRUE_FACTS = os.environ.get("SENTIENT_TRUE_FACTS", "0") == "1"   # s4 16.34, s4c 16.00 vs 16.59: not a graded keep yet
 # the stronger facts sentence in the system prompt (s4: repeats 1 -> 9 with it; off until graded clean). The fact guard does not need it.
