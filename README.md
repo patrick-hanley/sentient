@@ -35,6 +35,7 @@ AtomS3R-CAM + Voice Base (x3, firmware 3.9)          Brain (Jetson Orin Nano Sup
 | Topic | Where |
 |---|---|
 | What was built, in order | [docs/history.md](docs/history.md) |
+| What to do next | [docs/next-steps.md](docs/next-steps.md) |
 | Every experiment and where its results are | [EXPERIMENTS.md](EXPERIMENTS.md) |
 | Jetson setup and services | [docs/jetson.md](docs/jetson.md) · [benchmarks](docs/benchmarks.md) |
 | Latency: streaming replies, turn log, tools | [LATENCY.md](LATENCY.md) |

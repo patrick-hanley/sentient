@@ -33,6 +33,7 @@ Dashboard `:8080`: `POST /muteall?on=1|0` (speakers), `/mute?on=1|0` (mics), cam
 Tests: `for t in tools/test_*.py; do .venv/bin/python $t; done` (18 suites).
 
 ## Open items
+The plan for what comes next is `docs/next-steps.md`. Known gaps:
 - The tuned model is not the default: round 8 still misses hurts that name no feeling ("only two kids came to my party") and has not been spoken to live yet.
 - Colab's free GPU allows about one training run a day; two in a day were cut off near the end.
 - Cameras are off on the Jetson (dashboard setting), so I spy by voice is untested live.
