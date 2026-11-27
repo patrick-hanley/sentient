@@ -33,6 +33,11 @@ def make(tmp, clock=None, **kw):
     return P.Parent(directory=tmp, now=clock or Clock(), kdf=FAST, **kw)
 
 
+# The older tests describe the board with SENTIENT_PARENT_AUTOSTART=0 (locked until the PIN is entered); AutostartTests below
+# cover the default, where the notes are in use from the start and the PIN guards changes.
+P.config.PARENT_AUTOSTART = False
+
+
 class DumpTests(unittest.TestCase):
     """A parent's pile of context is filed into categories (rules first, then the local model for the rest)."""
 
@@ -609,6 +614,82 @@ class PageTests(unittest.TestCase):
             f.write(js)
         r = subprocess.run([node, "--check", f.name], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
+
+
+class AutostartTests(WebTests):
+    """Default since Nov 27: the notes are in use when the brain starts; the PIN is asked only to add, change or delete."""
+
+    def setUp(self):
+        P.config.PARENT_AUTOSTART = True
+        super().setUp()
+        self.p.setup("correct horse", self.p.setup_code)
+        self.kid = self.p.add_child("Maya")
+        self.p.add_items(self.kid["id"], [{"kind": "interest", "text": "space"}])
+
+    def tearDown(self):
+        super().tearDown()
+        P.config.PARENT_AUTOSTART = False
+
+    def restart(self):
+        """A new brain process on the same folder, served on the same port object."""
+        self.srv.shutdown()
+        self.srv.server_close()
+        self.p = make(self._d.name, self.clock)
+        self.srv = parent_web.ThreadingHTTPServer(("127.0.0.1", 0), parent_web.make_handler(self.p, self.director))
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+        self.port, self.cookie = self.srv.server_port, None
+
+    def test_notes_are_in_use_after_a_restart_without_the_pin(self):
+        self.restart()
+        self.assertTrue(self.p.unlocked())
+        self.assertEqual([c["name"] for c in self.p.children()], ["Maya"])
+        self.p.now_playing(self.kid["id"])
+        self.assertIn("space", self.p.notes_block())
+
+    def test_reading_needs_no_pin_changing_does(self):
+        self.restart()
+        code, state = self.call("GET", "/api/state")[:2]
+        self.assertEqual(code, 200)
+        self.assertEqual([c["name"] for c in state["children"]], ["Maya"])
+        self.assertEqual(self.call("GET", "/api/items?child=" + self.kid["id"])[0], 200)
+        self.assertEqual(self.call("POST", "/api/nowplaying", {"child": self.kid["id"]})[0], 200)
+        self.assertEqual(self.call("POST", "/api/cue", {"cue": "dinner"})[0], 200)
+        for path, body in (("/api/items/add", {"child": self.kid["id"], "cards": [{"kind": "interest", "text": "trains"}]}),
+                           ("/api/items/clear", {"child": self.kid["id"]}), ("/api/child/add", {"name": "Leo"}),
+                           ("/api/child/delete", {"id": self.kid["id"]}), ("/api/settings", {"notes_on": False}),
+                           ("/api/teach/delete", {"id": "x"}), ("/api/progress/clear", {"child": self.kid["id"]}),
+                           ("/api/lock", {})):
+            self.assertEqual(self.call("POST", path, body)[0], 401, path)
+        self.assertEqual(self.call("GET", "/api/convlog")[0], 401)          # the child's own words stay behind the PIN
+        self.assertEqual(len(self.p.view(self.kid["id"])), 1)               # nothing was changed
+        st = self.call("GET", "/api/status")[1]
+        self.assertTrue(st["unlocked"] and st["autostart"] and not st["editing"])
+
+    def test_the_pin_opens_editing_and_lock_forgets_the_key(self):
+        self.restart()
+        code, _b, headers = self.call("POST", "/api/login", {"pin": "correct horse"})[:3]
+        self.assertEqual(code, 200)
+        self.assertEqual(self.call("POST", "/api/items/add", {"child": self.kid["id"], "cards": [{"kind": "interest", "text": "trains"}]})[0], 200)
+        self.assertEqual(self.call("POST", "/api/lock", {})[0], 200)
+        self.assertFalse(os.path.exists(os.path.join(self._d.name, "boot.key")))
+        self.restart()
+        self.assertFalse(self.p.unlocked())                                 # locked on purpose: the PIN brings the notes back
+        self.assertEqual(self.call("GET", "/api/state")[0], 401)
+
+    def test_a_wrong_key_file_leaves_the_board_locked(self):
+        with open(os.path.join(self._d.name, "boot.key"), "w") as f:
+            f.write("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+        self.restart()
+        self.assertFalse(self.p.unlocked())
+
+    def test_the_key_file_is_owner_only(self):
+        mode = os.stat(os.path.join(self._d.name, "boot.key")).st_mode & 0o777
+        self.assertEqual(mode, 0o600)
+
+
+# the inherited WebTests cases describe the locked-by-default board: they are not run a second time here
+for _name in [n for n in dir(WebTests) if n.startswith("test_")]:
+    setattr(AutostartTests, _name, None)
 
 
 if __name__ == "__main__":

@@ -606,6 +606,35 @@ class Parent:
         self.jobs: dict[str, dict] = {}
         self.setup_code = None if self.configured() else secrets.token_hex(3).upper()   # one-time, printed in the brain's log
         self._announce()
+        self._boot_open()
+
+    # ---- start without the PIN (config.PARENT_AUTOSTART) ----
+    # The data key is kept in boot.key (owner-only) next to the encrypted files, so the toys have the notes after a restart
+    # and the board can be read. The PIN still guards every change, through the session a login gives. What this gives up:
+    # someone who can read the brain's disk can read the notes. "Lock" on the board removes the file until the next login.
+    def _boot_path(self):
+        return os.path.join(self.dir, "boot.key")
+
+    def _boot_save(self):
+        if config.PARENT_AUTOSTART and self._dek is not None:
+            _atomic_write(self._boot_path(), _b64(self._dek).encode())
+
+    def _boot_open(self):
+        if not (config.PARENT_AUTOSTART and available() and self.configured()):
+            return
+        try:
+            with open(self._boot_path(), "rb") as f:
+                self._dek = _unb64(f.read().decode().strip())
+            self._load_all()
+            self.sweep()
+            log.info("Parent Board: notes in use from the start (the PIN is asked for changes)")
+        except OSError:
+            self._dek = None            # no key kept yet: the next login writes it
+        except Exception:  # noqa: BLE001 — a stale or damaged key: stay locked, as before
+            self._dek = None
+            self.items, self.bound = {}, None
+            self.index = {"children": [], "settings": self.index.get("settings", {})}
+            _wipe_file(self._boot_path())
 
     def _announce(self):
         if self.setup_code:
@@ -633,7 +662,7 @@ class Parent:
 
     def status(self) -> dict:
         lock = self._lockstate()
-        return {"crypto": available(), "configured": self.configured(), "unlocked": self.unlocked(),
+        return {"crypto": available(), "configured": self.configured(), "unlocked": self.unlocked(), "autostart": config.PARENT_AUTOSTART,
                 "locked_for": max(0, int(lock.get("locked_until", 0) - self.now())), "min_pin": MIN_PIN, "min_digits": MIN_DIGITS,
                 "needs_code": bool(self.setup_code) and not self.configured()}
 
@@ -735,6 +764,7 @@ class Parent:
             self._save_lockstate({"fails": 0, "locked_until": 0})
             self.setup_code = None
             self._dek = dek
+            self._boot_save()
             self.index = {"children": [], "settings": {"checkin_day": 6, "checkin_hour": 18, "notes_on": True}}
             self.items = {}
             self._write_index()
@@ -746,6 +776,7 @@ class Parent:
             if self._dek is None:
                 self._dek = dek
                 self._load_all()
+            self._boot_save()
             self.sweep()
             return self._new_session()
 
@@ -775,6 +806,7 @@ class Parent:
             self._dek = None
             self.items, self.sessions, self.bound = {}, {}, None
             self.index = {"children": [], "settings": self.index.get("settings", {})}
+            _wipe_file(self._boot_path())
 
     def change_pin(self, old: str, new: str, keep: str | None = None):
         """Needs the current PIN (counted and locked out like a login). Every other session is ended."""

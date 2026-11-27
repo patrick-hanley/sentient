@@ -23,9 +23,26 @@ sent to a cloud model.
 | `brain/llm.py` | `LiteRTBackend.complete()`: a stateless call in a throwaway conversation (used for freeform cues and photos) |
 | `tools/test_parent.py`, `tools/test_scripted.py` | 55 tests |
 
+## Starts by itself; the PIN is for changes (Nov 27)
+
+The notes are in use as soon as the brain starts, and the board opens straight to the notes. The PIN is asked only when
+someone adds, changes or deletes something (a note, a child, a setting, a taught face or voice, the progress history).
+
+| Without the PIN | With the PIN (a 5-minute session) |
+|---|---|
+| Read the notes, the curriculum picks and the progress numbers | Add, confirm or delete notes; add or delete a child |
+| Choose which child is playing | Settings, check-in, PIN change, Lock, delete everything |
+| Send a cue ("dinner", "bedtime") | Teach or forget a face or a voice; photo of homework |
+| | Download or clear the conversation log (the child's own words) |
+
+How: the data key is kept in `brain/data/parent/boot.key` (owner-only) next to the encrypted files. What that gives up: someone
+who can read the brain's disk can read the notes; before, they needed the PIN as well. **Lock** on the board removes the key
+until the next login, and `SENTIENT_PARENT_AUTOSTART=0` restores the old behaviour (locked after every restart). The key file
+is written at the first login after this change, so the PIN is needed once more.
+
 ## How a parent uses it
 
-Open `http://<brain-ip>:8090` on the home network. First visit: enter the **setup code** (printed once in the brain's log:
+Open `http://<brain-ip>:8090` on the home network. The very first visit: enter the **setup code** (printed once in the brain's log:
 `journalctl -u sentient-brain | grep "setup code"`), then choose the family PIN: **8+ digits, or 6+ characters with a letter**
 (a short phrase is stronger). Then:
 

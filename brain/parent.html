@@ -152,12 +152,15 @@ document.addEventListener("click",bump);document.addEventListener("keydown",bump
 
 /* ---------- lock ---------- */
 async function showLock(){$("app").hidden=true;$("lock").hidden=false;const st=await (await fetch("/api/status")).json();
+ $("app").hidden=!(st.autostart&&st.configured&&st.unlocked);   /* the board stays readable: the PIN is for changes */
+ $("lock").scrollIntoView({block:"start"});$("pin").focus();
  $("pin2").hidden=st.configured;$("code").hidden=!st.needs_code;$("pin").value=$("pin2").value=$("code").value="";
- $("lockmsg").textContent=!st.crypto?"This brain cannot store profiles yet (the encryption library is missing).":st.configured?(st.unlocked?"Enter the family PIN.":"The brain restarted. Enter the PIN to switch the notes back on."):"First time: choose a family PIN of "+st.min_digits+"+ digits, or a phrase of "+st.min_pin+"+ characters (stronger). Everyone in the household shares it. The setup code is printed in the brain's log when it starts.";
+ $("lockmsg").textContent=!st.crypto?"This brain cannot store profiles yet (the encryption library is missing).":st.configured?(st.unlocked?(st.autostart?"Enter the family PIN to add, change or delete anything.":"Enter the family PIN."):"The brain restarted. Enter the PIN to switch the notes back on."):"First time: choose a family PIN of "+st.min_digits+"+ digits, or a phrase of "+st.min_pin+"+ characters (stronger). Everyone in the household shares it. The setup code is printed in the brain's log when it starts.";
  $("lockbtn").textContent=st.configured?"Open":"Set PIN";$("lockhelp").textContent=st.locked_for?"Too many tries. Wait "+st.locked_for+" seconds.":""}
 $("lockbtn").onclick=async()=>{$("lockerr").textContent="";const st=await (await fetch("/api/status")).json();
  try{if(!st.configured){if($("pin").value!==$("pin2").value)throw new Error("The two PINs differ.");await api("/api/setup",{pin:$("pin").value,code:$("code").value})}else await api("/api/login",{pin:$("pin").value});$("lock").hidden=true;await load()}catch(e){if(e.message!="locked")$("lockerr").textContent=e.message}};
-$("lockNow").onclick=async()=>{await api("/api/logout",{}).catch(()=>{});showLock()};
+$("lockNow").onclick=async()=>{await api("/api/logout",{}).catch(()=>{});const st=await (await fetch("/api/status")).json();
+ if(st.autostart&&st.unlocked){$("lock").hidden=true;load().catch(()=>{})}else showLock()};
 $("convclear").onclick=async()=>{const j=await api("/api/convlog/clear",{});$("setmsg").textContent=j.cleared+" turns cleared."};
 $("forgetKey").onclick=async()=>{if(!confirm("The toys stop using the notes until someone enters the PIN again. Continue?"))return;await api("/api/lock",{});showLock()};
 

@@ -66,7 +66,8 @@ after) and lets the child be understood (65% of words wrong before, 13% after). 
 
 ## A parent tells the toys about their child
 
-The Parent Board is a small website on the brain, behind a family PIN. A parent types a few sentences ("Spelling test Friday,
+The Parent Board is a small website on the brain. Anyone at home can read it and send a cue; a family PIN is asked to add,
+change or delete anything. A parent types a few sentences ("Spelling test Friday,
 she loves space, soccer is Tuesdays at four, peanut allergy, nothing scary before bed") or photographs a homework sheet. The
 brain sorts it into notes the parent can check and delete, and the toys then know what the child likes, what is coming up at
 school, and what to stay away from.

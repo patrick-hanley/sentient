@@ -43,6 +43,8 @@ BRAIN_PORT = 5005      # Atoms -> brain (HELLO, mic, BTN)
 ATOM_PORT = 5006       # brain -> Atoms (ACK)
 DASH_PORT = 8080
 PARENT_PORT = int(os.environ.get("SENTIENT_PARENT_PORT", "8090"))   # Parent Board (PIN, encrypted profiles); 0 = off
+PARENT_AUTOSTART = os.environ.get("SENTIENT_PARENT_AUTOSTART", "1") == "1"   # the notes are in use as soon as the brain starts (the key is kept
+                             # on the brain's disk); the PIN is asked only to add, change or delete. 0 = locked until the PIN is entered
 SAMPLE_RATE = 16000
 # Speech sent to the Atoms: "ulaw" = 8-bit G.711 (half the bytes of "pcm"). PLAY_RATE 8000 halves it again
 # (telephone quality; fine on the tiny speaker if the network is very slow).

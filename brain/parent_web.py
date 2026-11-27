@@ -31,6 +31,10 @@ log = logging.getLogger("parent-web")
 HOST_OK = re.compile(r"^(\d{1,3}(\.\d{1,3}){3}|\[[0-9a-f:]+\]|localhost|[a-z0-9-]+(\.local)?)(:\d+)?$", re.I)
 MAX_JSON, MAX_PHOTO = 64 * 1024, 8 * 1024 * 1024
 PUBLIC = {"/", "/api/status", "/api/setup", "/api/login"}
+# With config.PARENT_AUTOSTART the board can be read, the child who is playing chosen and a cue sent without the PIN; adding,
+# changing or deleting anything needs it. The conversation log stays behind the PIN (it is the child's own words).
+OPEN = {"/api/state", "/api/items", "/api/curriculum", "/api/progress", "/api/progress/export", "/api/teach/list",
+        "/api/photo/status", "/api/sort/status", "/api/nowplaying", "/api/cue", "/api/parse", "/api/logout"}
 
 
 def make_handler(parent: P.Parent, director=None):
@@ -73,8 +77,9 @@ def make_handler(parent: P.Parent, director=None):
                 self._send(403, {"error": "forbidden"})
                 return False
             if path not in PUBLIC and not parent.check(self._token()):
-                self._send(401, {"error": "locked"})
-                return False
+                if not (config.PARENT_AUTOSTART and path in OPEN and parent.unlocked()):
+                    self._send(401, {"error": "locked"})
+                    return False
             return True
 
         def _length(self, limit):
@@ -105,7 +110,7 @@ def make_handler(parent: P.Parent, director=None):
                 if u.path == "/":
                     return self._send(200, PAGE, "text/html")
                 if u.path == "/api/status":
-                    return self._send(200, parent.status())
+                    return self._send(200, dict(parent.status(), editing=parent.check(self._token())))
                 if u.path == "/api/state":
                     parent.sweep()
                     bound = parent.bound_child()
