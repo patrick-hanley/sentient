@@ -24,20 +24,22 @@ Oct 24 2026, and worked on since. [What was built](docs/history.md) · [Every ex
 
 ```mermaid
 flowchart LR
-  subgraph toys["Three toys (AtomS3R-CAM + Voice Base, firmware 3.9)"]
-    mic["Microphone, 16 kHz"]
-    cam["Camera, only when asked"]
-    spk["Speaker"]
-  end
-  subgraph brain["Brain in the house (Jetson Orin Nano Super)"]
-    vad["Who spoke, and to which toy<br/>echo cancellation, barge-in"]
+  mic(["Toy microphones<br/>16 kHz"])
+  cam(["Toy camera<br/>only when asked"])
+  subgraph brain["Brain in the house: Jetson Orin Nano Super"]
+    direction LR
+    vad["Who spoke, to which toy<br/>echo cancellation, barge-in"]
     gemma["Gemma 4 E2B on the GPU<br/>hears the audio directly"]
-    guards["Checks in code<br/>stop, facts, heard words, warm replies"]
+    guards["Checks in code<br/>stop, facts, heard words, warmth"]
     voice["Voices and recorded sounds<br/>one voice per toy"]
+    vad --> gemma --> guards --> voice
   end
-  mic -- "UDP" --> vad --> gemma --> guards --> voice -- "HTTP" --> spk
-  cam -. "one picture" .-> gemma
+  spk(["Toy speakers"])
+  mic --> vad
+  cam -.-> gemma
+  voice --> spk
 ```
+Three toys, one firmware (AtomS3R-CAM + Voice Base, 3.9). Audio goes to the brain over UDP and comes back over HTTP.
 
 ## What the toys do now
 - **The child leads.** A toy answers the child before anything else, one toy per answer, and "stop" (or "be quiet", "don't talk to
