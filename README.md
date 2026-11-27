@@ -41,11 +41,32 @@ flowchart LR
 ```
 Three toys, one firmware (AtomS3R-CAM + Voice Base, 3.9). Audio goes to the brain over UDP and comes back over HTTP.
 
+## Story mode
+
+A child reads a story aloud and the toys become the sound effects. "I'm going to read you a story" turns it on: no toy talks
+over the reading, and after each sentence one recorded sound plays, about 0.7 s behind the reader. "The end" turns it off and
+one toy says one kind thing about the story.
+
+<p align="center"><img src="docs/img/story-mode.png" alt="Six sentences of Billy Goats Gruff as a child reads them, each followed by the sound the toys play: goat bleats, troll roars, hooves, creak, splash" width="860"></p>
+
+It works because a small, fast speech recogniser listens beside Gemma and hands over the words at each pause; the sound is chosen
+in code from those words. Six stories have a word table. Read aloud to the real toys, 46 of 49 expected sounds played.
+[How story mode works](docs/story-mode.md)
+
+## A child can interrupt
+
+A toy cannot hear while its own speaker plays, but the other two can. The brain knows exactly what it sent to the talking toy,
+so it subtracts that sound from what the other toys' microphones pick up. What is left is the child, and the toys stop
+mid-sentence when the child cuts in.
+
+<p align="center"><img src="docs/img/aec-simulation.png" alt="Two waveforms from the simulation: the listening toy's microphone hears the talking toy and then the child; after the brain subtracts the toy's own sound only the child remains, and the toys are told to stop 170 ms after the child's first sound" width="860"></p>
+
+On the real toys this removes most of the talking toy from the other microphones (71% of its words still audible before, 10%
+after) and lets the child be understood (65% of words wrong before, 13% after). [Echo cancellation and barge-in](docs/aec.md)
+
 ## What the toys do now
 - **The child leads.** A toy answers the child before anything else, one toy per answer, and "stop" (or "be quiet", "don't talk to
   me") silences all three. [review loop](docs/review-loop.md)
-- **Story mode.** "I'm going to read you a story": the toys stop talking and add one recorded sound after each sentence, about
-  0.7 s behind the reader. [story mode](docs/story-mode.md)
 - **Cameras only on request.** "What do you see?" and "can we play I spy?" start a look; otherwise no picture is taken.
   [vision](docs/vision.md)
 - **Who is talking.** Faces and voices of people a parent enrolled, stored as numbers only inside the encrypted Parent Board.

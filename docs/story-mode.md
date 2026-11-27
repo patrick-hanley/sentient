@@ -1,5 +1,9 @@
 # Story mode: the child reads, the toys add the sounds (Nov 21-24)
 
+![Six sentences of Billy Goats Gruff as a child reads them, each followed by the sound the toys play](img/story-mode.png)
+
+Redraw with `python tools/plot_story.py` (it reads `tools/story_lines.py`).
+
 Code: `brain/story.py` (which sound fits which words), `brain/storyears.py` (the fast recogniser), hooks in `brain/director.py`.
 Settings: `STORY_*` in `brain/config.py`. On by default (`SENTIENT_STORY_MODE=0` turns it off).
 

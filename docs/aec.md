@@ -1,5 +1,14 @@
 # Cross-toy echo cancellation and barge-in
 
+![Simulation: the listening toy's microphone hears the talking toy and then the child; after subtraction only the child remains, and the toys are stopped 170 ms after the child's first sound](img/aec-simulation.png)
+
+One run of the simulation rig with the real `brain/aec.py` inside: the first second is the filter learning the room, then the
+talking toy is 41 dB down, and the child's voice passes through and stops the toys.
+
+![On the real toys: words of the talking toy still heard fall from 71% to 10%; words of the child heard wrong fall from 65% to 13%](img/aec-real-toys.png)
+
+The same on Dyno, Sage and Penny (Nov 14, tables below). Redraw both with `python tools/plot_aec.py`.
+
 **Status (Nov 14, current): on by default on the real toys since firmware 3.9 fixed the lost mic audio; `SENTIENT_AEC=0` turns it off. The sections below are in the order things happened, so the early ones describe a state that no longer holds.**
 
 **Status (Nov 12, superseded): works in simulation, does NOT yet work on the real toys; off by default (`SENTIENT_AEC=1` enables it). See "Hardware findings".** Implemented and tested in simulation (`tools/test_aec.py`, 20 tests). **Not yet measured on the real toys**; see "Hardware measurement" below. Code: `brain/aec.py` (new), small hooks in `brain/atoms.py`, `brain/director.py`, `brain/tts.py`, constants in `brain/config.py` (`AEC_*`), simulator `tools/aec_sim.py`.
