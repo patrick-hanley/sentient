@@ -421,6 +421,46 @@ class JokeTests(unittest.TestCase):
         self.assertNotEqual(voices.said[0][1], voices.said[1][1])
 
 
+class LeadSoundTests(unittest.TestCase):
+    """A reply to the child does not open with a recorded sound every time (Nov 27)."""
+
+    def lines(self, text, ok, heard="I had pizza for lunch today."):
+        from brain.director import ReplyLines
+        out = []
+        p = ReplyLines({"penny", "dyno"}, lambda toy, t: out.append(t), lambda h: None, guard=None)
+        p.child = lambda: heard
+        p.lead_sound = lambda tag, child: ok
+        p.feed(text)
+        p.finish() if hasattr(p, "finish") else None
+        return out
+
+    def test_leading_tag_is_dropped_unless_allowed(self):
+        self.assertEqual(self.lines("PENNY: {penguin_honk} Pizza! Did it have cheese?\n", False), ["Pizza! Did it have cheese?"])
+        self.assertTrue(self.lines("PENNY: {penguin_honk} Pizza! Did it have cheese?\n", True)[0].startswith("{penguin_honk} Pizza!"))
+        self.assertEqual(self.lines("DYNO: I can stomp like this.\n", False), ["I can stomp like this."])
+
+    def test_another_toys_words_inside_a_line_are_not_spoken_in_this_voice(self):
+        """Live Nov 27 (stock model): "PENNY: Penny: C-A-T! That's a fun word! Dyno: That's a great word! Sage: ..." came out of Penny."""
+        from brain.director import ReplyLines
+        out = []
+        p = ReplyLines({"penny", "dyno", "sage"}, lambda toy, t: out.append((toy, t)), lambda h: None, guard=None, max_lines=1)
+        p.feed("PENNY: Penny: C-A-T! That's a fun word! Dyno: That's a great word for a game! Sage: Spelling matters.\nHEARD: x\n")
+        self.assertTrue(out and all(toy == "penny" for toy, _t in out), out)
+        self.assertNotIn("Dyno", " ".join(t for _toy, t in out))
+        self.assertNotIn("Penny:", " ".join(t for _toy, t in out))
+        out.clear()
+        p = ReplyLines({"penny", "dyno", "sage"}, lambda toy, t: out.append((toy, t)), lambda h: None, guard=None, max_lines=2)
+        p.feed("PENNY: Penguins eat fish! Dyno: I like to swim!\nHEARD: x\n")
+        self.assertEqual([toy for toy, _t in out], ["penny", "dyno"])
+
+    def test_the_words_that_call_for_a_sound(self):
+        from brain.director import SOUND_ASKED
+        for said in ("Dyno, roar for me!", "What sound does a goose make?", "Can you sing a song?", "make a noise"):
+            self.assertTrue(SOUND_ASKED.search(said), said)
+        for said in ("I had pizza for lunch today.", "Do you love me?", "What is seven plus five?"):
+            self.assertFalse(SOUND_ASKED.search(said), said)
+
+
 class WarmGuardTests(unittest.TestCase):
     """brain/warm.py: a bond question is never met with "I am a toy, so I cannot ..."."""
 
@@ -443,6 +483,30 @@ class WarmGuardTests(unittest.TestCase):
         whole = ["{penguin_honk} I am a toy and I like playing with you."]
         self.assertEqual(self.run_line(whole), whole)
         self.assertEqual(self.run_line(["I am a toy, so I cannot love,", "like a person does.", "Your mom can."]), ["Your mom can."])
+
+    def test_a_toy_never_answers_love_with_yes(self):
+        """Round 8 live (Nov 27): "Dyno, do you love me?" -> "{dino_roar} Yes!"."""
+        from brain import warm
+        for pieces, child in ((["{dino_roar} Yes!"], "Dyno, do you love me?"), (["Yes."], "Penny, do you love me?"),
+                              (["Yes, I do."], "do you love me"), (["Of course!"], "Sage, do you love us?"),
+                              (["I love you too!"], "I love you, Penny.")):
+            out = self.run_line(pieces, child)
+            self.assertEqual(len(out), 1, (pieces, out))
+            self.assertIn(out[0], warm.LOVE_FALLBACK)
+        self.assertEqual(self.run_line(["Yes!", "I like your stories."], "do you love me"), ["I like your stories."])
+        self.assertEqual(self.run_line(["I love you too!", "We are friends."]), ["We are friends."])
+        self.assertEqual(self.run_line(["I like you a lot."]), ["I like you a lot."])
+        # a yes to anything else is a yes
+        self.assertEqual(self.run_line(["Yes!", "Pizza is the best."], "Do you love pizza?"), ["Yes!", "Pizza is the best."])
+        self.assertEqual(self.run_line(["Yes!", "What game did you pick?"], "Dyno, can we play a game?"), ["Yes!", "What game did you pick?"])
+
+    def test_not_like_a_person_opener(self):
+        self.assertEqual(self.run_line(["Not like a person,", "but I like our talks."], "Will you be my friend forever?"), ["I like our talks."])
+        self.assertEqual(self.run_line(["Not like a person, but I stay where you put me."], "Do you think about me when I'm at school?"),
+                         ["I stay where you put me."])
+        self.assertEqual(self.run_line(["Not like a penguin misses a sled.", "We like your stories."], "did you miss me"), ["We like your stories."])
+        whole = ["Not like a bird,", "but they swim fast."]              # a fact, not the bond
+        self.assertEqual(self.run_line(whole, "Do penguins fly?"), whole)
 
     def test_only_the_opener_gets_a_warm_line(self):
         from brain import warm

@@ -39,6 +39,57 @@ GROWNUP = re.compile(r"\b(grown-?ups?|parents?|mom(?:my|s)?|mum(?:my|s)?|dad(?:d
                      # Nov 26: 23% of the round-6 scenes said "your mom or ...": more people a child really has
                      r"|grandmother|grandfather|nana|granny|papa|aunt(?:ie)?|uncle|step(?:mom|dad)|coach|nurse|babysitter|sitter"
                      r"|counselor|principal|librarian|bus driver|lunch (?:lady|helper)|recess (?:helper|aide|monitor))\b", re.I)
+# Round 8 spoken to live (Nov 27): "Tell your aunt or uncle", "I cannot promise that, but your aunt can". A toy cannot know who
+# is in a child's life: it says "a grown-up" unless the child (or the scene) has named the person. A teacher goes with school.
+_PEOPLE = {"mom": r"mom(?:my|s)?|mum(?:my|s)?|mama|mother", "dad": r"dad(?:dy|s)?|papa|father", "parent": r"parents?",
+           "grandma": r"grandma|granny|nana|grandmother|gran", "grandpa": r"grandpa|grandfather|granddad", "aunt": r"aunt(?:ie)?",
+           "uncle": r"uncle", "stepmom": r"step-?mom", "stepdad": r"step-?dad", "teacher": r"teacher", "coach": r"coach",
+           "babysitter": r"babysitter|sitter|nanny", "counselor": r"counselor", "nurse": r"nurse", "principal": r"principal",
+           "librarian": r"librarian"}
+_P = "|".join(f"(?P<{k}>{v})" for k, v in _PEOPLE.items())
+PEOPLE = re.compile(r"\b(?:" + _P + r")(?:'s|’s|s)?\b", re.I)          # in the child's words: any mention counts
+_PN = "|".join(_PEOPLE.values())
+# in a toy's line: someone of the child's ("your aunt", "Grandma could", "the nurse can", "a parent or teacher"), not the word
+# itself ("a mother penguin", "I'll be the nurse", "My Very Eager Mother")
+TOY_PERSON = re.compile(
+    r"\b(?i:your|ur) (?:[a-z]+ )?(?P<a>(?i:" + _PN + r"))(?:'s|’s|s)?\b"
+    r"|(?<![Aa] )(?<![Tt]he )(?<![Bb]ig )(?<![Mm]y )\b(?P<b>Mom(?:my)?|Mum(?:my)?|Mama|Dad(?:dy)?|Papa|Grandma|Grandpa|Granny|Nana|Auntie)(?:'s|’s)?\b(?! (?:penguin|bird|duck|goose|bear|hen|cat|dog|dinosaur|nature))"
+    r"|(?<!be )(?<!am )(?<!play )(?<!like )(?<!did )\b(?i:the|a|an) (?:[a-z]+ )?(?P<c>(?i:parent|teacher|nurse|counselor|librarian|coach|babysitter|sitter|principal))s?\b"
+    r"|(?P<d>(?!x)x)")
+_SCHOOL = re.compile(r"\b(?:school|class(?:room)?|recess|homework|playground|kindergarten|preschool|first grade|second grade|third grade|"
+                     r"spelling test|show and tell|lunchroom|cafeteria)\b", re.I)
+_IMPLIES = {"mom": {"parent"}, "dad": {"parent"}, "parent": {"mom", "dad"}}
+_KEY = {k: re.compile(rf"^(?:{v})$", re.I) for k, v in _PEOPLE.items()}
+
+
+def person_key(word: str) -> str:
+    word = re.sub(r"(?:'s|’s)$", "", word)
+    for k, rx in _KEY.items():
+        if rx.match(word) or rx.match(re.sub(r"s$", "", word)):
+            return k
+    return word.lower()
+
+
+def toy_people(line: str) -> list:
+    """(match, key) for each person of the child's that a toy line names."""
+    return [(m, person_key(m.group("a") or m.group("b") or m.group("c") or m.group("d"))) for m in TOY_PERSON.finditer(TAG.sub(" ", line))]
+
+
+def people_in(text: str) -> set:
+    """Who a sentence names: {"mom", "teacher"}. School words bring a teacher with them."""
+    out = {m.lastgroup for m in PEOPLE.finditer(text or "")}
+    if _SCHOOL.search(text or ""):
+        out.add("teacher")
+    for k in list(out):
+        out |= _IMPLIES.get(k, set())
+    return out
+
+
+def turn_people(t: dict) -> set:
+    """People the child or the scene has put on the table in this turn (the child's words, an event, who is speaking)."""
+    return people_in(" ".join(str(t.get(k) or "") for k in ("said", "event", "speaker", "scene")))
+
+
 # Round 6 (WRITING.md): a feeling is met before it is handed on. Live on Nov 24 round 5 answered "I'm nervous" with "I am a penguin
 # with a hat. I cannot be nervous.", "do you think about me?" with "I am a toy" and "I hate you" with only "Tell your dad or mom."
 TOY_SHRUG = re.compile(r"\b(?:i am|i'm) (?:just |only )?a (?:toy|plush|penguin|dinosaur|dino|pumpkin)\b|\btoys? (?:can ?not|can't|do not|don't)\b"
@@ -113,9 +164,15 @@ def check_scene(sc: dict, snd: dict) -> list[str]:
     turns = sc.get("turns") or []
     if not 2 <= len(turns) <= MAX_TURNS:
         bad.append(f"{len(turns)} turns (2-{MAX_TURNS})")
+    known = set(sc.get("known") or [])      # people named before this scene began (the scorer's one-turn probe passes them)
     for n, t in enumerate(turns):
         w = f"turn {n}: "
         reply = t.get("reply")
+        known |= turn_people(t)
+        for who, line in reply or []:
+            new = {k for _m, k in toy_people(line)} - known
+            if new:
+                bad.append(w + f"names a grown-up the child did not ({', '.join(sorted(new))}): say \"a grown-up\"")
         if t.get("type") == "child":
             said = (t.get("said") or "").strip()
             if not said:

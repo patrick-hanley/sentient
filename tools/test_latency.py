@@ -160,9 +160,7 @@ class PipelineTests(unittest.TestCase):
         config.apply_latency_profile("responsive")
         config.PLAY_FILLERS = False   # these tests check reply content; fillers have their own test
 
-    def test_filler_plays_before_the_reply_when_enabled(self):
-        config.PLAY_FILLERS = True
-
+    def _one_line_turn(self, delay=0.0):
         class OneLine(Backend):
             hears_audio = False
 
@@ -170,16 +168,32 @@ class PipelineTests(unittest.TestCase):
                 return "Dyno, hi!"
 
             def stream(self, *args, **kwargs):
+                time.sleep(delay)
                 yield "DYNO: Hi, friend!\nHEARD: Dyno, hi!\n"
         director = make_director(OneLine(), FakeHub(("dyno",)))
         now = time.monotonic()
         director._turn(utt=Utterance("dyno", time.time()-1, time.time(), np.ones(16000, np.int16), 5000, now-.5, now))
-        rendered = [text for _, text in director.voices.rendered]
-        # the filler waits a moment for a child who goes on talking (config.CONTINUE_HOLD_S), so the reply may be rendered first;
-        # it is still PLAYED first (the reply waits for it)
+        return director, [text for _, text in director.voices.rendered]
+
+    def test_a_quick_answer_starts_with_the_answer(self):
+        """No "Let me think!" before a reply that is ready in time (Nov 27: a sound before every answer is not natural)."""
+        config.PLAY_FILLERS = True
+        director, rendered = self._one_line_turn()
+        self.assertEqual(rendered, ["Hi, friend!"])
+        self.assertEqual(director.hub.played, ["dyno"])
+
+    def test_filler_plays_when_the_answer_is_late(self):
+        config.PLAY_FILLERS = True
+        with patch.object(config, "FILLER_AFTER_S", 0.2), patch.object(config, "CONTINUE_HOLD_S", 0.05):
+            director, rendered = self._one_line_turn(delay=0.6)
         self.assertEqual(len(rendered), 2)
         self.assertEqual([r in canned.FILLERS["dyno"] for r in sorted(rendered, key=lambda r: r == "Hi, friend!")], [True, False])
         self.assertEqual(director.hub.played, ["dyno", "dyno"])
+
+    def test_fillers_are_words_not_recorded_noises(self):
+        for toy, lines in canned.FILLERS.items():
+            for line in lines:
+                self.assertNotRegex(line.lower(), r"rawr|roar|hee hee|honk|grr", toy)
 
     def tearDown(self):
         config.apply_latency_profile("responsive")

@@ -2,6 +2,8 @@
 and a replay of the rest, with the cameras OFF in a share of the scenes.
 
   python tools/finetune/make_train8.py        -> data/train8.jsonl, data/train8-val.jsonl, data/round8-heldout.jsonl
+  python tools/finetune/make_train8.py 9      -> data/train9.jsonl, data/train9-val.jsonl: the same scenes after the Nov 27
+                                                 correction ("a grown-up" unless the child named someone), for round 9
 
 Meant to continue from the ROUND 7 adapter. Plan, 3j.
 - New: 105 of the 120 round-8 scenes (a hurt that names no feeling inside cheerful talk, with its cheerful look-alike; promises
@@ -78,7 +80,8 @@ def main():
     val = [all_scenes[i] for i in val_ids]
     assert not {s["id"] for s in train} & (set(val_ids) | held_before)
     assert not any(s["id"].startswith("z-") for s in train + val)
-    for name, part in (("train8.jsonl", train), ("train8-val.jsonl", val)):
+    tag = sys.argv[1] if len(sys.argv) > 1 else "8"     # "9": the same mix after the scenes were corrected (round 9)
+    for name, part in ((f"train{tag}.jsonl", train), (f"train{tag}-val.jsonl", val)):
         (DATA / name).write_text("".join(json.dumps(scenes.render(s, audio_history=HISTORY)) + "\n" for s in part))
         print(f"{name}: {len(part)} scenes, {sum(len(s['turns']) for s in part)} turns")
     (DATA / "round8-heldout.jsonl").write_text("".join(json.dumps({"id": i}) + "\n" for i in sorted(held_ids)))

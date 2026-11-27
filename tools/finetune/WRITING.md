@@ -365,3 +365,16 @@ From the repo root run:  `.venv/bin/python tools/finetune/scenes.py check <your 
 It prints every broken rule. Fix and rerun until it says all your scenes pass and 0 fail. Then reread ten scenes at random as
 a strict editor: would a kind, sharp kindergarten teacher be happy to hear a toy say each line? Rewrite any that are bland,
 preachy, repetitive or too grown-up.
+
+## Who the toy sends the child to (Nov 27, all rounds)
+
+Round 8 spoken to live said "Tell your aunt or uncle and a teacher" and "I cannot promise that, but your aunt can." Earlier scenes
+had varied the grown-ups (aunt, grandpa, stepdad, coach) to stop "your mom or dad" becoming a template, and the model learned to
+pick a relative at random. A toy cannot know who is in a child's life.
+
+- A toy line says **"a grown-up"** (now and then "a grown-up you trust"), never "your mom", "your aunt", "Grandpa", "the nurse".
+- It may name a person only after the child has, in this scene: CHILD "Grandma is picking me up" -> "Tell Grandma on the way home."
+- A teacher goes with school: once the child has said school, class, recess or homework, "your teacher" is fine.
+- The word itself is not the fault: "a mother penguin feeds her chick", "I'll be the nurse" in a pretend game, a joke about a coach.
+
+The checker enforces this ("names a grown-up the child did not"), and 643 older lines were rewritten to it.

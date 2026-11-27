@@ -1,5 +1,7 @@
 # Parent Board: what was built
 
+<img src="img/parent-board.png" alt="The Parent Board on a phone: which child is playing, say-it-now cue buttons, and notes for the toys" width="320">
+
 Design input: [design/parent-updates-design.md](design/parent-updates-design.md). This page is the implementation reference.
 
 A website on the brain, **port 8090**, for a parent to tell the toys about a child (interests, schedule, homework,

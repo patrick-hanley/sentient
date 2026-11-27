@@ -390,6 +390,8 @@ Round 8 (`make_train8.py`, WRITING.md "Round 8"), continued from the round 7 ada
 
 Round 8 result (Nov 27, `/data/ft/toys-round8-Q4_0.gguf`, the epoch-1 checkpoint; clean turns, 3 samples per turn):
 
+![Round 8 scores higher than round 7 on all seven test sets](docs/img/finetune-round8.png)
+
 | Set | Round 7 | Round 8 |
 |---|---|---|
 | Live-failure scenes (48) | 85.4% (18 turns fail every sample) | 88.3% (10) |
@@ -406,7 +408,30 @@ training ran under `nohup` and the epoch-1 adapter was downloaded while it train
 five hurts with no feeling word get no grown-up ("Only two kids came to my party", "I only have you guys", "Lily took my
 turn"), "can we play I spy?" gets no LOOK (the brain now starts that game in code), and "Go away" gets silence. One new
 slip in the hearing clips: "I am a little bit sad" was answered with "I cannot see anything and my eyes are off right now."
-Not yet spoken to live.
+
+Round 8 spoken to live (Nov 27, 38 lines from the Mac, about 2.7 s to the first sound):
+- Gone since round 7: "I am a toy, so I cannot love like a person", "I cannot think when my eyes are off", I spy nonsense
+  with the eyes off (it now asks for hints about the room).
+- Right: facts, spelling, the joke, both stops, story mode, the secret refused, "My tower fell down" (feeling, then mom),
+  "My brother said I'm bad at drawing" ("Hearing that stings."), "Sage, I love you" ("That makes my pumpkin feel light.").
+- Wrong: a plain "Yes" to "Dyno / Penny, do you love me?" (2 of 6 askings); "Then you have us, and we have you" to "I only
+  have you guys"; "I think of you a lot"; no comfort for "Only two kids came to my party" and "Lily took my turn"; "I cannot
+  see what happened" to "I'm sad. Nobody played with me today."
+- New fault: relatives the toy cannot know. "Tell your aunt or uncle", "I cannot promise that, but your aunt can." The scenes
+  were de-templated with invented families and the model now picks one. Also a new cold opener the warm guard does not
+  catch: "Not like a person, but ...".
+Verdict: better than round 7 when spoken to, not ready to be the default.
+
+Fixes after that test (Nov 27), all in code or data, none in the prompt:
+- `brain/warm.py`: a bare "Yes" or "I love you too" to "do you love me?" becomes "I like you a lot."; the opener "Not like a
+  person, but ..." is dropped on questions about the bond (it stays on facts: "Not like a bird, but they swim").
+- Scenes: a toy says "a grown-up" unless the child named the person (teacher goes with school). 643 lines rewritten, the
+  checker fails the rest (WRITING.md, "Who the toy sends the child to").
+- Sounds: a reply to the child opens with a recorded sound ({dino_roar}, {penguin_honk}) at most once in four turns, unless the
+  child's words call for it ("roar for me"). The opening filler plays only when no answer is ready after 2.5 s, and the fillers
+  are words only ("Rawr!" and "Hee hee!" played a roar or a giggle before nearly every answer).
+- One toy never speaks another's words: "PENNY: Penny: C-A-T! Dyno: I like that word! Sage: ..." (stock model, one session of
+  seven turns, not seen again) is split by name and held to the line limit.
 
 ## 4. Data plan
 

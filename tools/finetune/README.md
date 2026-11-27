@@ -42,6 +42,12 @@ child's words never go into these files or to a rented GPU.
 
 The stock model is still the one the toys run. Full tables: the plan, sections 3b to 3j.
 
+![Round 8 scores higher than round 7 on all seven test sets](../../docs/img/finetune-round8.png)
+
+Redraw it with `python tools/finetune/plot_rounds.py`. Training loss for rounds 2 and 3:
+
+![Training and held-out loss for rounds 2 and 3](../../docs/finetune/training-loss.png)
+
 ## One training round
 
 1. Write or extend scenes, then `python tools/finetune/scenes.py check tools/finetune/data/*.jsonl` until 0 fail.

@@ -153,6 +153,14 @@ def parse(out: str, default: str, online=None) -> tuple[str, list[tuple[str, str
     return heard, lines[: config.MAX_LINES]
 
 
+RAW_DEBUG = os.environ.get("SENTIENT_DEBUG_RAW") == "1"
+INLINE_NAME = re.compile(r"^\s*[*]*(" + "|".join(NAMES.values()) + r")\s*[*]*\s*:\s*[*]*\s*", re.I)
+BY_NAME = {v.upper(): k for k, v in NAMES.items()}
+INLINE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[*]*(?:" + "|".join(NAMES.values()) + r")\s*[*]*\s*:)", re.I)
+LEAD_TAG = re.compile(r"^\s*\{([a-z_]+)\}\s*")
+SOUND_ASKED = re.compile(r"\b(?:sounds?|noises?|roar|rawr|growl|honk|sing|song|loud|pretend|animal|make a|what does|how does)\b", re.I)
+
+
 class ReplyLines:
     """Speak each complete sentence of a toy line as soon as it ends, never token fragments.
 
@@ -181,6 +189,7 @@ class ReplyLines:
         self.pieces = 0   # chunks handed to TTS so far in this reply
         self.cur, self.spoken = None, 0   # (toy, allowed) of the line in progress; chars of it already spoken
         self.warm, self.child = None, None   # warm.Guard and a callable giving the child's words (set by the director on child turns)
+        self.lead_sound = None    # callable(tag, child words) -> may this line open with that sound? (set by the director on child turns)
 
     @property
     def max_lines(self) -> int:
@@ -225,6 +234,23 @@ class ReplyLines:
             if self.warm:
                 self.warm.start()
         text = clean(raw_text)
+        parts = INLINE_SPLIT.split(text)
+        if len(parts) > 1:                # several toys' words in one piece: each part by itself
+            for part in parts:
+                self._speak(self.cur[0] if self.cur else toy, part)
+            return
+        m = INLINE_NAME.match(text)       # live Nov 27: "PENNY: Penny: C-A-T! Dyno: I like that word! Sage: ..." all in Penny's line and voice
+        if m:
+            who = BY_NAME[m.group(1).upper()]
+            if who == toy:
+                text = text[m.end():]
+            else:                         # another toy's words: its own line (and its own turn at the line limit), never this toy's voice
+                self.cur = None
+                return self._speak(who, text[m.end():])
+        if self.cur[1] and text and self.lead_sound and not self.line_so_far:   # a roar or honk before every answer is not how anyone talks
+            m = LEAD_TAG.match(text)
+            if m and not self.lead_sound(m.group(1), self.heard_text if self.heard_text not in (None, "-", "") else (self.child() if self.child else "")):
+                text = text[m.end():]
         if self.cur[1] and text and self.warm:   # "I am a toy, so I cannot love like a person" is not how a bond question is met
             text = self.warm.piece(text, self.heard_text if self.heard_text not in (None, "-", "") else (self.child() if self.child else ""))
         if self.cur[1] and text and self.guard:
@@ -361,6 +387,7 @@ class Director:
         self._last_child_t = 0.0                   # when the child last spoke (toy chats wait IDLE_AFTER_CHILD_S after it)
         self.turn_lines: list = []                 # lines handed to speech this turn (recorded even when the speakers are muted)
         self.last_look = None                      # the dashboard look: what the recogniser found + annotated frame (popped at once)
+        self._since_sound = 99                     # child turns since a reply last opened with a recorded sound
         self._ispy_until = 0.0                     # an I spy game is on until then (each turn of the game takes one picture)
         self._ispy_secret: str | None = None       # what a toy is spying (I spy, the toys' turn); kept in RAM for the game only
         self._ispy_guessed: list[str] = []         # things already guessed for the current clue (a "no" gets a new guess)
@@ -850,18 +877,23 @@ class Director:
             self._cur_utt = utt if utt is not None and not story_on else None
             if getattr(utt, "continued", False):
                 tl["flags"]["continued"] = True
+            if utt and not story_on:
+                self._since_sound += 1
             if utt and config.PLAY_FILLERS and not story_on:
                 ftoy = toy if toy not in config.SPEAKER_BAD else next((t for t in online if t not in config.SPEAKER_BAD), toy)
                 f = random.choice(canned.FILLERS.get(ftoy, ["Hmm!"]))
 
+                answer_ready = threading.Event()         # set when the first line of the answer is about to play
+
                 def fill():
-                    until = time.time() + (config.CONTINUE_HOLD_S if config.CONTINUE else 0)
+                    until = time.time() + max(config.CONTINUE_HOLD_S if config.CONTINUE else 0, config.FILLER_AFTER_S)
                     while time.time() < until:           # is the child going on? then no sound: the mics stay open
-                        if self._gen != gen or self._went_on(utt, gen):
-                            return
+                        if self._gen != gen or self._went_on(utt, gen) or answer_ready.is_set():
+                            return                       # ...and an answer that is ready needs no "Let me think!"
                         time.sleep(0.02)
                     self.hub.play_line(ftoy, f, self.voices)
                 filler = threading.Thread(target=fill, daemon=True)
+                filler.answer_ready = answer_ready
                 filler.start()
             scene = self.eyes.scene_text()
             image = None
@@ -996,7 +1028,7 @@ class Director:
                 self.last_latency = trace.snapshot()["milestones_ms"]["first_audio_post_ms"] / 1000
 
             pipeline = SpeechPipeline(self.hub, self.voices, trace, dispatched,
-                                      before_play=filler.join if filler else None,
+                                      before_play=(lambda: (filler.answer_ready.set(), filler.join())) if filler else None,
                                       cancelled=lambda: self._gen != gen,
                                       gate=lambda: (self._wait_cue(), bool(utt) and not story_on and self._went_on(utt, gen)))
             deflected = []
@@ -1129,10 +1161,24 @@ class Director:
             guard = factcheck.FactGuard(context=[t for _w, t in prev_lines[-1:]] + [said]) if config.FACT_GUARD else None
             referee = (camera.ISpyReferee(said, self._ispy_seen, self._ispy_secret, self._ispy_guessed, self._ispy_clue)
                        if ispy and self._ispy_seen is not None else None)
+            def lead_sound(tag, child):
+                """May this reply to the child open with a recorded sound? Yes when the child's words call for it ("roar for me",
+                the sound's own name), else once in SOUND_LEAD_GAP turns."""
+                child = child or ""
+                ok = (tl["flags"].get("sound_led") or bool(SOUND_ASKED.search(child))
+                      or any(len(w) > 3 and w in child.lower() for w in tag.split("_"))
+                      or self._since_sound >= config.SOUND_LEAD_GAP)
+                if ok and not tl["flags"].get("sound_led"):
+                    tl["flags"]["sound_led"] = True
+                    self._since_sound = 0
+                return ok
+
             def warmed(p):
-                if config.WARM_GUARD and utt and not story_on:
-                    p.warm = warm.Guard(lambda: tl["flags"].__setitem__("warmed", True))
+                if utt and not story_on:
                     p.child = lambda: tl.get("heard") or tl.get("reask") or said or ""
+                    p.lead_sound = lead_sound
+                    if config.WARM_GUARD:
+                        p.warm = warm.Guard(lambda: tl["flags"].__setitem__("warmed", True))
                 return p
 
             parser = warmed(ReplyLines(speakers, line_ready, heard, guard, referee,
@@ -1178,6 +1224,9 @@ class Director:
                                 trace.mark("first_model_text_ms")
                                 if tl.get("story") or tl.get("story_end"):
                                     tl["raw"] = (tl.get("raw", "") + delta)[:400]
+                                if RAW_DEBUG:            # SENTIENT_DEBUG_RAW=1: the model's own text, RAM only, for a debugging session
+                                    with open("/dev/shm/sentient-raw.txt", "a") as fh:
+                                        fh.write(delta)
                                 parser.feed(delta)
                         if peel:
                             parser.feed(peel.finish())
@@ -1294,6 +1343,7 @@ class Director:
                     status = "failed"
                     log.exception("speech output failed")
             if filler:
+                filler.answer_ready.set()
                 filler.join()
             if tl.get("ack"):
                 try:

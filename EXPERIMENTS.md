@@ -80,6 +80,8 @@ About 1.1 s sooner to the first real words and the dead air between toys is gone
 **State left on the Pi: it is still on the all-Kokoro voices from the A/B run.** Restore the approved mix: Dyno Kitten Jasper, Sage Piper en_GB-alba-medium speed 0.93 gain 0.4, Penny Kitten Rosie speed 1.0.
 
 ## Audio conversion: anti-alias filter + soft limiter (Oct 28, commit f3f6a9d)
+
+![Spectrograms of the same toy line before and after the new audio conversion](data/audio_ab/atoms_old_vs_new.png)
 Change (Patrick): `_resample()` low-passes at 90% of the target Nyquist (7.2 kHz for 16 kHz) before downsampling, for Piper, Kokoro and Kitten alike; Piper's final stage soft-limits instead of hard clipping. Judged by spectrogram only (`tools/audio_ab.py`, `tools/spectro.py`, `brain/spectrum.py`; images and metrics in `data/audio_ab/`).
 
 - **Native Piper (22.05 kHz) has 2.4% of its energy at 8-11 kHz**, about 4x the 7.2-8 kHz band. The old plain downsample folded that into 5-8 kHz.

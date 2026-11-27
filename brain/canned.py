@@ -39,9 +39,10 @@ SCENES = {"Meet the toys": _MEET, "Spelling bee": _SPELLING, "Planets": _PLANETS
 SCENE = _MEET   # default scene
 
 FILLERS = {
-    "dyno": ["Good one!", "Let me think!", "Rawr!"],
+    # Words only (Nov 27): "Rawr!" and "Hee hee!" played a recorded roar or giggle before nearly every reply.
+    "dyno": ["Good one!", "Let me think!"],
     "sage": ["Hmm, let me think about that.", "I hear you. Let me think."],   # longer and clearer: the short ones came out as "...think"
-    "penny": ["Hee hee!", "Oh, nice!"],
+    "penny": ["Oh, nice!", "Let me see."],
 }
 
 

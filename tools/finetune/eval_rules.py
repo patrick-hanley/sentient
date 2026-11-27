@@ -129,6 +129,7 @@ def main():
                         bad = [] if asked and not lines else ["look request: no LOOK"]
                     else:
                         probe = {"id": "x", "scenario": "x", "toys": toys, "cameras": sc.get("cameras", "request"),
+                                 "known": sorted(set().union(*(scenes.turn_people(x) for x in sc["turns"][:k + 1]))),
                                  "turns": [prev or dict(t, reply=lines), dict(t, reply=lines)]}
                         bad = sorted({rule(b) for b in scenes.check_scene(probe, snd) if b.startswith("turn 1")})
                         if kind == "stop" and not lines:

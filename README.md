@@ -1,5 +1,13 @@
 # Sentient Toys
 
+<p align="center">
+  <img src="docs/img/toys.jpg" alt="Penny the penguin, Sage and Dyno the dinosaur, each with a small camera module on its head" width="520">
+</p>
+<p align="center"><em>Penny, Sage and Dyno at the hackathon, each with an AtomS3R camera on its head.</em></p>
+
+The idea: the things in a child's room come alive and keep them company, like the clock, the teapot and the candlestick in
+<em>Beauty and the Beast</em>, except that these ones run on a small computer in the house and never phone home.
+
 Three plush toys — **Dyno** (a curious green dinosaur), **Sage** (a jack-o'-lantern, the reader),
 **Penny** (a whimsical, silly penguin in a white hat who gives careful, accurate answers) — that
 listen hands-free, see who they're looking at, and talk with a child. Built at the
@@ -30,6 +38,8 @@ AtomS3R-CAM + Voice Base (x3, firmware 3.9)          Brain (Jetson Orin Nano Sup
 - **Motion sounds and quiet mode.** Toys snore, yell when tossed, and go quiet after a few minutes alone. [IMU sounds](docs/imu-sounds.md)
 - **A fine-tuned Gemma, in trial.** Eight LoRA rounds on synthetic scenes; round 8 is the best by the rule scores and is not the
   default model yet. [fine-tune](tools/finetune/README.md) · [plan and results](gemma-kids-social-model-plan.md)
+
+<p align="center"><img src="docs/img/finetune-round8.png" alt="Dot plot: round 8 scores higher than round 7 on all seven test sets, from 88.3% on the live-failure scenes to 94.9% on the warm-first scenes" width="820"></p>
 
 ## Docs
 | Topic | Where |
