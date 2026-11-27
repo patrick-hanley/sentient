@@ -156,6 +156,7 @@ def parse(out: str, default: str, online=None) -> tuple[str, list[tuple[str, str
 RAW_DEBUG = os.environ.get("SENTIENT_DEBUG_RAW") == "1"
 INLINE_NAME = re.compile(r"^\s*[*]*(" + "|".join(NAMES.values()) + r")\s*[*]*\s*:\s*[*]*\s*", re.I)
 BY_NAME = {v.upper(): k for k, v in NAMES.items()}
+STUCK = re.compile(r"\b(\w+)\b((?:[\s,;.!]+\1\b){3,})", re.I)      # the same word four or more times in a row ("Ho ho ho!" is fine)
 INLINE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[*]*(?:" + "|".join(NAMES.values()) + r")\s*[*]*\s*:)", re.I)
 LEAD_TAG = re.compile(r"^\s*\{([a-z_]+)\}\s*")
 SOUND_ASKED = re.compile(r"\b(?:sounds?|noises?|roar|rawr|growl|honk|sing|song|loud|pretend|animal|make a|what does|how does)\b", re.I)
@@ -234,6 +235,13 @@ class ReplyLines:
             if self.warm:
                 self.warm.start()
         text = clean(raw_text)
+        loop = STUCK.search(text)          # live Nov 27, idle chatter: "like tiny, happy, sweet, sweet, sweet, sweet, ..." for ten pieces
+        if loop:
+            text = text[:loop.start(2)].rstrip(" ,;")
+            if self.cur:
+                self._stuck = True
+        if getattr(self, "_stuck", False) and not loop:
+            return                        # the model is stuck on a word: nothing more of this reply is spoken
         parts = INLINE_SPLIT.split(text)
         if len(parts) > 1:                # several toys' words in one piece: each part by itself
             for part in parts:

@@ -453,6 +453,22 @@ class LeadSoundTests(unittest.TestCase):
         p.feed("PENNY: Penguins eat fish! Dyno: I like to swim!\nHEARD: x\n")
         self.assertEqual([toy for toy, _t in out], ["penny", "dyno"])
 
+    def test_a_toy_stuck_on_one_word_goes_quiet(self):
+        """Live Nov 27 (stock model, idle chatter): "like tiny, happy, sweet, sweet, sweet, ..." for ten pieces."""
+        from brain.director import ReplyLines
+        out = []
+        p = ReplyLines({"penny", "dyno"}, lambda toy, t: out.append(t), lambda h: None, guard=None)
+        p.feed("PENNY: People are like sprinkles, like tiny, happy, sweet, sweet, sweet, sweet, sweet, sweet, sweet, sweet, sweet. More words.\n"
+               "DYNO: Wow!\n")
+        said = " ".join(out)
+        self.assertLessEqual(said.count("sweet"), 2, out)
+        self.assertNotIn("More words", said)
+        self.assertNotIn("Wow", said)
+        out.clear()
+        p = ReplyLines({"penny"}, lambda toy, t: out.append(t), lambda h: None, guard=None)
+        p.feed("PENNY: Trip, trap, trip, trap went the bridge. Ho ho ho! Very, very good.\n")
+        self.assertIn("Very, very good.", " ".join(out))
+
     def test_the_words_that_call_for_a_sound(self):
         from brain.director import SOUND_ASKED
         for said in ("Dyno, roar for me!", "What sound does a goose make?", "Can you sing a song?", "make a noise"):

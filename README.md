@@ -64,6 +64,29 @@ mid-sentence when the child cuts in.
 On the real toys this removes most of the talking toy from the other microphones (71% of its words still audible before, 10%
 after) and lets the child be understood (65% of words wrong before, 13% after). [Echo cancellation and barge-in](docs/aec.md)
 
+## A parent tells the toys about their child
+
+The Parent Board is a small website on the brain, behind a family PIN. A parent types a few sentences ("Spelling test Friday,
+she loves space, soccer is Tuesdays at four, peanut allergy, nothing scary before bed") or photographs a homework sheet. The
+brain sorts it into notes the parent can check and delete, and the toys then know what the child likes, what is coming up at
+school, and what to stay away from.
+
+<p align="center"><img src="docs/img/parent-board-notes.png" alt="The Parent Board: a parent writes a few sentences about a child, and the toys keep them as notes grouped by interests, school, schedule, care, people and boundaries, each with Still true and Delete" width="860"></p>
+
+- **One tap cues:** dinner, bedtime, bath, homework, leaving. The toys say it in their own words at once.
+- **Per child:** each child has their own notes; the toys use them only while that child is marked as playing.
+- **Private by design:** notes are encrypted on the brain and never uploaded. Schedule notes expire, and a weekly check-in asks
+  what is still true. One button deletes everything.
+
+[Parent Board](docs/parent-board.md)
+
+## The dashboard
+
+One page on the home network shows the three toys, what they heard and said, and the switches a grown-up needs: speakers,
+microphones, idle chatter and the cameras.
+
+<p align="center"><img src="docs/img/dashboard.png" alt="The dashboard: Dyno, Sage and Penny online with cameras off, volume sliders, firmware and voice for each toy, and switches for speakers, microphones, idle chatter and cameras" width="860"></p>
+
 ## What the toys do now
 - **The child leads.** A toy answers the child before anything else, one toy per answer, and "stop" (or "be quiet", "don't talk to
   me") silences all three. [review loop](docs/review-loop.md)

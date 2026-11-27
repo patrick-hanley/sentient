@@ -2,6 +2,10 @@
 
 <img src="img/parent-board.png" alt="The Parent Board on a phone: which child is playing, say-it-now cue buttons, and notes for the toys" width="320">
 
+![A parent writes a few sentences about a child and the toys keep them as notes the parent can check or delete](img/parent-board-notes.png)
+
+Both pictures use invented sample data.
+
 Design input: [design/parent-updates-design.md](design/parent-updates-design.md). This page is the implementation reference.
 
 A website on the brain, **port 8090**, for a parent to tell the toys about a child (interests, schedule, homework,
