@@ -40,3 +40,4 @@ docs/private/
 
 # rendered training mixes (regenerate with tools/finetune/scenes.py render); the scenes themselves are tracked
 tools/finetune/data/train*.jsonl
+tools/finetune/.progress-topic

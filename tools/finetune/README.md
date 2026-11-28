@@ -77,6 +77,9 @@ Redraw it with `python tools/finetune/plot_rounds.py`. Training loss for rounds 
   that way and 82% merged-then-quantized. Always merge first.
 - Two long runs in one day get the second one cut near the end (round 8, twice at step 310 of 381). Start training with
   `nohup ... &` so the notebook stays free, and zip and download the `adapter` folder right after the epoch-1 save.
+- To follow a run without the notebook open, add `--progress https://ntfy.sh/<topic>` (the topic is in the git-ignored
+  `.progress-topic`) and read it from the Mac with `./progress.sh`. Step lines post at most every 5 min; the half-epoch
+  checks, the end and the save always do. No line for over 10 min means the run has probably stopped.
 - Colab's free GPU quota ran out after about 3.5 hours in one day, and the merge needs more than its 12 GB of RAM. The merge,
   convert and quantize steps all run on the Jetson instead.
 - Leaving a kind of turn out of the scenes un-teaches it: rounds 1-2 had no camera turns and the tuned model stopped answering

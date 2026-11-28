@@ -98,6 +98,33 @@ def sample(model, tok, path, n=4, seed=0):
     model.train()
 
 
+_PROGRESS = {"url": "", "last": 0.0}
+
+
+def out(*args, **kw):
+    """print, and with --progress also post the line to that ntfy.sh topic (step lines at most every 5 min; checks, the end
+    and errors always). A failed post is ignored: progress never stops training."""
+    kw.setdefault("flush", True)
+    print(*args, **kw)
+    url = _PROGRESS["url"]
+    if not url:
+        return
+    msg = " ".join(str(x) for x in args)
+    routine = msg.startswith("step ")
+    if routine and time.time() - _PROGRESS["last"] < 300:
+        return
+    _PROGRESS["last"] = time.time() if routine else _PROGRESS["last"]
+    import threading, urllib.request
+    def post():
+        try:
+            req = urllib.request.Request(url, data=msg.encode()[:3500], method="POST",
+                                         headers={"Title": "toys training", "Priority": "1" if routine else "3"})
+            urllib.request.urlopen(req, timeout=10).read()
+        except Exception:
+            pass
+    threading.Thread(target=post, daemon=True).start()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="google/gemma-4-E2B-it")
@@ -114,8 +141,11 @@ def main():
     ap.add_argument("--save-last", action="store_true", help="also save the adapter as it is at the end, in <out>-last (the best "
                     "held-out loss can be an early checkpoint that has hardly seen the new scenes: round 4 saved epoch 0.5)")
     ap.add_argument("--focus", default="", help="id prefixes, comma-separated (\"q4-,r4-\"): held-out scenes with them are also scored on their own")
+    ap.add_argument("--progress", default="", help="an ntfy.sh topic URL: progress lines are also posted there, to follow the run "
+                    "without the notebook (tools/finetune/progress.sh reads it)")
     ap.add_argument("--dry", action="store_true", help="load, list the LoRA modules, encode the data, one step, then stop")
     a = ap.parse_args()
+    _PROGRESS["url"] = a.progress
 
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
     from peft import LoraConfig, get_peft_model
@@ -126,7 +156,7 @@ def main():
         a.base, device_map={"": 0}, dtype=torch.float16,
         quantization_config=BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True,
                                                bnb_4bit_compute_dtype=torch.float16))
-    print(type(model).__name__, f"GPU {torch.cuda.memory_allocated() / 2**30:.1f} GB after load", flush=True)
+    out(type(model).__name__, f"GPU {torch.cuda.memory_allocated() / 2**30:.1f} GB after load", flush=True)
     # not peft's prepare_model_for_kbit_training: it casts every unquantized weight to float32, and E2B's per-layer embedding
     # table alone is then 9.4 GB (out of memory on a T4). Freezing + checkpointing is all that is needed here.
     for p in model.parameters():
@@ -146,22 +176,22 @@ def main():
             assert len(hits) == 1, (k, hits[:3])
             own[hits[0]].data.copy_(v.to(own[hits[0]].dtype))
             got += 1
-        print(f"continued from {a.init}: {got} tensors loaded", flush=True)
+        out(f"continued from {a.init}: {got} tensors loaded", flush=True)
     names = [n for n, _ in model.named_modules() if n.endswith("lora_A")]
-    print(len(names), "LoRA modules, e.g.", names[0], "...", names[-1])
+    out(len(names), "LoRA modules, e.g.", names[0], "...", names[-1])
     assert not any("audio" in n or "vision" in n for n in names)
     assert not any(re.search(rf"layers\.(\d+)\.self_attn\.[kv]_proj", n) and int(re.search(r"layers\.(\d+)\.", n).group(1)) >= SHARED_KV_FROM
                    for n in names)
     model.print_trainable_parameters()
     tc = getattr(model.config, "text_config", model.config)
-    print("final_logit_softcapping:", getattr(tc, "final_logit_softcapping", None), flush=True)
+    out("final_logit_softcapping:", getattr(tc, "final_logit_softcapping", None), flush=True)
 
     params = [p for p in model.parameters() if p.requires_grad]
     opt = torch.optim.AdamW(params, lr=a.lr, weight_decay=0.0)
     steps = math.ceil(len(train) * a.epochs / a.accum)
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min(1.0, (s + 1) / max(1, steps * 0.06)) * 0.5 * (1 + math.cos(math.pi * min(1.0, s / steps))))
     scaler = torch.amp.GradScaler("cuda")
-    print(f"val loss before: {val_loss(model, val):.3f}", flush=True)
+    out(f"val loss before: {val_loss(model, val):.3f}", flush=True)
     sample(model, tok, a.val)
     model.train()
     rng, seen, step, t0, run = random.Random(0), 0, 0, time.time(), []
@@ -170,19 +200,19 @@ def main():
     focus = [e for e in (encode(tok, json.loads(l)["messages"], a.max_len) for l in Path(a.val).read_text().splitlines()
                          if l.strip() and a.focus and json.loads(l)["id"].startswith(tuple(a.focus.split(",")))) if e]
     if focus:
-        print(f"{len(focus)} held-out scenes with id {a.focus}*: loss before {val_loss(model, focus):.3f}", flush=True)
+        out(f"{len(focus)} held-out scenes with id {a.focus}*: loss before {val_loss(model, focus):.3f}", flush=True)
         model.train()
 
     def check(tag):
         nonlocal best
         if focus:
-            print(f"== {tag} loss on the {len(focus)} {a.focus}* scenes {val_loss(model, focus):.3f}", flush=True)
+            out(f"== {tag} loss on the {len(focus)} {a.focus}* scenes {val_loss(model, focus):.3f}", flush=True)
         v = val_loss(model, val)
         keep = v < best
         if keep:
             best = v
             model.save_pretrained(a.out)
-        print(f"== {tag} val loss {v:.3f}{'  (best so far, saved)' if keep else '  (worse: not saved)'}", flush=True)
+        out(f"== {tag} val loss {v:.3f}{'  (best so far, saved)' if keep else '  (worse: not saved)'}", flush=True)
     total = int(len(train) * a.epochs)
     while seen < total:
         order = list(range(len(train)))
@@ -193,7 +223,7 @@ def main():
             x, y = train[j]
             loss = lm_loss(model, x, y)
             if not torch.isfinite(loss):
-                print("non-finite loss, example skipped", flush=True)
+                out("non-finite loss, example skipped", flush=True)
                 opt.zero_grad(set_to_none=True)
                 continue
             scaler.scale(loss / a.accum).backward()
@@ -205,7 +235,7 @@ def main():
                 scaler.step(opt); scaler.update(); opt.zero_grad(set_to_none=True); sched.step()
                 step += 1
                 if step % 5 == 0 or a.dry:
-                    print(f"step {step}/{steps} epoch {seen / len(train):.2f} loss {sum(run) / len(run):.3f} "
+                    out(f"step {step}/{steps} epoch {seen / len(train):.2f} loss {sum(run) / len(run):.3f} "
                           f"{(time.time() - t0) / seen:.2f} s/example GPU {torch.cuda.max_memory_allocated() / 2**30:.1f} GB", flush=True)
                     run = []
                 if a.dry:
@@ -213,7 +243,7 @@ def main():
             if seen % every == 0 and seen < total:
                 check(f"epoch {seen / len(train):.2f}")
     check("end")
-    print(f"best val loss {best:.3f}  ({(time.time() - t0) / 60:.1f} min)", flush=True)
+    out(f"best val loss {best:.3f}  ({(time.time() - t0) / 60:.1f} min)", flush=True)
     sample(model, tok, a.val)
     # llama.cpp's converter expects the checkpoint's tensor names (model.language_model.layers.N...)
     from safetensors.torch import load_file, save_file
@@ -227,7 +257,7 @@ def main():
             k2 = k if "language_model" in k else re.sub(r"^(base_model\.model\.)(?:model\.)?layers\.", r"\1model.language_model.layers.", k)
             fixed[k2] = v.float()
         save_file(fixed, str(f))
-    print("saved", a.out, len(fixed), "tensors, e.g.", next(iter(fixed)))
+    out("saved", a.out, len(fixed), "tensors, e.g.", next(iter(fixed)))
 
 
 if __name__ == "__main__":
