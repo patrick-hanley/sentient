@@ -194,6 +194,8 @@ FILLER_AFTER_S = float(os.environ.get("SENTIENT_FILLER_AFTER_S", "2.5"))   # the
                              # line of the answer is ready this long after the turn began: a quick answer starts with the answer
 SOUND_LEAD_GAP = int(os.environ.get("SENTIENT_SOUND_LEAD_GAP", "4"))       # a reply to the child may open with a sound tag
                              # ({dino_roar}, {penguin_honk}) once in this many turns, unless the child's words call for the sound
+NOTE_RAISE_MAX = int(os.environ.get("SENTIENT_NOTE_RAISE_MAX", "2"))       # the toys may bring up one parent note themselves in this
+NOTE_RAISE_GAP = int(os.environ.get("SENTIENT_NOTE_RAISE_GAP", "8"))       # many turns out of this many; the child may raise it any time
 BRIDGE_WAIT_S = 0.35         # next line not rendered after this long: its speaker plays a canned reaction
 MAX_BRIDGES = 3              # per turn
 PAUSE_CAPTURE_DURING_TURN = True

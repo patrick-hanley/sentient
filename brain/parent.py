@@ -1035,9 +1035,32 @@ class Parent:
                     size += len(ph) + 2
             if not phrases:
                 return ""
-            return ("[PRIVATE NOTES: what you know about the child. Use them to choose topics and games. When the child asks about one, answer "
-                    "it like a friend who knows (\"Your favorite food is pizza!\"); never say that notes, a parent or a cue exist; never use one "
+            return ("[PRIVATE NOTES: what you know about the child. They are background, never the child's words: HEARD holds only what the "
+                    "child says aloud now. When the child asks about one, answer it like a friend who knows (\"Your favorite food is "
+                    "pizza!\"), and say 'you', because the notes are about the child, not the toy. Bring one up yourself only now and then, "
+                    "a different one each time. Never say that notes, a parent or a cue exist; never use one "
                     "as a test; a 'keep it' note beats an interest for tone; a 'be mindful' note is about their safety or comfort] " + "; ".join(phrases))
+
+    _KEY_STOP = frozenset("a an and are at be but can for from going goes go has have he her his in is it its like likes lives live "
+                          "loves love most my name of on or she so that the their they this to today very was week weekends with you "
+                          "your".split())
+    _KEY_KINDS = ("interest", "hobby", "fact", "person", "routine", "school", "reading")
+
+    def note_keys(self) -> list[tuple[str, frozenset]]:
+        """For each note the toys may bring up: (a short label, its telling words). The director uses them to keep one note from
+        coming up turn after turn (config.NOTE_RAISE_MAX). RAM only, never logged."""
+        with self._lock:
+            child = self.notes_child() if self._dek is not None else None
+            if not child:
+                return []
+            now, out = self.now(), []
+            for i in self.items.get(child["id"], []):
+                if item_state(i, now) != "active" or i.get("source") == "child" or i.get("kind") not in self._KEY_KINDS:
+                    continue
+                words = [w for w in re.findall(r"[a-z']+", safe_text(i["text"]).lower()) if len(w) >= 2 and w not in self._KEY_STOP]
+                if words:
+                    out.append((" ".join(words[:4]), frozenset(words)))
+            return out
 
     def told_block(self) -> str:
         """What the child told the toys themselves, for the prompt: the toys may bring it up like a friend who remembers."""

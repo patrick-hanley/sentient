@@ -20,6 +20,8 @@ import cv2
 import numpy as np
 
 from brain import camera, config, parent as P, parent_web, perception, teach
+
+config.PARENT_AUTOSTART = False   # these tests describe the locked board (SENTIENT_PARENT_AUTOSTART=0); tools/test_parent.py covers autostart
 from brain.director import Director, system_prompt
 from brain.perception import Perceiver, Recognizer, Thing, View
 from brain.vad import Utterance

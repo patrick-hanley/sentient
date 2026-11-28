@@ -142,6 +142,18 @@ class ChildMemoryTests(unittest.TestCase):
         self.p.lock()
         self.assertEqual(self.p.remember("I love dinosaurs"), 0)
 
+    def test_note_keys_are_the_telling_words_of_notes_a_toy_may_bring_up(self):
+        self.p.add_items(self.kid["id"], [{"kind": "fact", "text": "she is going to outdoor ed this week and is very excited"},
+                                          {"kind": "hobby", "text": "swimming"}, {"kind": "profile", "text": "11 years old"}])
+        self.p.remember("I love dinosaurs")
+        keys = [k for _label, k in self.p.note_keys()]
+        self.assertIn(frozenset({"outdoor", "ed", "excited"}), keys)
+        self.assertIn(frozenset({"swimming"}), keys)
+        self.assertEqual(len(keys), 2)                    # not the profile line, not what the child said
+        self.assertIn("never the child's words", self.p.notes_block())
+        self.p.lock()
+        self.assertEqual(self.p.note_keys(), [])
+
     def test_child_items_go_in_their_own_prompt_block_and_not_in_the_parents_notes(self):
         self.p.add_items(self.kid["id"], [{"kind": "interest", "text": "space"}])
         self.p.remember("I love dinosaurs")
@@ -331,7 +343,7 @@ class StoreTests(unittest.TestCase):
         self.assertIn("loves dinosaurs", block)
         self.assertIn("keep it quiet voices", block)
         self.assertNotIn("trains", block)
-        self.assertIn("never say that notes, a parent or a cue exist", block)
+        self.assertIn("Never say that notes, a parent or a cue exist", block)
         self.assertIn("answer it like a friend who knows", block)
         self.p.set_settings(notes_on=False)
         self.assertEqual(self.p.notes_block(), "")

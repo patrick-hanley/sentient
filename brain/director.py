@@ -408,6 +408,10 @@ class Director:
         self._scene_last: str | None = None        # BEATS: who spoke the last line of the previous round
         self.parent = None                         # brain.parent.Parent, set by main (profiles, cues; None = feature off)
         self._notes_sent = ""                       # the notes block the toys' conversation currently contains
+        self._note_turn = 0                        # turns so far (for the cap on bringing up one note)
+        self._note_raised: dict = {}               # note words -> the turns a toy brought that note up
+        self._note_child: dict = {}                # note words -> the turn the child last spoke of it
+        self._note_keys: list = []                 # this turn's notes: (label, words)
         self.imu = {}                              # toy -> {"asleep", "commented", "last"}: per-episode memory, RAM only
         self._reactions = collections.deque(maxlen=6)   # times of recent IMU reactions (rate limit)
         self._variant = {}                         # (toy, key) -> last variant used, so a repeat is not word for word
@@ -703,6 +707,7 @@ class Director:
                     self._turn(utt=c[0])
                     continue
                 self.live.tick()   # metrics: close a session that has been idle too long
+                self._notes_idle()
                 self._maybe_event()
                 continue
             if self.paused:
@@ -743,6 +748,51 @@ class Director:
         u.continued = True
         log.info("the child went on: two parts answered as one turn (%.1fs)", len(u.pcm) / config.SAMPLE_RATE)
         return u
+
+    def _private_notes(self) -> str:
+        return ((self.parent.notes_block() + "\n" + getattr(self.parent, "told_block", lambda: "")()).strip() if self.parent else "")
+
+    def _notes_idle(self):
+        """While nobody is talking: put changed notes into a fresh conversation and prefill it, so the next reply is not the slow one."""
+        if not hasattr(self.llm, "set_notes") or self.paused:
+            return
+        notes = self._private_notes()
+        if notes == self._notes_sent:
+            return
+        self.llm.set_notes(notes)
+        self._notes_sent = notes
+        warm = getattr(self.llm, "warm", None)
+        if warm:
+            threading.Thread(target=warm, daemon=True, name="llm-warm").start()
+
+    @staticmethod
+    def _note_hit(keys: frozenset, text: str) -> bool:
+        """Does this line speak of that note? (two of its telling words, or its only one)"""
+        ws = set(re.findall(r"[a-z']+", text.lower()))
+        same = lambda a, b: a == b or (min(len(a), len(b)) >= 4 and a[:4] == b[:4])
+        return sum(any(same(k, w) for w in ws) for k in keys) >= min(2, len(keys))
+
+    def _note_worn(self, keys: frozenset) -> bool:
+        """A toy has brought this note up NOTE_RAISE_MAX times in the last NOTE_RAISE_GAP turns and the child has not spoken of it lately."""
+        t = self._note_turn
+        if self._note_child.get(keys, -99) >= t - 2:
+            return False
+        return len([x for x in self._note_raised.get(keys, ()) if x > t - config.NOTE_RAISE_GAP and x != t]) >= config.NOTE_RAISE_MAX
+
+    def _note_child_said(self, text: str):
+        for _label, keys in self._note_keys:
+            if self._note_hit(keys, text):
+                self._note_child[keys] = self._note_turn
+
+    def _note_line(self, text: str, first: bool) -> bool:
+        """A toy line is about to be spoken: False drops it (a worn note again, and not the reply's first line: a reply is never
+        emptied). Otherwise the notes it speaks of are counted."""
+        hits = [keys for _label, keys in self._note_keys if self._note_hit(keys, text)]
+        if not first and any(self._note_worn(k) for k in hits):
+            return False
+        for k in hits:
+            self._note_raised[k] = [x for x in self._note_raised.get(k, []) if x > self._note_turn - config.NOTE_RAISE_GAP and x != self._note_turn] + [self._note_turn]
+        return True
 
     _FILL = frozenset("a an and are at be but can did do does for from have i i'm in is it it's me my no not of oh ok okay on or so "
                       "that the then there this to too um was we what when with yes you your".split())
@@ -987,9 +1037,25 @@ class Director:
             elif said and looks and camera.wants_look(said):
                 prompt, image = self._look_turn(toy, prompt, scene, said, image, tmp_files, trace)
             log.info("→ gemma: %s", prompt.replace("\n", " | "))
-            notes = ((self.parent.notes_block() + "\n" + getattr(self.parent, "told_block", lambda: "")()).strip() if self.parent else "")   # added AFTER the log line: notes are never logged
-            notes = (notes + "\n" + (self.live.coaching_block() or "")).strip()   # [COACHING] block (brain/coaching.py); '' when neutral/off
-            if notes != self._notes_sent:
+            notes = self._private_notes()   # added AFTER the log line: notes are never logged
+            self._note_turn += 1
+            self._note_keys = getattr(self.parent, "note_keys", lambda: [])() if self.parent else []
+            if said:
+                self._note_child_said(said)
+            worn = [label for label, keys in self._note_keys if self._note_worn(keys)]
+            if hasattr(self.llm, "set_notes"):
+                # the notes ride in the system prompt, read once: not sent again each turn (1.5 s a reply) and not next to the audio,
+                # where the model copied them into HEARD. A change starts a fresh conversation, so a deleted note really stops being used.
+                if notes != self._notes_sent:
+                    self.llm.set_notes(notes)
+                    self._notes_sent = notes
+                notes = (self.live.coaching_block() or "").strip()
+                if worn and self._notes_sent:
+                    notes = (notes + "\n[ENOUGH FOR NOW] You have talked about these a lot: " + "; ".join(worn[:4]) +
+                             ". Do not bring them up this turn unless the child does.").strip()
+            else:
+                notes = (notes + "\n" + (self.live.coaching_block() or "")).strip()   # [COACHING] block (brain/coaching.py); '' when neutral/off
+            if not hasattr(self.llm, "set_notes") and notes != self._notes_sent:
                 # the notes changed (another child, an item deleted, notes paused, locked): the toys' conversation still holds
                 # the old ones, so start it afresh. Deleting a note must really stop the toys using it.
                 reset = getattr(self.llm, "reset_conversation", None)
@@ -1081,6 +1147,9 @@ class Director:
                     return
                 if self_seen == who and not self.turn_lines and not re.search(r"\b(?:me|myself|i'?m|i am)\b", text, re.I):
                     text = "Hey, that's me! " + text     # the toy saw itself: it must say so, whatever the model wrote
+                if not self._note_line(text, first=not self.turn_lines):
+                    tl["flags"]["note_capped"] = True   # the same parent note again: this line is left out
+                    return
                 self.turn_lines.append((who, text))
                 if scripted.leaks_note(text):   # a toy must never reveal that a parent wrote anything: play something safe, once
                     if deflected:
@@ -1096,6 +1165,8 @@ class Director:
                     return                       # an [EVENT] turn has no child audio: a HEARD line there is old words repeated
                 if not story_on and gate(text) != "ok":
                     return                       # nobody said this: nothing is routed, remembered or answered
+                if text:
+                    self._note_child_said(text)
                 if not text and tl.get("story") and self._story_ears_log:
                     # the model gave no transcript ("HEARD: -" for every sentence of one story, live Nov 22, so "the end" was
                     # never seen and the story stayed on): the fast recogniser's words for this stretch stand in

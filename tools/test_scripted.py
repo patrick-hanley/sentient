@@ -264,6 +264,68 @@ class ReviewFixTests(unittest.TestCase):
             d._turn(event="x")
         self.assertEqual(len(resets), 3)   # none at first, then: notes appear, notes change, notes disappear (the repeat is left alone)
 
+    def test_notes_go_in_the_system_prompt_once_and_not_in_every_turn(self):
+        sent, prompts = [], []
+
+        class Llm(TL.Backend):
+            def set_notes(self, notes):
+                sent.append(notes)
+
+            def stream(self, text, **_):
+                prompts.append(text)
+                yield "DYNO: Hello!"
+        d, hub, _ = make(Llm())
+        for n in ["[PRIVATE NOTES] loves space", "[PRIVATE NOTES] loves space", "[PRIVATE NOTES] loves trains", ""]:
+            d.parent = types.SimpleNamespace(notes_block=lambda n=n: n)
+            d._turn(event="x")
+        self.assertEqual(sent, ["[PRIVATE NOTES] loves space", "[PRIVATE NOTES] loves trains", ""])   # only when they change
+        self.assertFalse(any("PRIVATE NOTES" in p for p in prompts))
+
+    def test_changed_notes_are_loaded_while_nobody_is_talking(self):
+        sent, warmed = [], []
+
+        class Llm(TL.Backend):
+            def set_notes(self, notes):
+                sent.append(notes)
+
+            def warm(self):
+                warmed.append(1)
+        d, hub, _ = make(Llm())
+        d.parent = types.SimpleNamespace(notes_block=lambda: "[PRIVATE NOTES] loves space")
+        d._notes_idle()
+        d._notes_idle()
+        self.assertEqual(sent, ["[PRIVATE NOTES] loves space"])
+        self.assertTrue(wait(lambda: warmed == [1]))
+
+    def test_one_note_comes_up_twice_then_is_left_out_until_the_child_raises_it(self):
+        replies = iter(["DYNO: Hello!\nSAGE: Outdoor ed sounds fun!"] * 3 + ["DYNO: Outdoor ed again!\nSAGE: I like frogs."] +
+                       ["DYNO: Good idea!\nSAGE: Tell me about outdoor ed!"])
+
+        class Llm(TL.Backend):
+            hears_audio = False
+
+            def set_notes(self, notes):
+                pass
+
+            def stream(self, text, **_):
+                self.last = text
+                yield next(replies)
+        llm = Llm()
+        d, hub, _ = make(llm)
+        keys = [("outdoor ed excited", frozenset({"outdoor", "ed", "excited"}))]
+        d.parent = types.SimpleNamespace(notes_block=lambda: "[PRIVATE NOTES] outdoor ed this week", note_keys=lambda: keys)
+        said = []
+        for _ in range(3):
+            d._turn(event="x")
+            said.append([t for _w, t in d.turn_lines])
+        self.assertEqual([len(s) for s in said], [2, 2, 1])             # the third time the outdoor ed line is left out
+        self.assertIn("[ENOUGH FOR NOW]", llm.last)
+        d._turn(event="x")
+        self.assertEqual(len(d.turn_lines), 2)                          # a reply's first line is never dropped
+        d._note_child_said("I loved outdoor ed")                        # the child brings it up: free again
+        d._turn(event="x")
+        self.assertEqual(len(d.turn_lines), 2)
+
     def test_a_typed_cue_is_never_written_to_the_disk_cache_but_a_chip_cue_is(self):
         class Llm(TL.Backend):
             def complete(self, prompt, system, image=None, max_tokens=200):

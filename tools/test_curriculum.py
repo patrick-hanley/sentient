@@ -283,8 +283,9 @@ class WebTests(unittest.TestCase):
         self.assertEqual(self.call("POST", "/api/curriculum/pick", {"child": self.kid, "id": "x", "mode": "boost"})[0], 400)
         self.assertEqual(self.call("GET", "/api/curriculum?child=nope")[0], 404)
 
-    def test_needs_login(self):
-        self.assertEqual(self.call("GET", "/api/curriculum?child=" + self.kid, cookie=False)[0], 401)
+    def test_reading_is_open_and_a_pick_needs_the_pin(self):
+        # the board starts by itself: reading needs no PIN, any change does (docs/parent-board.md)
+        self.assertEqual(self.call("GET", "/api/curriculum?child=" + self.kid, cookie=False)[0], 200)
         self.assertEqual(self.call("POST", "/api/curriculum/pick", {}, cookie=False)[0], 401)
 
 

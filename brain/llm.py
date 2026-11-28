@@ -69,6 +69,7 @@ class LiteRTBackend:
     def __init__(self, system: str, gpu: bool = True):
         import litert_lm as lm
         self.lm, self.system, self.conv = lm, system, None
+        self.notes = ""            # the parent's notes for the child playing (set_notes): part of the system prompt, never logged
         self.device = "gpu" if gpu else "cpu"
         lm.set_min_log_severity(lm.LogSeverity.ERROR)
         main_be = lm.Backend.GPU() if gpu else lm.Backend.CPU()
@@ -97,7 +98,7 @@ class LiteRTBackend:
                 pass
         # Gemma 4 thinks by default: ~8 s of hidden reasoning per turn. Off for snappy toys.
         self.conv = _enter(self.engine.create_conversation(
-            messages=[self.lm.Message.system(self.system)],
+            messages=[self.lm.Message.system(self.system + ("\n\n" + self.notes if self.notes else ""))],
             thinking_config=self.lm.ThinkingConfig(enable_thinking=False),
             max_output_tokens=120))
         self.turns = 0
@@ -105,6 +106,13 @@ class LiteRTBackend:
     def reset_conversation(self):
         """Forget the conversation (the toys' memory of parent notes included) and start a fresh one."""
         with self._lock:
+            self.new_conversation()
+
+    def set_notes(self, notes: str):
+        """The private notes go in the system prompt of a fresh conversation: read once, not again on every turn (re-sending
+        them each turn cost about 1.5 s a reply and they were copied into the HEARD line, live Nov 27)."""
+        with self._lock:
+            self.notes = notes or ""
             self.new_conversation()
 
     WARM = "[SCENE] Nothing is happening.\n[EVENT] The toys wait quietly. Reply with exactly one line: HEARD: -"
@@ -237,7 +245,7 @@ class LlamaCppBackend:
         return {"chat_template_kwargs": {"enable_thinking": False}}
 
     def __init__(self, system: str, gpu: bool = False):
-        self.system, self.history = system, []
+        self.system, self.history, self.notes = system, [], ""
         self.http = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         self.server = None
         # Audio straight into Gemma (the mmproj carries the audio encoder), like LiteRT-LM: no Whisper step. This is the runtime a
@@ -274,6 +282,10 @@ class LlamaCppBackend:
 
     def reset_conversation(self):
         self.history = []
+
+    def set_notes(self, notes: str):
+        """The private notes ride in the system prompt (see LiteRTBackend.set_notes)."""
+        self.notes, self.history = notes or "", []
 
     def _init_transcriber(self):
         self.whisper = shutil.which("whisper-cli") or shutil.which("whisper-cpp")
@@ -313,7 +325,7 @@ class LlamaCppBackend:
             content = media + [{"type": "text", "text": text}]
         self.history = self.history[-2 * config.RESET_AFTER_TURNS:]
         while True:
-            msgs = [{"role": "system", "content": self.system}] + self.history + [{"role": "user", "content": content}]
+            msgs = [{"role": "system", "content": self.system + ("\n\n" + getattr(self, "notes", "") if getattr(self, "notes", "") else "")}] + self.history + [{"role": "user", "content": content}]
             body = json.dumps({"messages": msgs, "max_tokens": 120, "temperature": 0.8,
                                "stream": True, **self.request_options()}).encode()
             req = urllib.request.Request(self.base_url + "/v1/chat/completions", data=body,
